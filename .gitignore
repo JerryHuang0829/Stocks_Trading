@@ -42,7 +42,6 @@ reports/*
 # （hypothesis lock 紀律 — 沒 commit hash anchor 就沒 pre-registered 效力）
 !reports/README.md
 !reports/phase_b0_lite/
-!reports/phase_p5/
 !reports/phase_d/
 !reports/sprint_pro_validation/
 !reports/factor_ic/
