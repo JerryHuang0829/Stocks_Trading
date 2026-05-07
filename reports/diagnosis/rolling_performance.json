@@ -1,0 +1,836 @@
+{
+  "input": "reports/backtests/backtest_20220101_20251231_daily_returns.json",
+  "n_observations": 910,
+  "date_range": {
+    "start": "2022-01-12",
+    "end": "2025-12-31"
+  },
+  "windows": [
+    "126d",
+    "252d"
+  ],
+  "monthly_stats": [
+    {
+      "date": "2022-01-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-02-28",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-03-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-04-30",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-05-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-06-30",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-07-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-08-31",
+      "126d": {
+        "sharpe_strategy": -0.8275,
+        "sharpe_benchmark": -2.368,
+        "alpha": 0.1241,
+        "mdd_strategy": -0.139,
+        "mdd_benchmark": -0.2389
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-09-30",
+      "126d": {
+        "sharpe_strategy": -1.6891,
+        "sharpe_benchmark": -3.6253,
+        "alpha": 0.0761,
+        "mdd_strategy": -0.132,
+        "mdd_benchmark": -0.3075
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-10-31",
+      "126d": {
+        "sharpe_strategy": -1.3153,
+        "sharpe_benchmark": -2.8556,
+        "alpha": 0.0941,
+        "mdd_strategy": -0.1197,
+        "mdd_benchmark": -0.2845
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-11-30",
+      "126d": {
+        "sharpe_strategy": -0.2866,
+        "sharpe_benchmark": -1.1641,
+        "alpha": 0.0735,
+        "mdd_strategy": -0.1039,
+        "mdd_benchmark": -0.281
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2022-12-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2023-01-31",
+      "126d": {
+        "sharpe_strategy": 1.2218,
+        "sharpe_benchmark": -0.0854,
+        "alpha": 0.256,
+        "mdd_strategy": -0.0833,
+        "mdd_benchmark": -0.2029
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2023-02-28",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2023-03-31",
+      "126d": {
+        "sharpe_strategy": 1.7323,
+        "sharpe_benchmark": 0.3593,
+        "alpha": 0.3489,
+        "mdd_strategy": -0.0672,
+        "mdd_benchmark": -0.1563
+      },
+      "252d": {
+        "sharpe_strategy": 0.3129,
+        "sharpe_benchmark": -1.0259,
+        "alpha": 0.1611,
+        "mdd_strategy": -0.1442,
+        "mdd_benchmark": -0.3449
+      }
+    },
+    {
+      "date": "2023-04-30",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2023-05-31",
+      "126d": {
+        "sharpe_strategy": 2.4394,
+        "sharpe_benchmark": 2.3519,
+        "alpha": 0.4414,
+        "mdd_strategy": -0.0773,
+        "mdd_benchmark": -0.0707
+      },
+      "252d": {
+        "sharpe_strategy": 1.0284,
+        "sharpe_benchmark": -0.4074,
+        "alpha": 0.2589,
+        "mdd_strategy": -0.1197,
+        "mdd_benchmark": -0.2845
+      }
+    },
+    {
+      "date": "2023-06-30",
+      "126d": {
+        "sharpe_strategy": 2.023,
+        "sharpe_benchmark": 1.0623,
+        "alpha": 0.4542,
+        "mdd_strategy": -0.0773,
+        "mdd_benchmark": -0.0636
+      },
+      "252d": {
+        "sharpe_strategy": 1.1135,
+        "sharpe_benchmark": -0.2984,
+        "alpha": 0.2751,
+        "mdd_strategy": -0.1039,
+        "mdd_benchmark": -0.281
+      }
+    },
+    {
+      "date": "2023-07-31",
+      "126d": {
+        "sharpe_strategy": 2.2078,
+        "sharpe_benchmark": 1.6437,
+        "alpha": 0.5202,
+        "mdd_strategy": -0.0773,
+        "mdd_benchmark": -0.0463
+      },
+      "252d": {
+        "sharpe_strategy": 1.2927,
+        "sharpe_benchmark": -0.1494,
+        "alpha": 0.3227,
+        "mdd_strategy": -0.0833,
+        "mdd_benchmark": -0.2157
+      }
+    },
+    {
+      "date": "2023-08-31",
+      "126d": {
+        "sharpe_strategy": 0.8346,
+        "sharpe_benchmark": 0.613,
+        "alpha": 0.1782,
+        "mdd_strategy": -0.1617,
+        "mdd_benchmark": -0.0793
+      },
+      "252d": {
+        "sharpe_strategy": 0.9929,
+        "sharpe_benchmark": 0.0174,
+        "alpha": 0.2495,
+        "mdd_strategy": -0.1617,
+        "mdd_benchmark": -0.2029
+      }
+    },
+    {
+      "date": "2023-09-30",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2023-10-31",
+      "126d": {
+        "sharpe_strategy": -0.7656,
+        "sharpe_benchmark": -0.2374,
+        "alpha": -0.1495,
+        "mdd_strategy": -0.1843,
+        "mdd_benchmark": -0.0917
+      },
+      "252d": {
+        "sharpe_strategy": 0.5755,
+        "sharpe_benchmark": 0.2511,
+        "alpha": 0.1213,
+        "mdd_strategy": -0.1843,
+        "mdd_benchmark": -0.0938
+      }
+    },
+    {
+      "date": "2023-11-30",
+      "126d": {
+        "sharpe_strategy": -0.2276,
+        "sharpe_benchmark": 0.5142,
+        "alpha": -0.0803,
+        "mdd_strategy": -0.1843,
+        "mdd_benchmark": -0.0917
+      },
+      "252d": {
+        "sharpe_strategy": 1.1326,
+        "sharpe_benchmark": 1.4173,
+        "alpha": 0.1733,
+        "mdd_strategy": -0.1843,
+        "mdd_benchmark": -0.0917
+      }
+    },
+    {
+      "date": "2023-12-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2024-01-31",
+      "126d": {
+        "sharpe_strategy": -1.2656,
+        "sharpe_benchmark": 0.647,
+        "alpha": -0.2628,
+        "mdd_strategy": -0.1741,
+        "mdd_benchmark": -0.0645
+      },
+      "252d": {
+        "sharpe_strategy": 0.8293,
+        "sharpe_benchmark": 1.0403,
+        "alpha": 0.1341,
+        "mdd_strategy": -0.1852,
+        "mdd_benchmark": -0.0917
+      }
+    },
+    {
+      "date": "2024-02-29",
+      "126d": {
+        "sharpe_strategy": 0.4935,
+        "sharpe_benchmark": 1.6252,
+        "alpha": -0.0011,
+        "mdd_strategy": -0.0839,
+        "mdd_benchmark": -0.0636
+      },
+      "252d": {
+        "sharpe_strategy": 1.0317,
+        "sharpe_benchmark": 1.2289,
+        "alpha": 0.1684,
+        "mdd_strategy": -0.1852,
+        "mdd_benchmark": -0.0917
+      }
+    },
+    {
+      "date": "2024-03-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2024-04-30",
+      "126d": {
+        "sharpe_strategy": 1.9422,
+        "sharpe_benchmark": 2.5515,
+        "alpha": 0.3959,
+        "mdd_strategy": -0.1218,
+        "mdd_benchmark": -0.0663
+      },
+      "252d": {
+        "sharpe_strategy": 1.1388,
+        "sharpe_benchmark": 1.5429,
+        "alpha": 0.1963,
+        "mdd_strategy": -0.1852,
+        "mdd_benchmark": -0.0917
+      }
+    },
+    {
+      "date": "2024-05-31",
+      "126d": {
+        "sharpe_strategy": 1.9237,
+        "sharpe_benchmark": 2.9,
+        "alpha": 0.4391,
+        "mdd_strategy": -0.1467,
+        "mdd_benchmark": -0.0663
+      },
+      "252d": {
+        "sharpe_strategy": 1.0055,
+        "sharpe_benchmark": 1.8959,
+        "alpha": 0.135,
+        "mdd_strategy": -0.1852,
+        "mdd_benchmark": -0.0917
+      }
+    },
+    {
+      "date": "2024-06-30",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2024-07-31",
+      "126d": {
+        "sharpe_strategy": 1.6032,
+        "sharpe_benchmark": 2.5731,
+        "alpha": 0.317,
+        "mdd_strategy": -0.1593,
+        "mdd_benchmark": -0.1187
+      },
+      "252d": {
+        "sharpe_strategy": 0.5878,
+        "sharpe_benchmark": 1.6387,
+        "alpha": 0.0178,
+        "mdd_strategy": -0.1852,
+        "mdd_benchmark": -0.1187
+      }
+    },
+    {
+      "date": "2024-08-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2024-09-30",
+      "126d": {
+        "sharpe_strategy": 0.7862,
+        "sharpe_benchmark": 1.1904,
+        "alpha": 0.0985,
+        "mdd_strategy": -0.2702,
+        "mdd_benchmark": -0.2184
+      },
+      "252d": {
+        "sharpe_strategy": 0.7218,
+        "sharpe_benchmark": 1.5665,
+        "alpha": 0.0286,
+        "mdd_strategy": -0.2702,
+        "mdd_benchmark": -0.2184
+      }
+    },
+    {
+      "date": "2024-10-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2024-11-30",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2024-12-31",
+      "126d": {
+        "sharpe_strategy": -0.3231,
+        "sharpe_benchmark": 0.2339,
+        "alpha": -0.1266,
+        "mdd_strategy": -0.2702,
+        "mdd_benchmark": -0.2184
+      },
+      "252d": {
+        "sharpe_strategy": 0.7485,
+        "sharpe_benchmark": 1.5636,
+        "alpha": 0.0463,
+        "mdd_strategy": -0.2702,
+        "mdd_benchmark": -0.2184
+      }
+    },
+    {
+      "date": "2025-01-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2025-02-28",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2025-03-31",
+      "126d": {
+        "sharpe_strategy": -1.1297,
+        "sharpe_benchmark": -0.029,
+        "alpha": -0.2221,
+        "mdd_strategy": -0.2031,
+        "mdd_benchmark": -0.1485
+      },
+      "252d": {
+        "sharpe_strategy": 0.1503,
+        "sharpe_benchmark": 0.6885,
+        "alpha": -0.0451,
+        "mdd_strategy": -0.2873,
+        "mdd_benchmark": -0.2184
+      }
+    },
+    {
+      "date": "2025-04-30",
+      "126d": {
+        "sharpe_strategy": -1.7645,
+        "sharpe_benchmark": -0.7215,
+        "alpha": -0.2774,
+        "mdd_strategy": -0.2626,
+        "mdd_benchmark": -0.2793
+      },
+      "252d": {
+        "sharpe_strategy": -0.3075,
+        "sharpe_benchmark": 0.2252,
+        "alpha": -0.1203,
+        "mdd_strategy": -0.3406,
+        "mdd_benchmark": -0.2881
+      }
+    },
+    {
+      "date": "2025-05-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2025-06-30",
+      "126d": {
+        "sharpe_strategy": -1.7457,
+        "sharpe_benchmark": 0.2228,
+        "alpha": -0.3113,
+        "mdd_strategy": -0.2357,
+        "mdd_benchmark": -0.2793
+      },
+      "252d": {
+        "sharpe_strategy": -0.7274,
+        "sharpe_benchmark": 0.4271,
+        "alpha": -0.2193,
+        "mdd_strategy": -0.3406,
+        "mdd_benchmark": -0.2881
+      }
+    },
+    {
+      "date": "2025-07-31",
+      "126d": {
+        "sharpe_strategy": -1.7161,
+        "sharpe_benchmark": 0.3258,
+        "alpha": -0.3042,
+        "mdd_strategy": -0.2357,
+        "mdd_benchmark": -0.2793
+      },
+      "252d": {
+        "sharpe_strategy": -0.9739,
+        "sharpe_benchmark": 0.2189,
+        "alpha": -0.2456,
+        "mdd_strategy": -0.3406,
+        "mdd_benchmark": -0.2881
+      }
+    },
+    {
+      "date": "2025-08-31",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2025-09-30",
+      "126d": {
+        "sharpe_strategy": 0.4945,
+        "sharpe_benchmark": 1.5122,
+        "alpha": -0.0672,
+        "mdd_strategy": -0.1185,
+        "mdd_benchmark": -0.2082
+      },
+      "252d": {
+        "sharpe_strategy": -0.2807,
+        "sharpe_benchmark": 0.8207,
+        "alpha": -0.1467,
+        "mdd_strategy": -0.2626,
+        "mdd_benchmark": -0.2793
+      }
+    },
+    {
+      "date": "2025-10-31",
+      "126d": {
+        "sharpe_strategy": 2.5223,
+        "sharpe_benchmark": 4.5341,
+        "alpha": 0.1419,
+        "mdd_strategy": -0.0839,
+        "mdd_benchmark": -0.0419
+      },
+      "252d": {
+        "sharpe_strategy": 0.524,
+        "sharpe_benchmark": 1.3456,
+        "alpha": -0.0236,
+        "mdd_strategy": -0.2626,
+        "mdd_benchmark": -0.2793
+      }
+    },
+    {
+      "date": "2025-11-30",
+      "126d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      },
+      "252d": {
+        "sharpe_strategy": null,
+        "sharpe_benchmark": null,
+        "alpha": null,
+        "mdd_strategy": null,
+        "mdd_benchmark": null
+      }
+    },
+    {
+      "date": "2025-12-31",
+      "126d": {
+        "sharpe_strategy": 3.2232,
+        "sharpe_benchmark": 3.8614,
+        "alpha": 0.3876,
+        "mdd_strategy": -0.0839,
+        "mdd_benchmark": -0.0759
+      },
+      "252d": {
+        "sharpe_strategy": 0.9334,
+        "sharpe_benchmark": 1.2405,
+        "alpha": 0.0843,
+        "mdd_strategy": -0.2398,
+        "mdd_benchmark": -0.2793
+      }
+    }
+  ],
+  "edge_erosion": {
+    "first_rolling_12M_sharpe_below_0.5": "2023-02-20",
+    "first_rolling_12M_alpha_negative": "2024-08-02",
+    "last_rolling_12M_sharpe": 0.9334,
+    "last_rolling_12M_alpha": 0.0843
+  }
+}

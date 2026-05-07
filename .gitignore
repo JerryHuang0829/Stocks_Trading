@@ -37,6 +37,9 @@ reports/*
 !reports/phase_p5/
 !reports/phase_d/
 !reports/sprint_pro_validation/
+!reports/factor_ic/
+!reports/diagnosis/
+!reports/architecture_audit_2026_05_02.md
 
 # Strategy config variants（仍不公開，避免暴露 weight/exclude list）
 config/grid_*.yaml

@@ -1,0 +1,272 @@
+{
+  "config": {
+    "shares_per_lot": 1000,
+    "commission_bps": 6.0,
+    "tax_bps_sell": 30.0,
+    "slippage_bps": 10,
+    "commission_min_ntd": 20
+  },
+  "turnover_check": {
+    "avg_turnover_per_rebalance": 0.3319,
+    "total_one_way_turnover": 15.9294,
+    "derivation_a_avg_x2x12": 7.9656,
+    "derivation_b_total_over_years_x2": 7.9647
+  },
+  "by_capital": [
+    {
+      "capital": 25000,
+      "whole_lot_only": {
+        "capital": 25000,
+        "allow_odd_lot": false,
+        "mean_capital_utilization": 0.0,
+        "target_total_ntd": 541310.26,
+        "actual_total_ntd": 0.0,
+        "overall_utilization": 0.0,
+        "category_counts": {
+          "whole_lot": 0,
+          "odd_lot_only": 0,
+          "cannot_afford": 379
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 100.0,
+        "pct_odd_lot_only": 0.0,
+        "pct_whole_lot": 0.0,
+        "total_commission_paid_ntd": 1920.0,
+        "total_tax_paid_ntd": 804.63,
+        "total_slippage_ntd": 536.42,
+        "total_cost_ntd": 3261.05,
+        "annual_cost_drag_pct": 3.261
+      },
+      "with_odd_lot": {
+        "capital": 25000,
+        "allow_odd_lot": true,
+        "mean_capital_utilization": 0.8105,
+        "target_total_ntd": 541310.26,
+        "actual_total_ntd": 460478.55,
+        "overall_utilization": 0.8507,
+        "category_counts": {
+          "whole_lot": 0,
+          "odd_lot_only": 347,
+          "cannot_afford": 32
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 8.44,
+        "pct_odd_lot_only": 91.56,
+        "pct_whole_lot": 0.0,
+        "total_commission_paid_ntd": 1920.0,
+        "total_tax_paid_ntd": 804.63,
+        "total_slippage_ntd": 536.42,
+        "total_cost_ntd": 3261.05,
+        "annual_cost_drag_pct": 3.261
+      },
+      "gross_alpha_4y_estimate": 0.0606,
+      "gross_alpha_2025_estimate": -0.1577,
+      "net_alpha_4y_after_friction": 0.028,
+      "net_alpha_2025_after_friction": -0.1903
+    },
+    {
+      "capital": 100000,
+      "whole_lot_only": {
+        "capital": 100000,
+        "allow_odd_lot": false,
+        "mean_capital_utilization": 0.0,
+        "target_total_ntd": 2165241.02,
+        "actual_total_ntd": 0.0,
+        "overall_utilization": 0.0,
+        "category_counts": {
+          "whole_lot": 0,
+          "odd_lot_only": 0,
+          "cannot_afford": 379
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 100.0,
+        "pct_odd_lot_only": 0.0,
+        "pct_whole_lot": 0.0,
+        "total_commission_paid_ntd": 2070.2,
+        "total_tax_paid_ntd": 3218.51,
+        "total_slippage_ntd": 2145.67,
+        "total_cost_ntd": 7434.38,
+        "annual_cost_drag_pct": 1.8586
+      },
+      "with_odd_lot": {
+        "capital": 100000,
+        "allow_odd_lot": true,
+        "mean_capital_utilization": 0.9414,
+        "target_total_ntd": 2165241.02,
+        "actual_total_ntd": 2081528.15,
+        "overall_utilization": 0.9613,
+        "category_counts": {
+          "whole_lot": 0,
+          "odd_lot_only": 373,
+          "cannot_afford": 6
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 1.58,
+        "pct_odd_lot_only": 98.42,
+        "pct_whole_lot": 0.0,
+        "total_commission_paid_ntd": 2070.2,
+        "total_tax_paid_ntd": 3218.51,
+        "total_slippage_ntd": 2145.67,
+        "total_cost_ntd": 7434.38,
+        "annual_cost_drag_pct": 1.8586
+      },
+      "gross_alpha_4y_estimate": 0.0606,
+      "gross_alpha_2025_estimate": -0.1577,
+      "net_alpha_4y_after_friction": 0.042,
+      "net_alpha_2025_after_friction": -0.1763
+    },
+    {
+      "capital": 300000,
+      "whole_lot_only": {
+        "capital": 300000,
+        "allow_odd_lot": false,
+        "mean_capital_utilization": 0.0019,
+        "target_total_ntd": 6495723.06,
+        "actual_total_ntd": 25750.0,
+        "overall_utilization": 0.004,
+        "category_counts": {
+          "whole_lot": 1,
+          "odd_lot_only": 0,
+          "cannot_afford": 378
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 99.74,
+        "pct_odd_lot_only": 0.0,
+        "pct_whole_lot": 0.26,
+        "total_commission_paid_ntd": 4040.36,
+        "total_tax_paid_ntd": 9655.53,
+        "total_slippage_ntd": 6437.02,
+        "total_cost_ntd": 20132.91,
+        "annual_cost_drag_pct": 1.6777
+      },
+      "with_odd_lot": {
+        "capital": 300000,
+        "allow_odd_lot": true,
+        "mean_capital_utilization": 0.9823,
+        "target_total_ntd": 6495723.06,
+        "actual_total_ntd": 6408013.65,
+        "overall_utilization": 0.9865,
+        "category_counts": {
+          "whole_lot": 1,
+          "odd_lot_only": 378,
+          "cannot_afford": 0
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 0.0,
+        "pct_odd_lot_only": 99.74,
+        "pct_whole_lot": 0.26,
+        "total_commission_paid_ntd": 4040.36,
+        "total_tax_paid_ntd": 9655.53,
+        "total_slippage_ntd": 6437.02,
+        "total_cost_ntd": 20132.91,
+        "annual_cost_drag_pct": 1.6777
+      },
+      "gross_alpha_4y_estimate": 0.0606,
+      "gross_alpha_2025_estimate": -0.1577,
+      "net_alpha_4y_after_friction": 0.0439,
+      "net_alpha_2025_after_friction": -0.1745
+    },
+    {
+      "capital": 1000000,
+      "whole_lot_only": {
+        "capital": 1000000,
+        "allow_odd_lot": false,
+        "mean_capital_utilization": 0.0855,
+        "target_total_ntd": 21652410.21,
+        "actual_total_ntd": 2942600.0,
+        "overall_utilization": 0.1359,
+        "category_counts": {
+          "whole_lot": 42,
+          "odd_lot_only": 0,
+          "cannot_afford": 337
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 88.92,
+        "pct_odd_lot_only": 0.0,
+        "pct_whole_lot": 11.08,
+        "total_commission_paid_ntd": 12874.04,
+        "total_tax_paid_ntd": 32185.09,
+        "total_slippage_ntd": 21456.73,
+        "total_cost_ntd": 66515.86,
+        "annual_cost_drag_pct": 1.6629
+      },
+      "with_odd_lot": {
+        "capital": 1000000,
+        "allow_odd_lot": true,
+        "mean_capital_utilization": 0.9695,
+        "target_total_ntd": 21652410.21,
+        "actual_total_ntd": 20692980.0,
+        "overall_utilization": 0.9557,
+        "category_counts": {
+          "whole_lot": 42,
+          "odd_lot_only": 337,
+          "cannot_afford": 0
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 0.0,
+        "pct_odd_lot_only": 88.92,
+        "pct_whole_lot": 11.08,
+        "total_commission_paid_ntd": 12874.04,
+        "total_tax_paid_ntd": 32185.09,
+        "total_slippage_ntd": 21456.73,
+        "total_cost_ntd": 66515.86,
+        "annual_cost_drag_pct": 1.6629
+      },
+      "gross_alpha_4y_estimate": 0.0606,
+      "gross_alpha_2025_estimate": -0.1577,
+      "net_alpha_4y_after_friction": 0.044,
+      "net_alpha_2025_after_friction": -0.1743
+    },
+    {
+      "capital": 3000000,
+      "whole_lot_only": {
+        "capital": 3000000,
+        "allow_odd_lot": false,
+        "mean_capital_utilization": 0.3091,
+        "target_total_ntd": 64957230.63,
+        "actual_total_ntd": 26253700.0,
+        "overall_utilization": 0.4042,
+        "category_counts": {
+          "whole_lot": 142,
+          "odd_lot_only": 0,
+          "cannot_afford": 237
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 62.53,
+        "pct_odd_lot_only": 0.0,
+        "pct_whole_lot": 37.47,
+        "total_commission_paid_ntd": 38622.11,
+        "total_tax_paid_ntd": 96555.28,
+        "total_slippage_ntd": 64370.19,
+        "total_cost_ntd": 199547.58,
+        "annual_cost_drag_pct": 1.6629
+      },
+      "with_odd_lot": {
+        "capital": 3000000,
+        "allow_odd_lot": true,
+        "mean_capital_utilization": 0.932,
+        "target_total_ntd": 64957230.63,
+        "actual_total_ntd": 59253661.1,
+        "overall_utilization": 0.9122,
+        "category_counts": {
+          "whole_lot": 142,
+          "odd_lot_only": 237,
+          "cannot_afford": 0
+        },
+        "total_positions_simulated": 379,
+        "pct_cannot_afford": 0.0,
+        "pct_odd_lot_only": 62.53,
+        "pct_whole_lot": 37.47,
+        "total_commission_paid_ntd": 38622.11,
+        "total_tax_paid_ntd": 96555.28,
+        "total_slippage_ntd": 64370.19,
+        "total_cost_ntd": 199547.58,
+        "annual_cost_drag_pct": 1.6629
+      },
+      "gross_alpha_4y_estimate": 0.0606,
+      "gross_alpha_2025_estimate": -0.1577,
+      "net_alpha_4y_after_friction": 0.044,
+      "net_alpha_2025_after_friction": -0.1743
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "factors": [
+    "high_proximity",
+    "pead_eps",
+    "margin_short_ratio",
+    "revenue_momentum_v2",
+    "foreign_broker_v2"
+  ],
+  "matrix": {
+    "high_proximity": {
+      "high_proximity": 1.0,
+      "pead_eps": 0.2126,
+      "margin_short_ratio": 0.1599,
+      "revenue_momentum_v2": 0.1607,
+      "foreign_broker_v2": 0.0982
+    },
+    "pead_eps": {
+      "pead_eps": 1.0,
+      "high_proximity": 0.2126,
+      "margin_short_ratio": -0.0719,
+      "revenue_momentum_v2": 0.3841,
+      "foreign_broker_v2": 0.108
+    },
+    "margin_short_ratio": {
+      "margin_short_ratio": 1.0,
+      "high_proximity": 0.1599,
+      "pead_eps": -0.0719,
+      "revenue_momentum_v2": -0.0618,
+      "foreign_broker_v2": -0.1228
+    },
+    "revenue_momentum_v2": {
+      "revenue_momentum_v2": 1.0,
+      "high_proximity": 0.1607,
+      "pead_eps": 0.3841,
+      "margin_short_ratio": -0.0618,
+      "foreign_broker_v2": 0.0748
+    },
+    "foreign_broker_v2": {
+      "foreign_broker_v2": 1.0,
+      "high_proximity": 0.0982,
+      "pead_eps": 0.108,
+      "margin_short_ratio": -0.1228,
+      "revenue_momentum_v2": 0.0748
+    }
+  },
+  "period_counts": {
+    "high_proximity": {
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "margin_short_ratio": 71,
+      "revenue_momentum_v2": 71,
+      "foreign_broker_v2": 71
+    },
+    "pead_eps": {
+      "pead_eps": 71,
+      "high_proximity": 71,
+      "margin_short_ratio": 71,
+      "revenue_momentum_v2": 71,
+      "foreign_broker_v2": 71
+    },
+    "margin_short_ratio": {
+      "margin_short_ratio": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "revenue_momentum_v2": 71,
+      "foreign_broker_v2": 71
+    },
+    "revenue_momentum_v2": {
+      "revenue_momentum_v2": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "margin_short_ratio": 71,
+      "foreign_broker_v2": 71
+    },
+    "foreign_broker_v2": {
+      "foreign_broker_v2": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "margin_short_ratio": 71,
+      "revenue_momentum_v2": 71
+    }
+  },
+  "symbol_counts": {
+    "high_proximity": {
+      "high_proximity": 1635.6478873239437,
+      "pead_eps": 1604.7,
+      "margin_short_ratio": 1483.6,
+      "revenue_momentum_v2": 1626.8,
+      "foreign_broker_v2": 1604.0
+    },
+    "pead_eps": {
+      "pead_eps": 1608.6760563380283,
+      "high_proximity": 1604.7,
+      "margin_short_ratio": 1470.6,
+      "revenue_momentum_v2": 1605.4,
+      "foreign_broker_v2": 1586.4
+    },
+    "margin_short_ratio": {
+      "margin_short_ratio": 1485.6478873239437,
+      "high_proximity": 1483.6,
+      "pead_eps": 1470.6,
+      "revenue_momentum_v2": 1482.3,
+      "foreign_broker_v2": 1480.6
+    },
+    "revenue_momentum_v2": {
+      "revenue_momentum_v2": 1633.7605633802816,
+      "high_proximity": 1626.8,
+      "pead_eps": 1605.4,
+      "margin_short_ratio": 1482.3,
+      "foreign_broker_v2": 1603.4
+    },
+    "foreign_broker_v2": {
+      "foreign_broker_v2": 1609.7887323943662,
+      "high_proximity": 1604.0,
+      "pead_eps": 1586.4,
+      "margin_short_ratio": 1480.6,
+      "revenue_momentum_v2": 1603.4
+    }
+  },
+  "method": "per_period_spearman_then_average",
+  "notes": "Correlation = average of per-period Spearman ρ across all periods where both factors have scores for at least 10 common symbols. High |ρ| (>0.5) means factors pick similar stocks cross-sectionally; low |ρ| (<0.2) means they are near-independent signals."
+}

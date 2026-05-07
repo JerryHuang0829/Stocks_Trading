@@ -1,0 +1,129 @@
+{
+  "snapshots": "reports/backtests/backtest_20220101_20251231_snapshots.json",
+  "assumptions": {
+    "commission_bps": 6.0,
+    "tax_bps_sell": 30.0,
+    "shares_per_lot": 1000,
+    "strategy_gross_alpha_3y_pct": 8.84,
+    "strategy_gross_alpha_4y_pct": 3.4
+  },
+  "results": [
+    {
+      "capital_ntd": 25000,
+      "commission_bps": 6.0,
+      "slippage_bps": 5,
+      "mean_weight_drift_pct": 100.0,
+      "pct_positions_unbuyable": 100.0,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 207.1,
+      "annual_cost_drag_pct": 2.071,
+      "slippage_scenario": "optimistic",
+      "net_alpha_4y_pct": 1.329,
+      "net_alpha_3y_pct": 6.769
+    },
+    {
+      "capital_ntd": 25000,
+      "commission_bps": 6.0,
+      "slippage_bps": 10,
+      "mean_weight_drift_pct": 100.0,
+      "pct_positions_unbuyable": 100.0,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 246.9,
+      "annual_cost_drag_pct": 2.469,
+      "slippage_scenario": "realistic",
+      "net_alpha_4y_pct": 0.931,
+      "net_alpha_3y_pct": 6.371
+    },
+    {
+      "capital_ntd": 25000,
+      "commission_bps": 6.0,
+      "slippage_bps": 20,
+      "mean_weight_drift_pct": 100.0,
+      "pct_positions_unbuyable": 100.0,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 326.6,
+      "annual_cost_drag_pct": 3.266,
+      "slippage_scenario": "pessimistic",
+      "net_alpha_4y_pct": 0.134,
+      "net_alpha_3y_pct": 5.574
+    },
+    {
+      "capital_ntd": 300000,
+      "commission_bps": 6.0,
+      "slippage_bps": 5,
+      "mean_weight_drift_pct": 99.8,
+      "pct_positions_unbuyable": 99.74,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 207.1,
+      "annual_cost_drag_pct": 2.071,
+      "slippage_scenario": "optimistic",
+      "net_alpha_4y_pct": 1.329,
+      "net_alpha_3y_pct": 6.769
+    },
+    {
+      "capital_ntd": 300000,
+      "commission_bps": 6.0,
+      "slippage_bps": 10,
+      "mean_weight_drift_pct": 99.8,
+      "pct_positions_unbuyable": 99.74,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 246.9,
+      "annual_cost_drag_pct": 2.469,
+      "slippage_scenario": "realistic",
+      "net_alpha_4y_pct": 0.931,
+      "net_alpha_3y_pct": 6.371
+    },
+    {
+      "capital_ntd": 300000,
+      "commission_bps": 6.0,
+      "slippage_bps": 20,
+      "mean_weight_drift_pct": 99.8,
+      "pct_positions_unbuyable": 99.74,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 326.6,
+      "annual_cost_drag_pct": 3.266,
+      "slippage_scenario": "pessimistic",
+      "net_alpha_4y_pct": 0.134,
+      "net_alpha_3y_pct": 5.574
+    },
+    {
+      "capital_ntd": 1000000,
+      "commission_bps": 6.0,
+      "slippage_bps": 5,
+      "mean_weight_drift_pct": 91.41,
+      "pct_positions_unbuyable": 88.92,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 207.1,
+      "annual_cost_drag_pct": 2.071,
+      "slippage_scenario": "optimistic",
+      "net_alpha_4y_pct": 1.329,
+      "net_alpha_3y_pct": 6.769
+    },
+    {
+      "capital_ntd": 1000000,
+      "commission_bps": 6.0,
+      "slippage_bps": 10,
+      "mean_weight_drift_pct": 91.41,
+      "pct_positions_unbuyable": 88.92,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 246.9,
+      "annual_cost_drag_pct": 2.469,
+      "slippage_scenario": "realistic",
+      "net_alpha_4y_pct": 0.931,
+      "net_alpha_3y_pct": 6.371
+    },
+    {
+      "capital_ntd": 1000000,
+      "commission_bps": 6.0,
+      "slippage_bps": 20,
+      "mean_weight_drift_pct": 91.41,
+      "pct_positions_unbuyable": 88.92,
+      "annual_turnover_est": 7.96,
+      "annual_cost_drag_bps": 326.6,
+      "annual_cost_drag_pct": 3.266,
+      "slippage_scenario": "pessimistic",
+      "net_alpha_4y_pct": 0.134,
+      "net_alpha_3y_pct": 5.574
+    }
+  ]
+}
