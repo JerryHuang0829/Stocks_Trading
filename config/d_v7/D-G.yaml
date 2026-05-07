@@ -1,0 +1,13 @@
+# D-G candidate (per H_d_v6:58)
+# 52W + PEAD + idio_vol_max (40/40/20 weights)
+# idio_vol_max: 0.5/0.5 split IdioVol residual std + MAX lottery composite
+# Implementation: Phase 2 Session 3 落地 src/features/idio_vol_max.py
+# A6 cross-correlation 監控: 與 low_vol_v2 |ρ| > 0.6 → drop or weight halve
+candidate_id: D-G
+description: high_proximity + pead_eps + idio_vol_max (40/40/20; 0.5/0.5 IdioVol + MAX)
+factors:
+  high_proximity: 0.40
+  pead_eps: 0.40
+  idio_vol_max: 0.20
+top_n_values: [8, 12, 16]
+spec_source: "H_d_v6:58 D-G row + R24 §設計-6 (0.5/0.5 split + A6 cross-corr monitoring)"
