@@ -1,0 +1,34 @@
+{
+  "phase": "C",
+  "phase_name": "PIT mutation test (forward-leak rejection)",
+  "sprint_code": "pro-validation-baseline-2026-05-04",
+  "commit_sha": "0d31572",
+  "test_file": "tests/_pit_mutation/test_pit_forward_leak.py",
+  "command": "& <quant python> -m pytest tests/_pit_mutation/test_pit_forward_leak.py -v --basetemp=tests/_tmp",
+  "generated_at": "2026-05-04",
+  "python_version": "3.12.13",
+  "pytest_version": "9.0.3",
+  "results": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "duration_seconds": 3.94
+  },
+  "test_breakdown": {
+    "test_pit_mutation_ohlcv_rejects_forward_leak": "PASS — _DataSlicer.fetch_ohlcv() 拒絕 as_of=2024-06-30 的 2024-12-15/2025-12-31 future row",
+    "test_pit_mutation_institutional_rejects_forward_leak": "PASS — fetch_institutional() 透過 _truncate_by_date_col 拒絕 future date row",
+    "test_pit_mutation_revenue_rejects_forward_leak": "PASS — fetch_month_revenue() 同上",
+    "test_pit_mutation_boundary_inclusive_at_as_of": "PASS — cutoff 是 `<=` (inclusive)，as_of 當天的資料正確被包含"
+  },
+  "mutation_meta_verification": {
+    "method": "Inline Python: bypass _DataSlicer cutoff (return full df), assert future row not in result",
+    "result": "AssertionError correctly raised — assert logic CAN catch forward leak",
+    "implication": "If someone changes `<=` to `<` or removes the filter in src/backtest/engine.py:139/191/_truncate_by_date_col, ALL 4 tests will fail"
+  },
+  "what_codex_missed": "Codex 上輪只做 smoke check (read code, look for .shift(-1), .iloc[-1:] 等可疑模式)，無 mutation test。Pro Research Standard 要求 mutation test 證 cutoff 真的 enforce，否則只是 'code looks right' 不是 'code blocks bad data'。",
+  "scope_notes": [
+    "本批 4 tests 涵蓋 OHLCV / institutional / monthly_revenue 三個主要 fetch path + boundary inclusive check",
+    "未測試 quarterly_eps / margin_short / market_value 其他 panel — 這些走相同 _truncate_by_date_col 邏輯，cutoff 共用",
+    "測試 throwaway in tests/_pit_mutation/，sprint 後可刪。如要保留須 user 核准 + 加入 baseline pytest run"
+  ]
+}

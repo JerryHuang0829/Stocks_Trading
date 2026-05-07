@@ -1,0 +1,44 @@
+{
+  "phase": "A",
+  "phase_name": "Environment unblock + baseline pytest",
+  "sprint_code": "pro-validation-baseline-2026-05-04",
+  "command": "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; chcp 65001; & 'C:\\Users\\<user>\\AppData\\Local\\miniconda3\\envs\\quant\\python.exe' -m pytest tests/ -q --basetemp=tests/_tmp --tb=short",
+  "commit_sha": "7ba18dd",
+  "branch": "main",
+  "repo": "Quantitative-Trading",
+  "period": "N/A (test run)",
+  "data_source": "tests/ + fixtures (in-repo)",
+  "generated_at": "2026-05-04",
+  "python_version": "3.12.13",
+  "pytest_version": "9.0.3",
+  "conda_env": "quant",
+  "seed": "N/A",
+  "key_metrics": {
+    "passed": 459,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 6,
+    "duration_seconds": 290.16,
+    "wall_clock_seconds": 294.1
+  },
+  "warning_breakdown": {
+    "pandas_ta_Pandas4Warning_copy_on_write": 1,
+    "Timestamp_utcnow_deprecated_test_backtest_cache_miss_L85": 1,
+    "ConstantInputWarning_ic_analysis_L175_test_factor_ic_report_records_tie_ratio_and_exclusion": 4
+  },
+  "env_unblock_solutions_applied": {
+    "pytest_basetemp": "tests/_tmp (in-repo, avoids C:/Users/...Temp/pytest-of-* sandbox-blocked default)",
+    "encoding": "PYTHONUTF8=1 + PYTHONIOENCODING=utf-8 + chcp 65001 (avoids cp950 UnicodeEncodeError)",
+    "conda_invocation": "Direct path to envs/quant/python.exe (avoids conda run wrapper crash on cp950)"
+  },
+  "audit_table_correction": {
+    "prior_claim": "Codex said 459 tests, my Explore agent found 453 — codex was wrong",
+    "corrected_claim": "Codex was correct (459 actual). My agent used `grep \"def test_\"` which misses parameterized tests + class methods. CLAUDE.md/HANDOFF 451 was stale (pre P5 Session 1 commit 9df25d5).",
+    "applies_to": "audit table claim #5 (test count)"
+  },
+  "notes": [
+    "No timeout, no cp950 crash, no sandbox permission failure observed.",
+    "All 459 tests passed cleanly at HEAD 7ba18dd (post Phase 0 baseline commit).",
+    "Warnings are deprecation/scipy notices, not failures."
+  ]
+}
