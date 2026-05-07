@@ -1,6 +1,13 @@
 # Secrets
 .env
 
+# AI workflow（本機保留，不公開）
+HANDOFF.md
+CLAUDE.md
+Claude-Prompt.md
+Codex-Prompt.md
+.claude/
+
 # Logs
 bot.log
 logs/
@@ -33,6 +40,7 @@ data/verify_*.json
 reports/*
 # 例外：Phase B0+ pre-registration / decision / audit chain 必入 git
 # （hypothesis lock 紀律 — 沒 commit hash anchor 就沒 pre-registered 效力）
+!reports/README.md
 !reports/phase_b0_lite/
 !reports/phase_p5/
 !reports/phase_d/
