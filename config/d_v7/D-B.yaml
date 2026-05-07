@@ -1,0 +1,11 @@
+# D-B candidate (per H_d_v6:53)
+# 52W high proximity + PEAD + Margin Short (IR-weighted with 20% Margin cap)
+# IR-weighted normalization: 0.2738 / 0.2902 / 0.2313 → 39 / 41 / 20 (after 20% Margin cap)
+candidate_id: D-B
+description: high_proximity + pead_eps + margin_short_ratio (IR-weighted with 20% Margin cap)
+factors:
+  high_proximity: 0.39
+  pead_eps: 0.41
+  margin_short_ratio: 0.20
+top_n_values: [8, 12, 16]
+spec_source: "H_d_v6:53 D-B row + R24 §設計-3 (IR-weighted with 20% Margin cap diversification ceiling)"

@@ -1,0 +1,14 @@
+# D-F candidate (per H_d_v6:57)
+# 52W + PEAD + industry_momentum (40/40/20 weights)
+# industry_momentum: 6m formation per Moskowitz-Grinblatt 1999 (LOCKED, NOT 12m)
+# Implementation: Phase 2 Session 3 落地 src/features/industry_momentum.py
+# PIT industry label strategy: Option A preferred (month-end snapshot @ t-30d)
+#   OR Option B caveat fallback (current snapshot + V0.13 R14 caveat)
+candidate_id: D-F
+description: high_proximity + pead_eps + industry_momentum (40/40/20; 6m per MG1999)
+factors:
+  high_proximity: 0.40
+  pead_eps: 0.40
+  industry_momentum: 0.20
+top_n_values: [8, 12, 16]
+spec_source: "H_d_v6:57 D-F row + R24 §設計-5 (6m lock per MG1999) + V0.13 §industry label PIT strategy"

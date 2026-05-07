@@ -1,0 +1,12 @@
+# D-E candidate (per H_d_v6:56)
+# 52W + PEAD + quality_v3 (40/40/20 weights)
+# quality_v3: AQR QMJ profitability sub-component (NOT full QMJ) — see V1.1c P1 #5 caveat
+# Implementation: Phase 2 Session 2 落地 src/features/quality_v3.py (PIT-correct)
+candidate_id: D-E
+description: high_proximity + pead_eps + quality_v3 (40/40/20; QMJ profitability sub-component NOT full QMJ)
+factors:
+  high_proximity: 0.40
+  pead_eps: 0.40
+  quality_v3: 0.20
+top_n_values: [8, 12, 16]
+spec_source: "H_d_v6:56 D-E row + V1.1c P1 #5 (AQR QMJ profitability sub-component caveat) + Phase 2 S2 落地"
