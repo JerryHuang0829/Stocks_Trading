@@ -1,0 +1,66 @@
+# Secrets
+.env
+
+# Logs
+bot.log
+logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Data
+data/*.db
+data/signals.db
+data/cache/
+data/cache_new/
+data/cache_old/
+data/cache_rebuild_*.json
+data/cache_rebuild_*.flag
+data/cache_fill_progress.json
+data/cache_fill_*_progress.json
+data/cache_sweep_progress.json
+data/fix_twse_progress.json
+data/tpex_swap_fix_plan*.json
+data/validate_fix_list.json
+data/verify_*.json
+
+# Reports（本機保留，不公開）
+# 用 reports/* 不是 reports/ 因為 git 對 directory ignore 後的 sub-pattern unignore
+# 不生效；reports/* 只 ignore 一層內容，允許 !reports/<sub>/ 例外進來
+reports/*
+# 例外：Phase B0+ pre-registration / decision / audit chain 必入 git
+# （hypothesis lock 紀律 — 沒 commit hash anchor 就沒 pre-registered 效力）
+!reports/phase_b0_lite/
+!reports/phase_p5/
+!reports/phase_d/
+!reports/sprint_pro_validation/
+
+# Strategy config variants（仍不公開，避免暴露 weight/exclude list）
+config/grid_*.yaml
+config/fw_*.yaml
+config/p2_*.yaml
+config/settings_*.yaml
+
+# Codex / Claude scratch（audit chain 臨時產物）
+verify_tmp_*/
+.codex_pytest_tmp/
+.codex_conda_pytest/
+.pytest_codex_tmp/
+.pytest_codex_tmp_seq1/
+.pytest_local_thresholds/
+.pytest_r4_*/
+.pytest_tmp/
+tmpwyew0fr2/
+scripts/verify_margin_short_*.py
+scripts/verify_phase_a1_caches.py
+tests/_tmp/
+# tests/_pit_mutation/ — Plan v7 V0.8 (2026-05-04) un-gitignored；Sprint Phase C
+# 4 PIT mutation tests 是 deliverable 不是 throwaway，commit 進 git
+
+# IDE
+.vscode/
+.idea/
+.sync_info

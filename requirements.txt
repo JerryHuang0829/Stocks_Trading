@@ -1,0 +1,11 @@
+pandas>=2.0.0
+pandas-ta>=0.3.14b
+requests[socks]>=2.31.0
+python-dotenv>=1.0.0
+PyYAML>=6.0
+scipy>=1.11.0
+tenacity>=8.0.0
+FinMind>=1.6.0
+pytest>=7.0.0
+streamlit>=1.30.0
+plotly>=5.18.0

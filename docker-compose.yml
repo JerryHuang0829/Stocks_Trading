@@ -1,0 +1,52 @@
+services:
+  portfolio-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tw-portfolio-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./src:/app/src
+      - ./main.py:/app/main.py
+      - ./scripts:/app/scripts
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./tests:/app/tests
+    command: ["python", "-u", "main.py"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from src.utils.config import load_config; load_config('config/settings.yaml'); print('ok')",
+        ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  backtest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tw-portfolio-backtest
+    profiles: ["tools"]
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+    entrypoint: ["python", "-u", "scripts/run_backtest.py"]

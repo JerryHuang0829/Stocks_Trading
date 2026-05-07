@@ -1,0 +1,15 @@
+# Enforce LF for text files so Linux/Mac/Docker contributors
+# get consistent line endings regardless of core.autocrlf on Windows.
+# Codex Round 9 Task 5 flagged LF->CRLF warnings on every edit.
+*.py   text eol=lf
+*.sh   text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.md   text
+*.txt  text
+
+# Binary / opaque
+*.pkl    binary
+*.parquet binary
+*.csv    text

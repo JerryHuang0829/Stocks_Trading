@@ -1,0 +1,178 @@
+system:
+  mode: tw_stock_portfolio
+
+telegram:
+  bot_token_env: TELEGRAM_BOT_TOKEN
+  chat_id_env: TELEGRAM_CHAT_ID
+
+check_interval: 900
+heartbeat_interval: 86400  # 心跳通知間隔（秒），預設每天一次
+
+database:
+  path: data/signals.db
+
+default_strategy:
+  sma_fast: 20
+  sma_slow: 60
+  rsi_period: 14
+  rsi_oversold: 30
+  rsi_overbought: 70
+  bb_period: 20
+  bb_std: 2
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  atr_period: 14
+  adx_period: 14
+  volume_ma_period: 20
+  volume_breakout_ratio: 1.5
+
+backtest:
+  # --- 資料抓取天數 ---
+  benchmark_lookback_days: 3000       # benchmark OHLCV 歷史天數
+  ohlcv_min_fetch_days: 2000          # 單股 OHLCV 最小抓取天數
+  market_value_fetch_days: 2500       # 市值資料抓取天數（監控/dashboard 用，不用於選股排序 P7）
+  institutional_fallback_days: 500    # 法人買賣超 fallback 天數（無 backtest_start 時）
+  # --- data_degraded 閾值 ---
+  error_rate_threshold: 0.2           # 分析錯誤率超過此值判定 degraded
+  factor_coverage_threshold: 0.3      # 因子覆蓋率低於此值判定 degraded
+
+portfolio:
+  profile: tw_3m_stable
+  enabled: true
+  rebalance_frequency: monthly
+  rebalance_day: 12
+  rebalance_after_close_hour: 14
+  top_n: 8
+  hold_buffer: 3
+  hold_score_floor: 60
+  max_position_weight: 0.12
+  min_holdings: 3
+  market_proxy_symbol: "0050"
+  history_limit: 320
+  monthly_revenue_months: 15
+  min_price: 20
+  min_avg_turnover: 50000000
+  exclude_etf: true
+  use_monthly_revenue: true
+  use_auto_universe: true
+  auto_universe_size: 80
+  auto_universe_markets: ["twse", "tpex"]
+  auto_universe_exclude_industries: ["ETF", "ETN", "受益證券", "存託憑證", "權證"]
+  # TWSE turnover 預篩筆數（0=關閉；>0 先以成交金額篩到此數再跑 size proxy）
+  auto_universe_pre_filter_size: 400
+  auto_universe_include_symbols: []     # 強制納入的股票代碼
+  auto_universe_exclude_symbols: []     # 強制排除的股票代碼
+  exposure:
+    risk_on: 0.96
+    caution: 0.70
+    risk_off: 0.35
+  # 交易成本與換倉門檻
+  turnover_cost: 0.0047          # 台股來回成本 ≈ 0.47%（手續費+證交稅）
+  slippage_bps: 10               # 滑價 10bps/邊（中型股實際約 10-15bps）
+  turnover_score_threshold: 6.0  # 新股 score 需超過被替換股至少 N 分
+  # 產業分散
+  max_same_industry: 3           # 同產業最多 N 檔（P1 驗證：2→3）
+  # 權重模式: equal | score_weighted
+  weight_mode: score_weighted
+  # 安全閥
+  min_eligible_ratio: 0.3        # 至少 30% 分析成功才再平衡
+  # R19 audit A.1 fix (2026-05-02): per-symbol factor coverage gate.
+  # `_metric_ranks` 缺資料股票回 None sentinel；`_rank_analyses` per-symbol
+  # weight_sum normalize；coverage 低於此值 → portfolio_score=0 forced.
+  # 預設 0.6 = 5 因子至少 3 個有資料；threshold sensitivity 待 D.2 開跑前
+  # 跑 0.5/0.6/0.7/0.8 比較 OOS Sharpe (Codex R19 P2 抓的 caveat).
+  min_factor_coverage_per_symbol: 0.6
+  score_weights:
+    price_momentum: 0.55
+    trend_quality: 0.20
+    revenue_momentum: 0.25
+    institutional_flow: 0.00
+    # Phase A2 Step 2 new factors (default 0.0; enable by setting weight > 0)
+    high_proximity: 0.0
+    pead_eps: 0.0
+    margin_short_ratio: 0.0
+    revenue_momentum_v2: 0.0
+    foreign_broker_v2: 0.0
+
+symbols:
+  - name: 台積電
+    market: tw_stock
+    source: finmind
+    symbol: "2330"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 鴻海
+    market: tw_stock
+    source: finmind
+    symbol: "2317"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 聯發科
+    market: tw_stock
+    source: finmind
+    symbol: "2454"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 台達電
+    market: tw_stock
+    source: finmind
+    symbol: "2308"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 廣達
+    market: tw_stock
+    source: finmind
+    symbol: "2382"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 聯電
+    market: tw_stock
+    source: finmind
+    symbol: "2303"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 富邦金
+    market: tw_stock
+    source: finmind
+    symbol: "2881"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 國泰金
+    market: tw_stock
+    source: finmind
+    symbol: "2882"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true
+
+  - name: 長榮
+    market: tw_stock
+    source: finmind
+    symbol: "2603"
+    timeframe: D
+    enabled: true
+    strategy:
+      use_institutional: true

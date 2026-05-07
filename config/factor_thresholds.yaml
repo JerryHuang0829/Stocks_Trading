@@ -1,0 +1,113 @@
+# Phase A1 因子研究閾值集中管理
+# 2026-04-17 新增。對應 P2 建議：將各因子散落的閾值集中，便於 sensitivity analysis。
+#
+# 使用規則：
+# - `src/features/<factor>.py` 和 `src/analysis/ic_analysis.py` 應從此檔讀取預設值
+# - 修改此檔後需 pytest 全跑 + `/factor-ic` 重跑驗證
+
+factor_ic:
+  bootstrap:
+    method: "stationary_block"   # 取代舊 iid bootstrap（P1-新3A）
+    n: 1000
+    avg_block_len: 3.0
+    seed: 42
+    alpha: 0.05                  # 95% CI
+  permutation:
+    n_iterations: 300
+    base_seed: 42                # per (iter, period) 獨立 seed（P1-新4）
+    method: "shuffle_factor_keep_returns"  # Grinold-Kahn 標準
+  dsr:
+    # Deflated Sharpe Ratio (Bailey-Lopez de Prado 2014)
+    n_trials_default: 5          # Phase A1 有 5 個因子
+  effective_n:
+    # Cross-sectional independence 校正（P1-新5）
+    method: "industry_cluster"   # 若 industry 資料缺則退化 sqrt(n)
+    fallback_ratio: 0.5          # effective_n = n * fallback_ratio 當 cluster 不可用
+  min_universe_size:
+    cross_sectional: 30          # 少於此數 period 跳過 IC 計算
+    rank_stability: 50           # foreign_broker_v2 rank_stability 日內 universe 下限（P1-新7）
+
+factor_specific:
+  high_proximity:
+    rolling_max_days: 252        # 52 週
+    shift: 1                     # as_of 當日不入 rolling max
+
+  revenue_momentum_v2:
+    weights:
+      yoy: 0.50
+      accel_3m3m: 0.20
+      pct_24m: 0.15
+      seasonal_z: 0.15
+    yoy_strict_month_matching: true  # P1-新6 修完後；禁止 ±45 天容忍
+    seasonal_window_months: 24
+
+  margin_short_ratio:
+    ratio_weight: -0.5           # 反向因子（融資高 → 低分）
+    change_weight: -0.5
+    change_lookback_days: 20     # 融資變化 20 天
+    use_trading_day_offset: true # P2-新2 修完後；取代 iloc[-21]
+
+  foreign_broker_v2:
+    weights:
+      foreign_cum_ratio: 0.40
+      persistence: 0.20
+      rank_stability: 0.20
+      consistency: 0.20
+    foreign_cum_lookback_days: 20
+    rank_stability_lookback_days: 60
+    rank_stability_top_pct: 0.20
+    dedup_method: "last"         # P1-4 修完後；取代 aggfunc='sum'
+
+  pead_eps:
+    baseline_quarters: 8         # 過去 8 季 baseline
+    lag_days_q4: 90              # P1-1：Q4 年報法定 90 天
+    lag_days_other: 45           # Q1-Q3 45 天（季報）
+
+  # Phase B0-Lite (2026-05-03) — spike-only factors per H_lite_preregistration
+  quality_v2_lite:
+    # 用既有 single-snapshot fetch_financial_quality；有 lookahead bias warning
+    # （詳 src/features/quality_v2.py module docstring）。Spike 階段可接受;
+    # full B0 必先重寫 fetch_financial_quality_history (PIT-correct).
+    lookahead_bias_acknowledged: true
+    roe_clip: [-0.5, 0.5]
+    gross_margin_clip: [0.0, 1.0]
+    z_clip: 3.0
+
+  low_vol_v2:
+    # 252d daily log-return std；shift=1 PIT；反向因子 (-std, 高分=低 vol)。
+    # 不是 AQR BAB (BAB 需 beta + leverage to vol target)；是 realized-vol tilt.
+    window: 252
+    min_history: 200
+    direction: -1                # 反向因子（高 std → 低 score）
+
+universe:
+  mode: "intersection"           # P1-新1：全因子共用 intersection
+  min_universe_size: 50          # panel 至少此數 symbol 才進 intersection
+  # follow-up-4 (Codex R5-1): per-panel thresholds so quarterly/monthly panels
+  # (~28 rows / symbol over 7Y) are not mass-dropped by the daily-frequency
+  # 250-row bar. A pre-Round-4 version had this as a scalar which
+  # deep-merged OVER the DEFAULTS dict and silently reinstated 250 for every
+  # panel. Keep this as an explicit dict so YAML→Python merge semantics are
+  # preserved.
+  min_obs_per_symbol:
+    default: 250                 # daily-frequency fallback
+    ohlcv: 250
+    revenue: 24                  # monthly
+    market_value: 250
+    margin_short: 250
+    institutional_v2: 250
+    quarterly_eps: 12            # quarterly, ~4*years
+
+forward_return:
+  method: "explicit_asof"        # P1-新2：取代 dropna()
+  max_gap_days: 5                # 停牌超過此日數 → 該期不計入
+  log_gap_stats: true            # 輸出 gap 統計到 logger
+
+phase_a1:
+  # Go/No-Go 決策閾值
+  go_a2_min_factors: 2           # ≥ 2 個 DSR-adjusted IR > 0.5（扣摩擦仍正）
+  go_a2_ir_threshold: 0.5
+  borderline_ir_threshold: 0.3
+  smart_beta_benchmark: "0050"   # 100% 0050 主 benchmark
+  paper_evaluation_deadline: "2026-10-31"
+  min_sharpe_diff_vs_0050: 0.3   # factor portfolio 必須勝 0050 Sharpe 差 > 0.3 連 3 月
