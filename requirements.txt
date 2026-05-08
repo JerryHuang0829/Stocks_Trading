@@ -1,11 +1,48 @@
+# ------------------------------------------------------------------
+# Core data + trading stack
+# ------------------------------------------------------------------
 pandas>=2.0.0
-pandas-ta>=0.3.14b
 requests[socks]>=2.31.0
 python-dotenv>=1.0.0
 PyYAML>=6.0
 scipy>=1.11.0
 tenacity>=8.0.0
 FinMind>=1.6.0
+
+# ------------------------------------------------------------------
+# Technical indicator library (pin to 0.4.71b0 — pre-release on PyPI)
+# ------------------------------------------------------------------
+# WHY pinned to 0.4.71b0 (and NOT 0.3.x):
+#   - pandas-ta 0.3.x has hardcoded `from numpy import NaN` which is
+#     INCOMPATIBLE with numpy >= 2.0 (NaN attribute removed; only `nan`
+#     remains). Importing 0.3.x under numpy 2.x triggers a chained
+#     ImportError that manifests as a 60-120s "hang" in some sandboxes
+#     (Codex audit env 2026-05-07 hit this).
+#   - 0.4.x rewrite (current pandas-ta dev branch, beta-tagged on PyPI)
+#     replaces all `numpy.NaN` references with `numpy.nan` and is fully
+#     compatible with numpy 2.x / pandas 3.x / Python 3.12+.
+#
+# How pip handles this pin:
+#   `pandas-ta==0.4.71b0` is an EXPLICIT pre-release version specifier,
+#   so pip (>= 21.x) honours it WITHOUT needing the `--pre` flag
+#   (per PEP 440). Modern uv / poetry / pdm honour the same convention.
+#
+# Install command:
+#   pip install -r requirements.txt
+#
+# If your installer refuses pre-releases, fall back to:
+#   pip install -r requirements.txt --pre
+#
+# Transitive deps pulled in by pandas-ta 0.4.71b0 (auto-resolved):
+#   numba == 0.61.2
+#   numpy >= 2.2.6
+#   pandas >= 2.3.2  (overrides the >=2.0.0 above)
+#   tqdm >= 4.67.1
+pandas-ta==0.4.71b0
+
+# ------------------------------------------------------------------
+# Test + UI
+# ------------------------------------------------------------------
 pytest>=7.0.0
 streamlit>=1.30.0
 plotly>=5.18.0

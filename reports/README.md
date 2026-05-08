@@ -81,20 +81,24 @@ pivot 決策紀錄：**強 IC ≠ 強策略**的判斷力 demo。
   Claude in-house Pro Review（multi-perspective + self-audit + forensic-sweep）verdict GO-WITH-CAVEATS
 
 ### 18-cell canonical 結果（NO-GO 證據）
-- [phase_d/cell_sweep_v7_2026_05_06_round3/cell_summary.json](phase_d/cell_sweep_v7_2026_05_06_round3/cell_summary.json) ⭐⭐
+- [phase_d/v7_outcome2_summary.md](phase_d/v7_outcome2_summary.md) ⭐⭐⭐
+  **Phase D v7 正式 closeout**：Outcome-2 Partial、0/18 cells 過 6/6、`sole_survivor: null`、不啟動 active top-N paper trade。
+- [phase_d/cell_sweep_v7_2026_05_06/cell_summary.json](phase_d/cell_sweep_v7_2026_05_06/cell_summary.json) ⭐⭐
   **outcome_classification: "Outcome-2 Partial"**
   **n_outcome_1_cells: 0 / 18**（無 cell 過全部 6 條 hard gate）
   **sole_survivor: null**
-- `phase_d/cell_sweep_v7_2026_05_06_round3/cell_metrics.json` — per-cell IR / 月 α / TE / max_dd_diff / DSR
-- `phase_d/cell_sweep_v7_2026_05_06_round3/cell_bootstrap_ci_lowers.json` — L6 80% CI lowers
-- `phase_d/cell_sweep_v7_2026_05_06_round3/cell_monthly_active_returns.json` — per-cell 月超額報酬序列
+- `phase_d/cell_sweep_v7_2026_05_06/cell_metrics.json` — per-cell IR / 月 α / TE / max_dd_diff / DSR
+- `phase_d/cell_sweep_v7_2026_05_06/cell_bootstrap_ci_lowers.json` — L6 80% CI lowers
+- `phase_d/cell_sweep_v7_2026_05_06/cell_monthly_active_returns.json` — per-cell 月超額報酬序列
 - `phase_d/18cell_run_2026_05_06.log.err` — 18-cell run 完整 stderr（3.5 hr）
+
+L5 是 aggregate A1 gate（active_corr ≤ 0.50 AND TE ≥ 0.10 AND beta-adjusted alpha t > 1.5），不是單看 correlation；正式 pass count 以 `v7_outcome2_summary.md` 和 `cell_summary.json` 為準。
 
 ---
 
 ## 6️⃣ 架構 audit
 
-- [architecture_audit_2026_05_02.md](architecture_audit_2026_05_02.md)
+- [diagnosis/architecture_audit_2026_05_02.md](diagnosis/architecture_audit_2026_05_02.md)
   整個架構 audit + ~32 MB 清理計畫
 
 ---

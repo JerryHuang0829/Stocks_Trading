@@ -65,19 +65,19 @@ src/
 │   └── twse_scraper.py        TWSE/TPEX 爬蟲 + dividend / monthly revenue
 ├── strategy/
 │   ├── regime.py              大盤多空判斷（ADX + SMA → risk_on/caution/risk_off）
-│   └── indicators.py          技術指標（pandas_ta wrapper）
-├── features/                  7 個因子
-│   ├── high_proximity.py        Phase A1 — 52W High Proximity
-│   ├── revenue_momentum_v2.py   Phase A1 — 月營收 YoY + 3M accel + 24M percentile
-│   ├── margin_short_ratio.py    Phase A1 — 融資/融券反向
-│   ├── foreign_broker_v2.py     Phase A1 — 外資 4 子訊號
-│   ├── pead_eps.py              Phase A1 — PEAD / EPS Surprise
-│   ├── low_vol_v2.py            Phase B0-Lite — 低波動因子
-│   ├── quality_v3.py            Phase D D-E — QMJ profitability sub-component
-│   ├── industry_momentum.py     Phase D D-F — 6m industry momentum (per MG1999)
-│   └── idio_vol_max.py          Phase D D-G — IdioVol 0.5 + MAX 0.5
+│   └── indicators.py          技術指標（pandas-ta 0.4.71b0 wrapper，相容 numpy 2.x）
+├── features/                  9 個因子
+│   ├── high_proximity.py        52W High Proximity（George-Hwang 2004）
+│   ├── revenue_momentum_v2.py   月營收 YoY + 3M accel + 24M percentile
+│   ├── margin_short_ratio.py    融資/融券反向
+│   ├── foreign_broker_v2.py     外資 4 子訊號
+│   ├── pead_eps.py              PEAD / EPS Surprise（Bernard-Thomas 1989）
+│   ├── low_vol_v2.py            低波動因子（B0-Lite spike，未進策略）
+│   ├── quality_v3.py            QMJ profitability sub-component（D-E 用）
+│   ├── industry_momentum.py     6m industry momentum（Moskowitz-Grinblatt 1999；D-F 用）
+│   └── idio_vol_max.py          IdioVol 0.5 + MAX 0.5（Bali-Cakici-Whitelaw 2011；D-G 用）
 ├── utils/                     共用 utility（thresholds / paths / constants / config / retry）
-└── storage/database.py        SQLite signals.db
+└── storage/database.py        SQLite signals.db（live mode 預備未啟動，主要研究流程不用）
 
 scripts/                       執行 CLI
 ├── d_cell_sweep_v7_real.py       Phase D v7 18-cell sweep runner
@@ -90,7 +90,7 @@ scripts/                       執行 CLI
 ├── cache_rebuild.py              Cache 全新重建
 └── cache_fill_new_factors.py     Phase D 新因子 cache fill
 
-tests/                         580+ tests（含 4 PIT mutation tests）
+tests/                         671 tests（含 4 PIT mutation tests）
 reports/                       研究 evidence
 config/                        settings.yaml + factor_thresholds.yaml
 docs/                          研究文件
@@ -103,10 +103,10 @@ docs/                          研究文件
 | 類別 | 工具 |
 |---|---|
 | Language | Python 3.12 |
-| 核心套件 | pandas / NumPy / scipy / pandas_ta / pytest |
+| 核心套件 | pandas / NumPy / scipy / pandas-ta 0.4.71b0 / pytest |
 | 資料源 | FinMind API + TWSE/TPEX 爬蟲 |
-| 儲存 | SQLite signals.db / pickle cache |
-| Dashboard | Streamlit |
+| 儲存 | pickle cache（OHLCV / 因子 IC 等）+ JSON reports（18-cell sweep / metrics 等）|
+| Dashboard | Streamlit + Plotly |
 | 環境 | conda env `quant` / Docker |
 | OS | Windows 11 + WSL（主開發） / Linux container（CI）|
 
@@ -140,10 +140,28 @@ TELEGRAM_CHAT_ID=<optional>
 
 ```bash
 conda run -n quant python -m pytest tests/ -q
-# 期望: 580+ passed
+# 期望: 671 passed
 ```
 
-### 4. 跑 Phase D v7 18-cell sweep
+### 4. 跑互動式研究展示 Dashboard ⭐
+
+```bash
+streamlit run dashboard/專案背景.py
+# 預設 http://localhost:8501（本機跑，不在 docker 流程）
+```
+
+6 頁互動視覺化（含主頁）：
+
+- **主頁（專案背景）** — 專案 elevator pitch + 規格 + 技術棧 + 研究路徑時間軸
+- **頁 1 因子介紹** — 8 個因子的學術依據 / 計算方式 / 資料源 / PIT 防護
+- **頁 2 因子 IC 測試** — 5 因子單獨 IC 主表 + 5×5 Spearman correlation + 進階分析
+- **頁 3 雙因子回測** — D1_v2（52W 50% + PEAD 50%）IS+OOS 累積報酬 + 12 metrics 對照（IR 0.92 → 0.006 collapse）
+- **頁 4 18 種策略最終 sweep** — Phase D v7 6×3 cells heatmap + L1-L6 詳表 + 月超額時序
+- **頁 5 為什麼相信這個 NO-GO** — 雙重否定 triangulation：揭穿 Overfit + Bootstrap CI 數學
+
+依賴：streamlit + plotly + pandas-ta（已在 requirements.txt）。
+
+### 5. 跑 Phase D v7 18-cell sweep
 
 ```bash
 # 需要 FinMind cache 完成（quarterly_financial_full + balance_sheet）
@@ -159,7 +177,7 @@ python scripts/d_cell_aggregate_v7.py --input reports/phase_d/cell_sweep_<date>/
 python scripts/sole_survivor_v7.py --cell-summary reports/phase_d/cell_sweep_<date>/cell_summary.json
 ```
 
-### 5. 跑 5 因子 IC（Phase A1）
+### 6. 跑 5 因子 IC（Phase A1）
 
 ```bash
 python scripts/run_factor_ic.py high_proximity
@@ -175,7 +193,8 @@ python scripts/run_factor_ic.py pead_eps --start 2020-01-01 --end 2025-12-31
 | [docs/research-findings.md](docs/research-findings.md) | 完整因子研究結論 + Phase 路徑 |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | 完整迭代紀錄（P0-P7 / Phase A1-A3 / Phase D v6-v7）|
 | [reports/phase_d/H_d_v6_preregistration.md](reports/phase_d/H_d_v6_preregistration.md) | Phase D 假設 pre-registration（6 candidates / 6 hard gates / 13 pre-commit）|
-| [reports/phase_d/cell_sweep_v7_2026_05_06_round3/cell_summary.json](reports/phase_d/cell_sweep_v7_2026_05_06_round3/cell_summary.json) | **18-cell canonical 結果**（CONFIRM-NO-GO 證據）|
+| [reports/phase_d/v7_outcome2_summary.md](reports/phase_d/v7_outcome2_summary.md) | **Phase D v7 正式結案**（Outcome-2 / 0 cell 過 6/6 / no paper trade）|
+| [reports/phase_d/cell_sweep_v7_2026_05_06/cell_summary.json](reports/phase_d/cell_sweep_v7_2026_05_06/cell_summary.json) | **18-cell canonical 結果**（CONFIRM-NO-GO 證據）|
 | [reports/phase_d/R24_resolution.md](reports/phase_d/R24_resolution.md) | 5 P0 + 7 設計修法逐條 |
 | [reports/sprint_pro_validation/J_multi_perspective_audit.md](reports/sprint_pro_validation/J_multi_perspective_audit.md) | 7 角色 + Codex 21 attack 全答 |
 | [reports/sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md](reports/sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md) | Pro Validation Sprint canonical evidence |
@@ -186,31 +205,31 @@ python scripts/run_factor_ic.py pead_eps --start 2020-01-01 --end 2025-12-31
 
 ## Phase D v7 18-cell 結果一覽
 
-| Cell | L1 IR | L2 α | L3 TE | L4 ΔDD | L5 corr | L6 CI | 過幾關 |
+| Cell | L1 IR | L2 α | L3 TE | L4 ΔDD | L5 A1 | L6 CI | 過幾關 |
 |---|---|---|---|---|---|---|---|
-| D-B \| 8 | F | F | P | P | P | F | 3/6 |
-| D-B \| 12 | F | F | P | F | P | F | 2/6 |
-| D-B \| 16 | F | F | P | F | P | F | 2/6 |
-| D-C \| 8 | F | F | F | P | P | F | 2/6 |
-| **D-C \| 12** | **P** | **P** | **P** | **P** | **P** | **F** | **5/6** |
-| D-C \| 16 | F | F | P | P | P | F | 3/6 |
-| D-D \| all | F | F | P | F | P | F | 2/6 |
-| D-E \| 8 | P | P | F | P | P | F | 4/6 |
-| D-E \| 12 | P | P | F | P | P | F | 4/6 |
-| **D-E \| 16** | **P** | **P** | **P** | **P** | **P** | **F** | **5/6** |
-| D-F \| 8 | P | P | F | P | P | F | 4/6 |
-| D-F \| 12 | P | P | F | P | P | F | 4/6 |
-| D-F \| 16 | F | F | F | P | P | F | 2/6 |
+| D-B \| 8 | F | F | P | P | F | F | 2/6 |
+| D-B \| 12 | F | F | P | F | F | F | 1/6 |
+| D-B \| 16 | F | F | P | F | F | F | 1/6 |
+| D-C \| 8 | F | F | F | P | F | F | 1/6 |
+| **D-C \| 12** | **P** | **P** | **P** | **P** | **F** | **F** | **4/6** |
+| D-C \| 16 | F | F | P | P | F | F | 2/6 |
+| D-D \| all | F | F | P | F | F | F | 1/6 |
+| D-E \| 8 | P | P | F | P | F | F | 3/6 |
+| **D-E \| 12** | **P** | **P** | **F** | **P** | **P** | **F** | **4/6** |
+| **D-E \| 16** | **P** | **P** | **P** | **P** | **F** | **F** | **4/6** |
+| D-F \| 8 | P | P | F | P | F | F | 3/6 |
+| D-F \| 12 | P | P | F | P | F | F | 3/6 |
+| D-F \| 16 | F | F | F | P | F | F | 1/6 |
 | D-G \| all | F | F | P | F | P | F | 2/6 |
 
-最佳 cells **D-C\|12** 與 **D-E\|16** 都 5/6，全部卡在 L6 bootstrap CI lower ≤ 0。
+最佳 cells **D-C\|12**、**D-E\|12**、**D-E\|16** 都只有 4/6；沒有任何 cell 達到 5/6 或 6/6。L5 是 active_corr + TE + beta-adjusted alpha t 的 aggregate gate，不是單看 correlation。
 
 ---
 
 ## Outcome-2 失敗根因
 
 1. **樣本太短**：60 個月（2020-2024）對嚴格 stationary block bootstrap 偏短（block_len=3 → effective n ≈ 20）
-2. **n_trials=18 DSR 懲罰**：18 個假設一起測，單一通過 90% 機率被壓縮到 ~13%
+2. **n_trials=18 DSR 診斷**：18 個假設一起測，單一通過 90% 機率會被壓縮；但 v7 的 binding NO-GO 來自 L1-L6 hard gates，不是只因 DSR
 3. **2020-2024 極端市場**：covid 急跌 + 科技股巨漲 + 升息 + AI 浪潮，因子過度集中
 4. **台股 1900 檔流動性受限**（不像美股有萬檔可分散）
 5. **monthly freq 60 obs 對 80% CI 訊雜比不足**

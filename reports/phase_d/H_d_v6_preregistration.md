@@ -369,11 +369,15 @@ The following baseline values are recorded as the ground-truth reference for all
 | pandas version | (any working) | 3.0.2 | ✓ |
 | pandas_ta version | (any working) | 0.4.71b0 | ✓ |
 
+> **⚠️ Footnote (2026-05-07 added)**：本表 pandas_ta 0.4.71b0 為 v6 pre-registration 環境記錄；2026-05-07 已將 `requirements.txt` 從舊規格 `pandas-ta>=0.3.14b`（不相容 numpy 2.x）升級鎖為 `pandas-ta==0.4.71b0`，使 Codex audit 環境也能取得相容版本。詳見 `reports/phase_d/v6_validation_manifest.md` 同段 footnote 與 `requirements.txt` 開頭註解。
+
 See `reports/phase_d/v6_validation_manifest.md` for full manifest with output transcripts.
 
 ---
 
 ## Outcome interpretation (4 buckets — pre-declared)
+
+> ⚠️ **Pre-registration anchor footnote (2026-05-07 added)**：本表是 v6 hypothesis pre-registration 階段（2026-05-04）寫入，作 hash-anchored prior commit。Outcome-2 Partial 的「4–5 of 6 pass」是 generic prior 定義，**不是 v7 實測落點**。v7 實測 Outcome-2 最高過 4/6（D-C\|12 / D-E\|12 / D-E\|16），無任何 5/6 cell。本表保留以資 prior vs posterior 對照；canonical posterior 以 `reports/phase_d/v7_outcome2_summary.md` 與 `cell_summary.json` 為準。
 
 | Outcome | Definition | Probability estimate (v6) | Action |
 |---------|-----------|---------------------------|--------|

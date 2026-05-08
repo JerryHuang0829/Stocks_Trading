@@ -1,6 +1,46 @@
 # 優化紀錄
 
-最後更新：**2026-05-07**（Phase D v7 18-cell run 完成 + V0.22-V0.26 5 個 P0 closure + Codex R25-final 與 Claude 獨立驗證雙重 CONFIRM-NO-GO；Outcome-2 Partial / 0 cell 過 6/6 / sole_survivor null；等 user 拍板 A/B/C 後續路徑）
+最後更新：**2026-05-07**（A-then-B 三波收尾完成：v7 closeout / 文件一致性 4/6 修正 / pandas-ta 升級鎖 0.4.71b0 取代 native rewrite；Outcome-2 Partial / 0 cell 過 6/6 / sole_survivor null）
+
+---
+
+## 2026-05-07 Wave 3：pandas-ta 升級鎖 0.4.71b0（撤銷 Wave 1 的 native rewrite）
+
+**根因分析**：Codex 前一輪 audit 報告「pandas_ta 在 conda quant 60-120s timeout」並非 pandas_ta 本身問題。Claude 獨立驗證 user 的 conda quant 環境 import pandas_ta 只需 3.36s。實際根因：`requirements.txt` 鎖的 `pandas-ta>=0.3.14b` 對 numpy 2.x 不相容（0.3.x 內含 `from numpy import NaN`，numpy 2.0+ 已移除大寫 `NaN`），但 user 環境另外手動裝了 `pandas-ta==0.4.71b0`（PyPI pre-release tag 版，已修 numpy 2.x 相容性）。
+
+**Wave 3 動作**：
+- `requirements.txt` 加回 `pandas-ta==0.4.71b0`（PEP 440 pre-release pin，pip ≥ 21.x 自動允許不需 `--pre`），並補完整註解說明（含 install command、相容矩陣、根因解釋）。
+- `git restore src/strategy/indicators.py`：恢復原 `import pandas_ta as ta` 版本（撤銷 Wave 1 的 native SMA/RSI/MACD/BB/ATR/ADX rewrite）。
+- `git restore tests/test_data_slicer.py` + `tests/test_run_factor_ic_helpers.py`（恢復原 skip message 與 pre-stub 防呆）。
+- `rm tests/test_indicators_no_pandas_ta.py`（與 pandas_ta 依賴設計矛盾）。
+- `dashboard/app.py:150` 把「無 pandas_ta 依賴」改回「pandas-ta（0.4.71b0，相容 numpy 2.x）」。
+- `dashboard/pages/1_Phase_D_v7_18細胞掃描.py:57/246` + `5_BootstrapCI.py:191` 修 stale 5/6 文案 3 處（dashboard 是 Codex audit 漏抓的破口）。
+- `reports/sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md:125` 加 historical anchor footnote（L5 def 已升級為 A1 aggregate）。
+- `reports/phase_d/v6_validation_manifest.md:25` + `H_d_v6_preregistration.md:370` 加 pandas_ta footnote（解釋 0.4.71b0 vs 0.3.x 的相容性差異）。
+- `Codex-Prompt.md` 開頭加「開工前必跑 `pip install -r requirements.txt --upgrade`」。
+
+**為什麼選 pandas_ta 不選 native**：
+1. pandas-ta 是 finance-grade 標準工具，公式有文獻 + 社群驗證，未來 v8 擴指標（KDJ / OBV / Stochastic / Ichimoku / VWAP）一行就能調用，native 自寫成本高。
+2. user 環境本來就跑得動 pandas_ta（3.36s），移除是 over-fit Codex sandbox 的選型。
+3. 0.4.71b0 已修好 numpy 2.x 相容性，配合 requirements.txt 精確 pin 版號，Codex 任何環境跑 `pip install -r requirements.txt` 都會抓到同一份。
+4. 維持「業界 truth」作為 indicators 數值來源，避免 user / Codex 環境之間因 native 微差（MACD 0.003 / BB 0.1%）造成 audit 對話雞同鴨講。
+
+---
+
+## 2026-05-07 Wave 2：Claude 收尾文件一致性
+
+- HANDOFF.md（gitignored，本機 only）全面更新：18-cell 表格 header `L5 corr` → `L5 A1`、18 cells 過幾關欄重算、6 處 stale path round3 → 正確路徑、紀律語句 5/6 → 4/6、加入 v7_outcome2_summary 索引。
+- `dashboard/app.py:150` 修「無 pandas_ta 依賴」（後續 Wave 3 又改回 pandas-ta 列入技術棧）。
+
+---
+
+## 2026-05-07 Wave 1：Codex（前一輪）做的初步 closeout
+
+- 新增 `reports/phase_d/v7_outcome2_summary.md`，把 Phase D v7 正式結案為 **CONFIRM-NO-GO / Outcome-2 Partial**。
+- 修正 README / reports 對 L5 的可誤讀處：L5 是 active_corr + TE + beta-adjusted alpha t 的 aggregate A1 gate，不是單看 correlation。
+- 正式 pass count 修正為：最佳 cells D-C|12 / D-E|12 / D-E|16 皆為 4/6；沒有 5/6 或 6/6 cell。
+- ~~`src/strategy/indicators.py` 移除 top-level `pandas_ta` 依賴，改用 pandas/numpy 原生 SMA / RSI / MACD / Bollinger / ATR / ADX~~ → **Wave 3 已 revert**（根因是 requirements.txt 舊版 pin 不是 pandas_ta 本身）。
+- ~~新增 `tests/test_indicators_no_pandas_ta.py`~~ → **Wave 3 已刪除**。
 
 ---
 
@@ -8,7 +48,7 @@
 
 ### 18-cell sweep 完成（2026-05-06 20:18:46 ~ 23:48:45，3.5 hr，PID 9036 整輪 alive）
 
-跑 6 candidates × 3 top_n = 18 cells，全部完成寫入 `reports/phase_d/cell_sweep_v7_2026_05_06_round3/`：
+跑 6 candidates × 3 top_n = 18 cells，全部完成寫入 `reports/phase_d/cell_sweep_v7_2026_05_06/`：
 
 | 輸出檔 | 內容 |
 |---|---|
@@ -23,7 +63,7 @@
 - `n_outcome_1_cells`: 0 / 18
 - `sole_survivor`: null
 - 18/18 cells L6 bootstrap CI lower ≤ 0 全 fail
-- 最佳 cells D-C|12 / D-E|16 都 5/6 卡 L6
+- 最佳 cells D-C|12 / D-E|12 / D-E|16 都只有 4/6；L5 以 aggregate A1 gate 計算，不是單看 correlation
 
 ### V0.22-V0.26 5 個 P0 closure（pre-run audit Codex Round 1 提）
 
@@ -80,20 +120,20 @@ Claude 給 Codex 的 R25-final prompt 表格手算錯 4 cell（D-B|12, D-B|16, D
 ### 18-cell 失敗根因分析（Outcome-2 系統性原因）
 
 1. **樣本太短**：60 個月 (2020-2024) 對嚴格 stationary block bootstrap 偏短
-2. **n_trials=18 DSR 懲罰**：18 個假設一起測，單一通過 90% 機率被壓縮（CLT 角度看，60 obs × 0.005 月 α / vol ≈ 1.4σ < DSR threshold）
+2. **n_trials=18 DSR 診斷**：18 個假設一起測會壓縮單一訊號信心；但 binding NO-GO 來自 L1-L6 hard gates，不是只因 DSR
 3. **2020-2024 極端市場**：covid 急跌 + 科技股巨漲 + 升息 + AI 浪潮，因子集中度高
 4. **台股 1900 檔流動性受限**
 5. **monthly freq 限制**：60 觀測對 80% CI 訊雜比不足
 
-### 下一步三條路（等 user 拍板）
+### 下一步：A-then-B
 
-| 選項 | 內容 | Claude 工時 |
+| Step | 內容 | 狀態 |
 |---|---|---|
-| A | 結案 v7_outcome2_summary.md + 0050 DCA pivot | ~2 hr |
-| B | Plan v8 reframe（樣本延伸 2015-2024 / 改 weekly / 因子重挑） | ~30 hr+ |
-| C | 暫不決定，只 commit 證據鏈 + md 更新 | 0 hr 增量 |
+| A | 結案 `v7_outcome2_summary.md` + 0050 DCA practical baseline | 進行中 |
+| B0 | architecture hardening：L5 文件一致性、conda testability、BacktestEngine import reliability | 進行中 |
+| B | v8 reframe（樣本延伸 2015-2024 / core-satellite / formal engine / preregistered trials） | B0 完成後才進 |
 
-紀律：CONFIRM-NO-GO 下不允許 paper trade kickoff（5/6 ≠ 6/6，降標 = silent_bug）。
+紀律：CONFIRM-NO-GO 下不允許 active top-N paper trade kickoff（4/6 ≠ 6/6，降標 = silent_bug）。
 
 ### 本日整理動作（commit 內容）
 

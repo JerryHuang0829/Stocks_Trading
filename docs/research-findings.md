@@ -1,6 +1,6 @@
 # 策略研究
 
-最後更新：**2026-05-07**（Phase D v7 18-cell run 完成 → 雙重 CONFIRM-NO-GO / Outcome-2 Partial / 0/18 cells 過 6 hard gates；下一步等 user 拍板 A 結案 + 0050 DCA pivot / B v8 reframe / C 暫不決定）
+最後更新：**2026-05-07**（Phase D v7 18-cell run 完成 → CONFIRM-NO-GO / Outcome-2 Partial / 0/18 cells 過 6 hard gates；採 A-then-B：先 v7 closeout + architecture hardening，再決定 v8）
 
 ---
 
@@ -16,11 +16,12 @@
 | `outcome_classification` | **Outcome-2 Partial** |
 | `sole_survivor` | **null** |
 
-最佳兩個 cells：
-- **D-C\|12** 5/6（卡 L6 bootstrap CI lower ≤ 0）
-- **D-E\|16** 5/6（卡 L6）
+最接近的 cells：
+- **D-C\|12** 4/6（L5 A1 gate 與 L6 fail）
+- **D-E\|12** 4/6（L3 TE upper bound 與 L6 fail）
+- **D-E\|16** 4/6（L5 A1 gate 與 L6 fail）
 
-但 18/18 cells 全 fail L6，代表「IS metric 看起來不錯，但 stationary block bootstrap 80% CI 沒辦法把下界推上 0」 → 統計上無法確信策略真贏 0050。
+L5 是 active_corr + TE + beta-adjusted alpha t 的 aggregate gate，不是單看 correlation。因此沒有任何 5/6 cell。18/18 cells 全 fail L6，代表「IS metric 看起來不錯，但 stationary block bootstrap 80% CI 沒辦法把下界推上 0」 → 統計上無法確信策略真贏 0050。
 
 ### 5 個 P0 closure（V0.22-V0.26）
 
@@ -50,7 +51,7 @@ User 在收 Codex CONFIRM-NO-GO 後指示「請你實際驗證 不要依賴codex
 ### Outcome-2 系統性失敗根因（不是 v7 evaluator bug）
 
 1. **60 個月樣本對 stationary block bootstrap 偏短**（block_len=3 → effective n ≈ 20）
-2. **n_trials=18 DSR 懲罰**：90% 機率經 18 trials 壓到 ~13%
+2. **n_trials=18 DSR 診斷**：18 trials 會壓縮單一訊號信心；但 binding NO-GO 來自 L1-L6 hard gates，不是只因 DSR
 3. **2020-2024 極端市場**：covid + 科技股巨漲 + 升息 + AI，因子過度集中
 4. **台股 1900 檔流動性受限**
 5. **monthly freq 60 obs 對 80% CI 訊雜比不足**
@@ -88,15 +89,15 @@ User 在收 Codex CONFIRM-NO-GO 後指示「請你實際驗證 不要依賴codex
 | Phase D v6 → v7 (2026-05-04) | Plan v4/v5 NO-GO → v6 baseline → v7 closeout |
 | **Phase D v7 (2026-05-07)** | **18-cell run 完成 / 0 過 6/6 / Outcome-2 Partial / CONFIRM-NO-GO** |
 
-### 下一步（等 user 拍板）
+### 下一步（A-then-B）
 
-| 選項 | 路徑 | Claude 工時 |
+| Step | 路徑 | 狀態 |
 |---|---|---|
-| A | 結案 v7_outcome2_summary.md + 100% 0050 DCA pivot | ~2 hr |
-| B | Plan v8 reframe（樣本延伸 / 改 weekly / 因子重挑） | ~30 hr+ |
-| C | 暫不決定（commit 證據鏈即可） | 0 hr 增量 |
+| A | 結案 `v7_outcome2_summary.md` + 0050 DCA practical baseline | 進行中 |
+| B0 | architecture hardening：文件一致性、conda 測試、BacktestEngine import reliability | 進行中 |
+| B | v8 reframe：樣本延伸 / core-satellite / formal engine / preregistered trials | 待 B0 完成後決定 |
 
-**紀律**：CONFIRM-NO-GO 下不允許 paper trade kickoff（5/6 ≠ 6/6，降標 hard gates = silent_bug）。
+**紀律**：CONFIRM-NO-GO 下不允許 active top-N paper trade kickoff（4/6 ≠ 6/6，降標 hard gates = silent_bug）。
 
 ---
 
@@ -166,7 +167,9 @@ H_d_v6 加 §"Code-level enforcement" 列 3 assertions 必入 Phase 2 Session 1 
 
 ### 4 種 Outcome 機率（v7 重估）
 
-| Outcome | 機率 | 動作 |
+> ⚠️ **Historical pre-run prior（v6 寫，2026-05-04）**：以下 Outcome 機率分配是 v7 sweep 跑前的先驗估計，不是 v7 closeout 結論。實際 v7 落點：Outcome-2 Partial、最高 4/6（D-C\|12 / D-E\|12 / D-E\|16），無任何 5/6 cell；canonical 結論以 `reports/phase_d/v7_outcome2_summary.md` 與 `cell_summary.json` 為準。本表保留以資 prior vs posterior 對照。
+
+| Outcome | 先驗機率 | 動作 |
 |---|---|---|
 | Outcome-1 Full Pass (≥1 cell L1-L7 全 pass) | 20-30% | 開 paper trade |
 | Outcome-2 Partial (4-5/6 過) | 20-30% | caveat 報告，不 paper trade |
