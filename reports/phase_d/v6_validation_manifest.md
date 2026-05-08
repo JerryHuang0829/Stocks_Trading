@@ -24,6 +24,11 @@ If any value below diverges from a future Phase 2 cell sweep run without explana
 
 **V0.1 status**: pandas_ta hangs reported by Codex in dual-env audit could NOT be reproduced in this conda env. Marked N/A pending future Codex re-run; if hangs reappear in CI, lazy-import shim is the next step.
 
+> **⚠️ Footnote (2026-05-07 added — Codex hang root cause confirmed)**：
+> 後續分析發現 Codex 卡住的根因是 `requirements.txt` 鎖的 `pandas-ta>=0.3.14b` 對 numpy 2.x 不相容（0.3.x 內含 `from numpy import NaN`，numpy 2.0+ 已移除大寫 `NaN`）。本表記錄的 0.4.71b0 是 PyPI 的 pre-release tag 版本，已修正 numpy 2.x 相容性問題。
+> 2026-05-07 後 `requirements.txt` 已升級鎖 `pandas-ta==0.4.71b0`（精確 pin pre-release tag，pip ≥ 21.x 在 PEP 440 規則下會自動允許）。歷史 v6 manifest 以此 footnote 為準。
+> 詳見：`docs/CHANGELOG.md`「2026-05-07 pandas-ta 升級」段、`requirements.txt` 開頭註解、`Codex-Prompt.md` 安裝說明。
+
 ---
 
 ## 2. `resolve_cache_dir()` Windows priority (V0.2 fix)

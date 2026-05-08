@@ -17,6 +17,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
 
 # Data
 data/*.db
@@ -28,6 +29,7 @@ data/cache_rebuild_*.json
 data/cache_rebuild_*.flag
 data/cache_fill_progress.json
 data/cache_fill_*_progress.json
+data/cache_fill_*_progress.json.bak*
 data/cache_sweep_progress.json
 data/fix_twse_progress.json
 data/tpex_swap_fix_plan*.json
@@ -46,7 +48,6 @@ reports/*
 !reports/sprint_pro_validation/
 !reports/factor_ic/
 !reports/diagnosis/
-!reports/architecture_audit_2026_05_02.md
 
 # Strategy config variants（仍不公開，避免暴露 weight/exclude list）
 config/grid_*.yaml
@@ -63,6 +64,8 @@ verify_tmp_*/
 .pytest_local_thresholds/
 .pytest_r4_*/
 .pytest_tmp/
+.pytest_tmp_a_then_b/
+pytest_tmp_plain/
 tmpwyew0fr2/
 scripts/verify_margin_short_*.py
 scripts/verify_phase_a1_caches.py

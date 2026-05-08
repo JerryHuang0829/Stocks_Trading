@@ -124,6 +124,10 @@ chcp 65001
 | **B6** | L2 0.003 → **0.010 / 月** | Codex-Prompt.md:125,232 | n=72, TE=12% L6 需 0.68%/月 → L2 0.010 buffer 合理 | ✅ |
 | **L5** def | active_corr = corr(monthly_active_returns, monthly_benchmark_returns) ≤ 0.50 | Codex-Prompt.md:163 | Spec 定義鎖死，code traceability 待 Session 5 implement | ⚠️ pending impl |
 
+> **⚠️ Historical anchor footnote (2026-05-07 added)**：
+> 上表 L5 def 寫成「active_corr ≤ 0.50」是 **v5 spec 階段的初稿定義**，當時 L5 為單一條件。
+> v6/v7 lock 後 L5 已升級為 **A1 aggregate gate**（active_corr ≤ 0.50 AND TE ≥ 0.10 AND beta-adjusted alpha t > 1.5；3 子條件 AND），由 `scripts/d_cell_aggregate_v7.py::_l5_a1_passes` 實作。本檔為 2026-05-04 時點的 sprint canonical manifest，不可修；正確 L5 def 以 `reports/phase_d/v7_outcome2_summary.md` 與 `cell_summary.json` 為準。
+
 **結論**：v5 spec 內部一致，7 項 changes 都有 numerical justification。`H_d_v5_preregistration.md` 待 v5 Session 5 實作（Sprint 不 block）。
 
 ---
