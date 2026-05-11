@@ -1,0 +1,38 @@
+name: tests
+
+# Runs the full pytest suite on every push / PR. The suite is self-contained
+# (synthetic fixtures + tmp_path; no FinMind token / data cache required), so
+# CI mirrors what `conda run -n quant python -m pytest tests/ -q` does locally.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Show environment
+        run: |
+          python -c "import sys, pandas, numpy, scipy; print(sys.version); print('pandas', pandas.__version__, '| numpy', numpy.__version__, '| scipy', scipy.__version__)"
+          python -c "import importlib.metadata as m; print('pandas-ta', m.version('pandas-ta'))"
+
+      - name: Run pytest
+        run: pytest tests/ -q --tb=short

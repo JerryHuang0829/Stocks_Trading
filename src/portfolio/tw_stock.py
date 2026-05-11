@@ -1144,6 +1144,10 @@ def _compute_universe_batch_factors(
     """
     sw = portfolio_config.get("score_weights", {})
     out: dict[str, dict[str, float]] = {}
+    # Reused OHLCV panel: populated only if the high_proximity branch runs;
+    # foreign_investor_v2 reuses it instead of re-fetching when available.
+    # (Replaces a fragile `"ohlcv_by_sym" in dir()` introspection check.)
+    ohlcv_by_sym: dict[str, pd.DataFrame | None] | None = None
 
     if float(sw.get("high_proximity", 0)) > 0:
         # fetch_ohlcv(symbol, timeframe, limit) — _DataSlicer.fetch_ohlcv defaults
@@ -1186,9 +1190,9 @@ def _compute_universe_batch_factors(
         # Backtest mode (as_of=historical): disk cache panel + asof lookup.
         inst_by_sym = {s: _safe_fetch(source.fetch_three_institutional, s) for s in universe_symbols}
         mv_by_sym = _bulk_fetch_latest_market_value(source, as_of=as_of_ts)
-        # Build close panel: reuse fetched ohlcv if high_proximity already loaded
-        # else fetch fresh.
-        if "high_proximity" in out and "ohlcv_by_sym" in dir():
+        # Build close panel: reuse the OHLCV already fetched by the
+        # high_proximity branch if it ran; otherwise fetch fresh.
+        if ohlcv_by_sym is not None:
             close_by_sym = {s: df["close"].copy() for s, df in ohlcv_by_sym.items() if df is not None and "close" in df.columns}
         else:
             ohlcv_for_fb = {s: _safe_fetch(source.fetch_ohlcv, s, "D", 500) for s in universe_symbols}

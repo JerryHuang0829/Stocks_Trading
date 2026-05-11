@@ -1,6 +1,28 @@
 # 優化紀錄
 
-最後更新：**2026-05-07**（A-then-B 三波收尾完成：v7 closeout / 文件一致性 4/6 修正 / pandas-ta 升級鎖 0.4.71b0 取代 native rewrite；Outcome-2 Partial / 0 cell 過 6/6 / sole_survivor null）
+最後更新：**2026-05-11**（B0 architecture hardening 補一輪：feature-module PIT cutoff mutation tests + 移除 `dir()` introspection + GitHub Actions CI + README/dashboard 一致性與呈現 polish（TL;DR / 名詞速查 / 資料流 / 「結論之後如何變 GO」表）；694 pytest 全綠 @ conda `quant`）
+
+---
+
+## 2026-05-11 B0 hardening：CI + feature-module PIT mutation tests + 移除 `dir()` introspection
+
+**動機**：`architecture_audit_2026_05_02.md` §B.2 與 `J_multi_perspective_audit.md` §P6.1 都列了同一條 follow-up gap：`_DataSlicer` 只直接 PIT-truncate OHLCV / institutional / month_revenue / market_value，而 `quarterly_eps` / `margin_short` / `three_institutional` 走 `__getattr__` 透傳 → as_of cutoff 改在 feature module 內做（`compute_*_universe(..., as_of=)`），但**那層 cutoff 沒有 mutation test 守**。同一輪 audit §A.3 也點名 `tw_stock.py` 內一處 `"ohlcv_by_sym" in dir()` 區域變數內省（脆弱、重構會靜默壞）。
+
+**動作**：
+- 新增 `.github/workflows/tests.yml`：每次 push / PR 在 `ubuntu-latest` + Python 3.12 跑 `pip install -r requirements.txt` → `pytest tests/ -q`（測試套件 self-contained，不需 FinMind token / cache，CI 與本機 conda `quant` 行為一致）；README 頂部加 CI badge。閉合 `architecture_audit_2026_05_02.md` §A.6「no architectural automated gate」那條。
+- 新增 `tests/_pit_mutation/test_factor_forward_leak.py`（3 條）：
+  - `test_pead_eps_cutoff_drops_unfiled_quarter` — 在 Q1-2024 EPS 法定公告日（2024-05-15）前的 as_of，植入的 99.0 outlier 不得進 base rate（`n_quarters==12` 且 `|surprise_z|<5`）。
+  - `test_pead_eps_cutoff_inclusive_after_filing_deadline` — 過了 +45d 視窗後該季 row 必須進 universe（cutoff 是 `<=` 不是 over-strict）。
+  - `test_margin_short_cutoff_drops_future_balance` — 未來日期的 999999 lot 融資餘額尖峰，不得越過 as_of − lag cutoff 變成「latest」row 把 `margin_change_20d` 炸掉。
+- `tests/_pit_mutation/test_pit_forward_leak.py` 加 `test_pit_mutation_market_value_rejects_forward_leak`（market_value panel 同 `_truncate_by_date_col` pattern，補上 P6.1 明列「未測 market_value」那條）+ `FakeSource.fetch_market_value`。
+- `src/portfolio/tw_stock.py::_compute_universe_batch_factors`：把 `"high_proximity" in out and "ohlcv_by_sym" in dir()` 換成函式頂層 `ohlcv_by_sym: dict | None = None` + `if ohlcv_by_sym is not None`（行為不變，只是不再靠區域變數內省判斷分支跑過沒）。
+- README test 數 690 → 694、PIT mutation 4 → 8；本 CHANGELOG 頂部 footer 更新。
+- **README / dashboard 一致性 + 呈現面 polish**（面試前 review 發現；目標「主管 git clone 就看得懂」）：
+  - **一致性修正**：`dashboard/專案背景.py` 主頁「樣本：2019-2024 = 60 個月」→「IS 評估 2020-2024 = 60 個月（資料窗口含 2019 因子 lookback）」（2019-2024 含頭尾是 72 個月，60 個月 IS 窗口是 2020-2024，其餘文件本來就這樣寫）；README 頁3 描述「IR 0.92 → 0.006」改回精確值 `0.0058`（對齊其餘 7 處）；架構樹「9 個因子」→「9 個因子模組（8 跑 single-factor IC；low_vol_v2 = B0-Lite spike，未進策略）」（對齊 dashboard 頁2 8-vs-9 reference 表）。
+  - **可讀性 / 呈現**：README 頂部加「TL;DR（30 秒版）」3-bullet + 「只有 5 分鐘？」指路 + 「名詞速查」glossary 表（Phase A1/D · D1_v2 · D-A~G · L1-L6 · IS/OOS · V0.x/R0x/P0-P7 · Outcome-1/2/4 各一句）+ 「架構」段頂加一句話資料流；「結論（誠實揭露）」段瘦身、把修法版本 / audit 輪次的細節收進 `<details>`；末尾「學到的事 + 可攜資產」+ 新增「結論之後：如果要讓它變 GO，下一步會怎麼做（v8 hypothesis，不是承諾）」一張表（6 方向 × 機制 × caveat，明確 hypothesis-framed 不 over-claim）。
+  - **其他**：移除一處 dangling `/factor-ic skill` ref；「Linux container（CI）」→「Docker（reproducible 全測試 + external audit env）」；stale LOC（tw_stock 1300→~1900 / ic_analysis 867→~940）更新；「Phase D v7 18-cell 結果一覽」標題前加「18 種策略最終結果一覽」白話名。
+
+**驗證**：`conda run -n quant python -m pytest tests/ -q` → **694 passed**（Python 3.12.13 / pandas 3.0.2 / numpy 2.2.6 / scipy 1.17.1 / pandas-ta 0.4.71b0 / pytest 9.0.2）。無 src 邏輯行為變動（PIT 修法是「補測」既有 cutoff，不是改 cutoff；`dir()` 換寫法是 behavior-preserving；README / dashboard 改動純文件）。
 
 ---
 
