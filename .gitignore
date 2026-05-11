@@ -1,11 +1,11 @@
 # Secrets
 .env
 
-# 本機開發筆記 / 規劃稿 / 編輯器設定（不公開）
+# AI workflow（本機保留，不公開）
 HANDOFF.md
 CLAUDE.md
-review-prompt.md
-audit-prompt.md
+Claude-Prompt.md
+Codex-Prompt.md
 .claude/
 
 # Logs
