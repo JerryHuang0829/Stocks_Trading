@@ -44,6 +44,12 @@ class FakeSource:
             "date": pd.to_datetime(["2024-01-01", "2024-06-01", "2024-12-01", "2025-12-01"]),
             "revenue": [1.0, 2.0, 3.0, 99.0],
         })
+        # Market value: full-market panel (stock_id, date, market_value); date column
+        self.mv_df = pd.DataFrame({
+            "stock_id": ["1101", "1101", "1101", "1101"],
+            "date": pd.to_datetime(["2024-01-05", "2024-06-05", "2024-12-05", "2025-12-05"]),
+            "market_value": [1.0e12, 2.0e12, 3.0e12, 9.9e12],
+        })
 
     def fetch_ohlcv(self, symbol, timeframe, days):
         return self.ohlcv_df.copy()
@@ -53,6 +59,9 @@ class FakeSource:
 
     def fetch_month_revenue(self, symbol, months):
         return self.rev_df.copy()
+
+    def fetch_market_value(self, days=10):
+        return self.mv_df.copy()
 
 
 def test_pit_mutation_ohlcv_rejects_forward_leak():
@@ -97,6 +106,28 @@ def test_pit_mutation_revenue_rejects_forward_leak():
     max_date = pd.to_datetime(result["date"]).max()
     assert max_date <= pd.Timestamp("2024-06-30"), \
         f"FORWARD LEAK: revenue max date {max_date} > as_of 2024-06-30"
+
+
+def test_pit_mutation_market_value_rejects_forward_leak():
+    """市值 panel（date 欄，走 ``_truncate_by_date_col``）：未來市值 9.9e12 不能出現在
+    ≤ 2024-06-30 的切片裡。
+
+    閉合 ``reports/diagnosis/architecture_audit_2026_05_02.md`` §B.2 與
+    ``reports/sprint_pro_validation/J_multi_perspective_audit.md`` §P6.1 標的
+    「PIT mutation tests 未覆蓋 market_value panel」follow-up gap。
+    """
+    source = FakeSource()
+    slicer = _DataSlicer(source, as_of=datetime(2024, 6, 30))
+    result = slicer.fetch_market_value(days=10)
+
+    assert result is not None
+    # ≤ 2024-06-30 的列：2024-01-05, 2024-06-05 → 2 列；未來列 2024-12-05 / 2025-12-05 排除
+    assert len(result) == 2, f"Expected 2 past rows, got {len(result)}: {result['date'].tolist()}"
+    assert 9.9e12 not in result["market_value"].values, \
+        "FORWARD LEAK: as_of=2024-06-30 returned future market_value 9.9e12"
+    max_date = pd.to_datetime(result["date"]).max()
+    assert max_date <= pd.Timestamp("2024-06-30"), \
+        f"FORWARD LEAK: market_value max date {max_date} > as_of 2024-06-30"
 
 
 def test_pit_mutation_boundary_inclusive_at_as_of():
