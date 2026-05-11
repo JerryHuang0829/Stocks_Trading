@@ -164,6 +164,24 @@ def test_composite_handles_partial_none_subsignals():
         assert out["score"] == pytest.approx(expected, abs=1e-9)
 
 
+def test_subsignal_weights_yaml_in_sync_with_constant():
+    """2026-05-11 Codex R32 finding: the module now reads weights from
+    `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2.weights`
+    via `_subsignal_weights()` (yaml keys renamed accel_3m3m→accel, pct_24m→percentile
+    to match the module). Guard that yaml and the module fallback constant stay in
+    sync so editing one without the other surfaces here.
+    """
+    from src.features.revenue_momentum_v2 import _subsignal_weights
+    yaml_weights = _subsignal_weights()
+    assert yaml_weights == SUBSIGNAL_WEIGHTS, (
+        "config/factor_thresholds.yaml revenue weights drifted from SUBSIGNAL_WEIGHTS "
+        f"constant: yaml={yaml_weights} vs constant={SUBSIGNAL_WEIGHTS}"
+    )
+    # yaml keys must match the module's sub-signal names (the R32 bug was a key mismatch)
+    assert set(yaml_weights) == {"yoy", "accel", "percentile", "seasonal_z"}
+    assert abs(sum(yaml_weights.values()) - 1.0) < 1e-9
+
+
 # ---------------------------- Universe batch ----------------------------
 
 

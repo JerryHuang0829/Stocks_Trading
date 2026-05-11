@@ -9,19 +9,32 @@ Phase P5 Session 1 / R21 finding F6 fix (2026-05-03):
 `scripts/run_factor_ic.py` retains a thin re-export shim so existing
 callers (`/factor-ic` skill, manual CLI) keep working unchanged.
 
-Functions exported here (12):
+Functions exported here (16):
     _normalise_index
     _load_ohlcv
     _load_universe_ohlcv
     _load_universe_revenue
     _load_universe_timeseries
-    _load_issued_capital
+    _load_issued_capital                  # DEPRECATED — see _load_issued_capital_panel
+    _load_issued_capital_panel            # 2026-05-10 P1-A: PIT-able panel loader
+    _issued_capital_asof                  # 2026-05-10 P1-A: as-of lookup
     _load_industry_labels
-    _load_market_value
+    _load_market_value                    # DEPRECATED — see _load_market_value_panel
+    _load_market_value_panel              # 2026-05-10 P0-A: PIT-able panel loader
+    _market_value_asof                    # 2026-05-10 P0-A: as-of lookup
     _resolve_price_asof
     _forward_return
     _compute_intersection_universe
     _compute_regimes
+
+PIT NOTICE (Codex R26 audit):
+    _load_market_value() and _load_issued_capital() return latest values
+    via drop_duplicates(keep="last"), which violates point-in-time discipline
+    when called once outside a rebalance loop (every period sees current-day
+    market_value/issued_shares as denominator regardless of as_of date).
+    New code MUST use _load_<X>_panel() + _<X>_asof(panel, target_date) for
+    per-rebalance-date lookup. Legacy callers retained for backward-compat
+    only (no fresh IC reports should depend on the legacy path).
 """
 
 from __future__ import annotations
@@ -119,11 +132,22 @@ def _load_universe_timeseries(panel_dir: Path) -> dict[str, pd.DataFrame]:
 
 
 def _load_issued_capital(cache_dir: Path) -> dict[str, float]:
-    """Load issued shares per symbol from market_value cache (contains shares column).
+    """DEPRECATED (2026-05-10 P1-A): latest issued_shares per symbol.
 
-    Falls back to reading the market_value/_global.pkl snapshot and extracting
-    the latest issued_shares per symbol. Values in units of shares (not lots).
+    Returns the same value for every rebalance date, which violates PIT
+    discipline (issued_shares can change via increases / decreases / stock
+    dividend). New code: use ``_load_issued_capital_panel()`` +
+    ``_issued_capital_asof()``. Retained only for backward-compat with
+    pre-2026-05-10 historical scripts.
     """
+    import warnings
+
+    warnings.warn(
+        "_load_issued_capital() returns latest issued_shares (PIT violation). "
+        "Use _load_issued_capital_panel() + _issued_capital_asof() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     path = cache_dir / "market_value" / "_global.pkl"
     if not path.exists():
         raise FileNotFoundError(f"market_value cache missing: {path}")
@@ -152,6 +176,15 @@ def _load_issued_capital(cache_dir: Path) -> dict[str, float]:
     )
 
 
+# 2026-05-11 R30 architecture cleanup: 4 PIT helper functions 移到
+# `src/data/pit_helpers.py` 為 single source of truth。本模組改為 re-export
+# shim 維持 backward compat（IC pipeline / 其他 caller 不破）。
+from src.data.pit_helpers import (  # noqa: F401, E402
+    _issued_capital_asof,
+    _load_issued_capital_panel,
+)
+
+
 def _load_industry_labels(cache_dir: Path) -> dict[str, str] | None:
     """Return {symbol: industry_category} from stock_info cache, or None."""
     path = cache_dir / "stock_info" / "_global.pkl"
@@ -175,7 +208,22 @@ def _load_industry_labels(cache_dir: Path) -> dict[str, str] | None:
 
 
 def _load_market_value(cache_dir: Path) -> dict[str, float]:
-    """Latest market value per symbol from market_value/_global.pkl."""
+    """DEPRECATED (2026-05-10 P0-A): latest market_value per symbol.
+
+    Returns the same value for every rebalance date, which violates PIT
+    discipline (a 2020 rebalance should never see 2026 market_value as
+    denominator). New code: use ``_load_market_value_panel()`` +
+    ``_market_value_asof()``. Retained only for backward-compat with
+    pre-2026-05-10 historical scripts.
+    """
+    import warnings
+
+    warnings.warn(
+        "_load_market_value() returns latest mv (PIT violation). "
+        "Use _load_market_value_panel() + _market_value_asof() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     path = cache_dir / "market_value" / "_global.pkl"
     if not path.exists():
         return {}
@@ -186,6 +234,14 @@ def _load_market_value(cache_dir: Path) -> dict[str, float]:
         return {}
     latest = df.sort_values("date").drop_duplicates("stock_id", keep="last")
     return dict(zip(latest["stock_id"].astype(str), latest["market_value"].astype(float)))
+
+
+# 2026-05-11 R30 architecture cleanup: market_value PIT helpers 移到
+# `src/data/pit_helpers.py` 為 single source of truth。本模組改為 re-export shim。
+from src.data.pit_helpers import (  # noqa: F401, E402
+    _load_market_value_panel,
+    _market_value_asof,
+)
 
 
 def _resolve_price_asof(

@@ -114,7 +114,10 @@ class CellSweepContext:
         # Lazy-loaded cross-cell shared resources
         self._eps_by_symbol: dict[str, pd.DataFrame] | None = None
         self._margin_by_symbol: dict[str, pd.DataFrame] | None = None
-        self._issued_by_symbol: dict[str, float] | None = None
+        # 2026-05-11 R30 4-path PIT cleanup (Codex R29 finding 1):
+        # was `_issued_by_symbol: dict | None`, replaced by panel cache for
+        # PIT-asof lookup per rebalance date via `issued_by_symbol_at()`.
+        self._issued_capital_panel: pd.DataFrame | None = None
         self._financial_history: pd.DataFrame | None = None
         self._industry_label_map: dict[str, str] | None = None
         self._market_returns: pd.Series | None = None
@@ -140,27 +143,40 @@ class CellSweepContext:
         return self._margin_by_symbol
 
     @property
-    def issued_by_symbol(self) -> dict[str, float]:
-        """Load issued_shares per symbol from issued_capital/_global.pkl.
+    def issued_capital_panel(self) -> pd.DataFrame:
+        """PIT-able issued_capital panel via single source-of-truth helper.
 
-        Schema is a 2-column snapshot (stock_id, issued_shares), NOT history.
-        Caveat: same snapshot used across all rebalance dates (acceptable for
-        v7; capital changes within IS period are typically <5% per stock).
+        2026-05-11 R30 4-path PIT cleanup (Codex R29 finding 1): replaces
+        the old ``issued_by_symbol`` dict property which used latest snapshot
+        for all rebalance dates (PIT violation). Uses
+        ``src.data.pit_helpers._load_issued_capital_panel`` shared with IC
+        pipeline + portfolio path.
+
+        Caveat: when cache lacks date column, fallback returns static panel
+        dated 1970-01-01 (Codex R28-1 / R29-4 documented limitation; same
+        fallback behavior as IC pipeline for cross-path consistency).
         """
-        if self._issued_by_symbol is None:
-            path = self.cache_dir / "issued_capital" / "_global.pkl"
-            if not path.exists():
-                logger.warning("issued_capital/_global.pkl missing — margin_short_ratio may have empty universe")
-                self._issued_by_symbol = {}
-            else:
-                df = pd.read_pickle(path)
-                if "date" in df.columns:
-                    # History format (legacy / future-proof): take latest per symbol
-                    df = df.sort_values("date").drop_duplicates("stock_id", keep="last")
-                self._issued_by_symbol = dict(
-                    zip(df["stock_id"].astype(str), df["issued_shares"].astype(float))
+        if self._issued_capital_panel is None:
+            from src.data.pit_helpers import _load_issued_capital_panel
+            self._issued_capital_panel = _load_issued_capital_panel(self.cache_dir)
+            if self._issued_capital_panel.empty:
+                logger.warning(
+                    "issued_capital panel empty — margin_short_ratio may have empty universe"
                 )
-        return self._issued_by_symbol
+        return self._issued_capital_panel
+
+    def issued_by_symbol_at(self, as_of: pd.Timestamp) -> dict[str, float]:
+        """As-of issued_shares lookup for a specific rebalance date (PIT-correct).
+
+        Per-rebalance lookup via shared ``_issued_capital_asof`` helper.
+        Replaces the old ``issued_by_symbol`` property which returned a
+        single dict reused across all rebalance dates (PIT violation).
+        """
+        from src.data.pit_helpers import _issued_capital_asof
+        panel = self.issued_capital_panel
+        if panel.empty:
+            return {}
+        return _issued_capital_asof(panel, as_of)
 
     @property
     def financial_history(self) -> pd.DataFrame:
@@ -461,8 +477,10 @@ def _compute_factor_panel(
     if factor_name == "pead_eps":
         return compute_pead_eps_universe(ctx.eps_by_symbol, as_of=as_of)
     if factor_name == "margin_short_ratio":
+        # 2026-05-11 R30: per-rebalance PIT-asof lookup (was using latest dict
+        # across all rebalance dates — Codex R29 finding 1 PIT violation).
         return compute_margin_short_ratio_universe(
-            ctx.margin_by_symbol, ctx.issued_by_symbol, as_of=as_of
+            ctx.margin_by_symbol, ctx.issued_by_symbol_at(as_of), as_of=as_of
         )
     if factor_name == "quality_v3":
         return compute_quality_v3_panel(ctx.financial_history, as_of=as_of)

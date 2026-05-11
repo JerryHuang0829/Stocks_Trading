@@ -4,12 +4,23 @@ Layered defaults:
     1. Hard-coded DEFAULTS below (single source of truth for fallback)
     2. `config/factor_thresholds.yaml` (optional; deep-merged on top)
 
-Callers:
+Callers (what actually reads which section — kept accurate per Codex R32):
     - `src.analysis.ic_analysis` reads bootstrap / permutation / DSR / effective_n
-    - `src.features.foreign_broker_v2` reads rank_stability threshold
-    - `src.features.margin_short_ratio` reads ratio/change lookback
-    - `src.features.revenue_momentum_v2` reads weights
+    - `src.features.foreign_investor_v2` reads `factor_specific.foreign_investor_v2`
+      weights / last20_max_calendar_span_days / rank_stability_top_pct + rank_stability
+      min_universe_size (yaml-driven via module helpers; R31-4 fix)
+    - `src.features.revenue_momentum_v2` reads `factor_specific.revenue_momentum_v2.weights`
+      (yaml-driven via module helper; R32 fix)
     - `scripts.run_factor_ic` reads per-panel `min_obs_per_symbol` and forward_return
+
+    NOT yet yaml-driven (yaml section exists as a SPEC MIRROR only — the module
+    hard-codes the values; edit BOTH if changing). These params are hypothesis-locked
+    structural constants so the spec mirror is acceptable for now (Codex R33 may
+    decide whether to wire them):
+    - `factor_specific.high_proximity` (rolling_max_days=252 / shift=1)
+    - `factor_specific.pead_eps` (baseline_quarters / lag_days_q4 / lag_days_other)
+    - `factor_specific.margin_short_ratio` (ratio_weight / change_weight /
+      change_lookback_days / use_trading_day_offset)
 
 Yaml missing → defaults only; yaml parse error logged and defaults used.
 One-time lazy load (`_cache`); callers can pass `reload=True` for tests.
@@ -58,13 +69,19 @@ DEFAULTS: dict[str, Any] = {
             "shift": 1,
         },
         "revenue_momentum_v2": {
+            # 2026-05-11 Codex R32 finding: keys accel_3m3m→accel, pct_24m→percentile
+            # to match src/features/revenue_momentum_v2.py::SUBSIGNAL_WEIGHTS (was a
+            # silent config drift — module hardcoded + yaml/default keys mismatched).
+            # `weights` is yaml-driven; `seasonal_window_months` is SPEC MIRROR
+            # (module hard-codes DEFAULT_SEASONAL_LOOKBACK_MONTHS=24).
+            # `yoy_strict_month_matching` removed 2026-05-11 (Codex R33 B2): P1-新6
+            # removed the ±45-day tolerance path → module is always strict, no knob.
             "weights": {
                 "yoy": 0.50,
-                "accel_3m3m": 0.20,
-                "pct_24m": 0.15,
+                "accel": 0.20,
+                "percentile": 0.15,
                 "seasonal_z": 0.15,
             },
-            "yoy_strict_month_matching": True,
             "seasonal_window_months": 24,
         },
         "margin_short_ratio": {
@@ -73,12 +90,16 @@ DEFAULTS: dict[str, Any] = {
             "change_lookback_days": 20,
             "use_trading_day_offset": True,
         },
-        "foreign_broker_v2": {
+        "foreign_investor_v2": {
+            # 2026-05-11 R30-3 fix (Codex R30): weights 跟 yaml +
+            # `src/features/foreign_investor_v2.py::SUBSIGNAL_WEIGHTS` 對齊（之前是
+            # silent drift：yaml/module 改 0.50/0.25/0.25/0.0 但此 default 殘留
+            # 舊 0.40/0.20/0.20/0.20，hierarchy fallback 會用錯權重）.
             "weights": {
-                "foreign_cum_ratio": 0.40,
-                "persistence": 0.20,
-                "rank_stability": 0.20,
-                "consistency": 0.20,
+                "foreign_cum_ratio": 0.50,    # 0.40 → 0.50 (P1-D 重分配 consistency 後)
+                "persistence": 0.25,          # 0.20 → 0.25
+                "rank_stability": 0.25,       # 0.20 → 0.25
+                "consistency": 0.0,           # 0.20 → 0.0 (P1-D 78% sparsity deprecation)
             },
             "foreign_cum_lookback_days": 20,
             "rank_stability_lookback_days": 60,

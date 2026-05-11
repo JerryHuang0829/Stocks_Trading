@@ -51,7 +51,7 @@ def test_new_factors_default_zero_no_batch_fetch():
         "pead_eps": 0.0,
         "margin_short_ratio": 0.0,
         "revenue_momentum_v2": 0.0,
-        "foreign_broker_v2": 0.0,
+        "foreign_investor_v2": 0.0,
     }}
     out = _compute_universe_batch_factors(
         [s["symbol"] for s in _UNIVERSE], source, portfolio_config, _AS_OF,
@@ -87,7 +87,7 @@ def test_new_factors_default_zero_identical_to_step15_behavior():
         assert "pead_eps_raw" not in a
         assert "margin_short_ratio_raw" not in a
         assert "revenue_momentum_v2_raw" not in a
-        assert "foreign_broker_v2_raw" not in a
+        assert "foreign_investor_v2_raw" not in a
 
 
 def test_mixed_old_new_weights_active_set():
@@ -171,12 +171,12 @@ def test_margin_short_ratio_batch_with_issued_dict():
     assert out["margin_short_ratio"] == {"2330": -0.3}
 
 
-def test_foreign_broker_v2_batch_with_market_value_dict():
-    """foreign_broker_v2 batch must pass market_value_by_symbol dict from
+def test_foreign_investor_v2_batch_with_market_value_dict():
+    """foreign_investor_v2 batch must pass market_value_by_symbol dict from
     bulk fetch (NOT per-symbol fetch — Codex Round 14 P0-1 regression guard)."""
     source = MagicMock()
-    config = {"score_weights": {"foreign_broker_v2": 1.0}}
-    with patch("src.portfolio.tw_stock.compute_foreign_broker_v2_universe") as mock_batch, \
+    config = {"score_weights": {"foreign_investor_v2": 1.0}}
+    with patch("src.portfolio.tw_stock.compute_foreign_investor_v2_universe") as mock_batch, \
          patch("src.portfolio.tw_stock._bulk_fetch_latest_market_value") as mock_bulk:
         mock_bulk.return_value = {"2330": 1.5e13}
         mock_batch.return_value = pd.Series({"2330": 0.2})
@@ -190,7 +190,7 @@ def test_foreign_broker_v2_batch_with_market_value_dict():
 
 @pytest.mark.parametrize("factor_name", [
     "high_proximity", "pead_eps", "margin_short_ratio",
-    "revenue_momentum_v2", "foreign_broker_v2",
+    "revenue_momentum_v2", "foreign_investor_v2",
 ])
 def test_batch_missing_symbol_injects_none_raw(factor_name):
     """When batch Series drops a symbol (insufficient data), per-symbol
@@ -324,20 +324,20 @@ def test_available_metrics_has_5_new_entries():
          "pead_eps_raw": 0.3 * i,
          "margin_short_ratio_raw": -0.1 + 0.02 * i,
          "revenue_momentum_v2_raw": 0.1 * i,
-         "foreign_broker_v2_raw": 0.05 * i}
+         "foreign_investor_v2_raw": 0.05 * i}
         for i in range(10)
     ]
     config = {"score_weights": {
         "high_proximity": 0.2, "pead_eps": 0.2,
         "margin_short_ratio": 0.2, "revenue_momentum_v2": 0.2,
-        "foreign_broker_v2": 0.2,
+        "foreign_investor_v2": 0.2,
     }}
     ranked = _rank_analyses(analyses, config)
     for item in ranked:
         if item["eligible"]:
             assert set(item["rank_components"].keys()) == {
                 "high_proximity", "pead_eps", "margin_short_ratio",
-                "revenue_momentum_v2", "foreign_broker_v2",
+                "revenue_momentum_v2", "foreign_investor_v2",
             }
 
 
@@ -346,7 +346,7 @@ def test_default_portfolio_config_has_5_new_weight_zero():
     at weight=0 — user must explicitly opt in via settings.yaml."""
     sw = DEFAULT_PORTFOLIO_CONFIG["score_weights"]
     for factor in ["high_proximity", "pead_eps", "margin_short_ratio",
-                   "revenue_momentum_v2", "foreign_broker_v2"]:
+                   "revenue_momentum_v2", "foreign_investor_v2"]:
         assert factor in sw, f"{factor} missing from DEFAULT_PORTFOLIO_CONFIG"
         assert sw[factor] == 0.0, f"{factor} default weight != 0"
 
@@ -358,7 +358,7 @@ def test_tw_3m_stable_profile_has_5_new_weight_zero():
     merged = get_portfolio_config({"portfolio": {"profile": "tw_3m_stable"}})
     sw = merged["score_weights"]
     for factor in ["high_proximity", "pead_eps", "margin_short_ratio",
-                   "revenue_momentum_v2", "foreign_broker_v2"]:
+                   "revenue_momentum_v2", "foreign_investor_v2"]:
         assert sw.get(factor, None) == 0.0, f"{factor} not default-zero in tw_3m_stable"
 
 
@@ -369,5 +369,5 @@ def test_tw_6m_defensive_profile_has_5_new_weight_zero():
     merged = get_portfolio_config({"portfolio": {"profile": "tw_6m_defensive"}})
     sw = merged["score_weights"]
     for factor in ["high_proximity", "pead_eps", "margin_short_ratio",
-                   "revenue_momentum_v2", "foreign_broker_v2"]:
+                   "revenue_momentum_v2", "foreign_investor_v2"]:
         assert sw.get(factor, None) == 0.0, f"{factor} not default-zero in tw_6m_defensive"

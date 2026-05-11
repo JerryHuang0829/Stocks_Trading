@@ -69,6 +69,51 @@ def test_load_factor_ic_5factors():
             assert k in overall, f"{factor} overall 缺 {k}"
 
 
+def test_load_factor_ic_phase_d_3factors():
+    """2026-05-11 補測：Phase D 3 因子 single IC schema 對齊 Phase A1（含 enrichment）。
+
+    Codex R31 finding 1 fix: 早期版本只檢查 overall/by_regime/by_bucket，
+    沒驗 enrichment diagnostics 是否齊全；現補檢查 decile / monotonicity /
+    peak / price_score / pit_violation 等與 Phase A1 5 因子 JSON 一致。
+    """
+    # 取一個 Phase A1 JSON 作 schema baseline
+    a1_ref = utils.load_factor_ic("high_proximity")
+    assert a1_ref is not None
+    a1_keys = set(a1_ref.keys())
+    for factor in utils.PHASE_D_FACTORS:
+        ic = utils.load_factor_ic(factor)
+        assert ic is not None, f"{factor}_ic.json 讀不到（請先跑 run_phase_d_factor_ic.py）"
+        assert "overall" in ic
+        assert "by_regime" in ic
+        assert "by_bucket" in ic
+        overall = ic["overall"]
+        for k in ("mean_ic", "ic_ir", "t_stat", "p_value", "n", "bootstrap_ci_95"):
+            assert k in overall, f"{factor} overall 缺 {k}"
+        # Enrichment diagnostics parity (Codex R31 finding 1)
+        for k in (
+            "decile_returns_per_period",
+            "decile_avg_returns_across_periods",
+            "monotonicity_spearman_rho",
+            "peak_in_middle_t_stats",
+            "price_score_corr_per_period",
+            "price_score_corr_summary",
+            "pit_violation",
+            "enriched_diagnostics_date",
+        ):
+            assert k in ic, f"{factor} 缺 enrichment 欄位 {k}（schema 未對齊 Phase A1）"
+        # Top-level key parity (no missing relative to Phase A1 reference)
+        missing = a1_keys - set(ic.keys())
+        assert not missing, f"{factor} top-level keys 缺 {missing}（schema 未對齊 high_proximity）"
+
+
+def test_load_all_eight_factor_ics():
+    """ALL_FACTORS = FIVE_FACTORS + PHASE_D_FACTORS = 8 因子 loadable 全集合。"""
+    out = utils.load_all_eight_factor_ics()
+    assert isinstance(out, dict)
+    assert len(out) == 8, f"預期 8 因子 IC，實際 {len(out)}"
+    assert set(out.keys()) == set(utils.ALL_FACTORS)
+
+
 def test_load_factor_correlation_5x5():
     corr = utils.load_factor_correlation()
     assert corr is not None

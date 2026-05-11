@@ -115467,5 +115467,18 @@
         "9962": -0.13874
       }
     }
-  ]
+  ],
+  "pit_violation": {
+    "violated": true,
+    "scope": [
+      "foreign_cum_ratio",
+      "rank_stability"
+    ],
+    "reason": "Used latest market_value via _load_market_value() (keep=last) instead of as-of lookup. Caller run_factor_ic.py:247 loaded panel once outside the rebalance loop, so 2020 rebalance dates received 2026 market_value as denominator.",
+    "audit_round": "Codex R26 + Claude R26",
+    "detected_date": "2026-05-10",
+    "plan": "C:/Users/chongweihuang/.claude/plans/codex-pro-codex-precious-reef.md",
+    "fresh_rerun_pending": true,
+    "note": "After Phase 3 fresh rerun this baseline JSON should be archived under reports/factor_ic/_archive/ and replaced with PIT-correct rerun output. Until then dashboard / phase_a1_summary readers MUST flag this IC = -0.0195 as contaminated and not draw conclusions."
+  }
 }

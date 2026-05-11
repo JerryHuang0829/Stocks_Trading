@@ -66,17 +66,20 @@ portfolio:
   weight_mode: score_weighted
   # 安全閥
   min_eligible_ratio: 0.3        # 至少 30% 分析成功才再平衡
+  # 2026-05-11 R30-6 grep-sweep follow-up: institutional_flow 0.10 → 0.0
+  # 對齊 active settings.yaml + tw_stock.py default profiles（legacy 因子
+  # IC=-0.053 已 fail；外資 v2 IC=-0.008 R28 verdict DROP）.
   score_weights:
-    price_momentum: 0.45
+    price_momentum: 0.55
     trend_quality: 0.20
     revenue_momentum: 0.25
-    institutional_flow: 0.10
+    institutional_flow: 0.00
     # Phase A2 Step 2 new factors (default 0.0; enable by setting weight > 0)
     high_proximity: 0.0
     pead_eps: 0.0
     margin_short_ratio: 0.0
     revenue_momentum_v2: 0.0
-    foreign_broker_v2: 0.0
+    foreign_investor_v2: 0.0
 
 symbols:
   - name: 台積電

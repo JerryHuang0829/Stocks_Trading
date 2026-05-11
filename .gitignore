@@ -45,6 +45,7 @@ reports/*
 !reports/README.md
 !reports/phase_b0_lite/
 !reports/phase_d/
+!reports/phase_d_v8/
 !reports/sprint_pro_validation/
 !reports/factor_ic/
 !reports/diagnosis/

@@ -18,12 +18,29 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils import load_factor_ic  # noqa: E402
 
 st.set_page_config(
     page_title="因子介紹",
     page_icon="🧩",
     layout="wide",
 )
+
+
+def _verdict_for(factor_name: str) -> str:
+    """讀因子 IC JSON 算 verdict（與頁 2 邏輯一致）。N/A 若無 IC。"""
+    ic = load_factor_ic(factor_name)
+    if not ic:
+        return "—"
+    o = ic.get("overall", {})
+    mean_ic = o.get("mean_ic", 0)
+    p_val = o.get("p_value", 1)
+    dsr = ic.get("deflated_sharpe_ratio")
+    if mean_ic > 0.04 and p_val < 0.05 and (dsr is not None and dsr > 0.5):
+        return f"🟢 Good (IC={mean_ic:+.4f})"
+    if mean_ic > 0.02 and p_val < 0.10:
+        return f"🟡 Normal (IC={mean_ic:+.4f})"
+    return f"🔴 Fail (IC={mean_ic:+.4f})"
 
 st.title("🧩 因子介紹")
 st.caption(
@@ -42,52 +59,60 @@ st.subheader("📋 8 個因子總覽")
 overview_table = pd.DataFrame(
     [
         {
-            "因子": "52W 高接近度",
+            "因子": "52W 高接近度 (high_proximity)",
             "用在哪些策略": "全部 6 個策略（共用主動量）",
             "需要的資料": "OHLCV 日線（close）",
             "學術依據": "George & Hwang (2004)",
+            "single IC verdict": _verdict_for("high_proximity"),
         },
         {
-            "因子": "PEAD / EPS 驚喜",
+            "因子": "PEAD / EPS 驚喜 (pead_eps)",
             "用在哪些策略": "全部 6 個策略（共用基本面）",
             "需要的資料": "季報 EPS",
             "學術依據": "Bernard & Thomas (1989)",
+            "single IC verdict": _verdict_for("pead_eps"),
         },
         {
-            "因子": "月營收動能",
+            "因子": "月營收動能 v2 (revenue_momentum_v2)",
             "用在哪些策略": "僅 IC 個別測試",
             "需要的資料": "月營收公告",
             "學術依據": "Fundamental momentum 慣例",
+            "single IC verdict": _verdict_for("revenue_momentum_v2"),
         },
         {
-            "因子": "融資 / 融券反向",
+            "因子": "融資 / 融券反向 (margin_short_ratio)",
             "用在哪些策略": "D-B(20%) / D-D(30%)",
             "需要的資料": "融資融券餘額 + 已發行股數",
             "學術依據": "Retail 情緒 contrarian",
+            "single IC verdict": _verdict_for("margin_short_ratio"),
         },
         {
-            "因子": "外資 4 子訊號",
+            "因子": "外資法人因子 v2 (foreign_investor_v2)",
             "用在哪些策略": "僅 IC 個別測試",
             "需要的資料": "三大法人買賣超 + 市值",
             "學術依據": "Institutional flow",
+            "single IC verdict": _verdict_for("foreign_investor_v2"),
         },
         {
-            "因子": "品質 quality_v3",
+            "因子": "品質 (quality_v3)",
             "用在哪些策略": "D-E(20%)",
             "需要的資料": "季報損益表 + 資產負債表",
             "學術依據": "AQR QMJ profitability sub",
+            "single IC verdict": _verdict_for("quality_v3"),
         },
         {
-            "因子": "產業動量",
+            "因子": "產業動量 (industry_momentum)",
             "用在哪些策略": "D-F(20%)",
             "需要的資料": "OHLCV + 產業分類",
             "學術依據": "Moskowitz & Grinblatt (1999)",
+            "single IC verdict": _verdict_for("industry_momentum"),
         },
         {
-            "因子": "特質波動 + MAX 樂透",
+            "因子": "特質波動 + MAX 樂透 (idio_vol_max)",
             "用在哪些策略": "D-G(20%)",
             "需要的資料": "OHLCV + 0050 （作市場 benchmark)",
             "學術依據": "Bali, Cakici & Whitelaw (2011)",
+            "single IC verdict": _verdict_for("idio_vol_max"),
         },
     ]
 )
@@ -233,8 +258,8 @@ score = -0.5 × z(margin_ratio) - 0.5 × z(margin_change_20d)
     )
 
 
-# ---- 5. 外資 4 子訊號 ----
-with st.expander("🟢 5. 外資 4 子訊號（foreign_broker_v2）", expanded=False):
+# ---- 5. 外資法人因子 v2 ----
+with st.expander("🟢 5. 外資法人因子 v2（foreign_investor_v2）", expanded=False):
     st.markdown(
         """
 **直覺**：外資（連同投信）連續且持續地買進的股票，會繼續強嗎？
@@ -246,12 +271,12 @@ with st.expander("🟢 5. 外資 4 子訊號（foreign_broker_v2）", expanded=F
 
 **計算方式**（4 個子訊號 cross-sectional z-score + 加權）：
 
-| 子訊號 | 權重 | 計算 |
+| 子訊號 | 權重 (2026-05-10 後) | 計算 |
 |---|---|---|
-| **foreign_cum_ratio** | 0.40 | 過去 20 日外資累積淨額 / market_value |
-| **persistence** | 0.20 | 過去 20 日中外資**正淨額**的天數比例 |
-| **rank_stability** | 0.20 | 過去 60 日中該股**排名前 20%（外資 net/mv）**的天數比例 |
-| **consistency** | 0.20 | 過去 20 日中**外資+投信同方向**正淨額的天數比例 |
+| **foreign_cum_ratio** | **0.50** (was 0.40) | 過去 20 日外資累積**金額**（net × close）/ market_value（P0-B 量綱修正） |
+| **persistence** | **0.25** (was 0.20) | 過去 20 日中外資**正淨額**的天數比例 |
+| **rank_stability** | **0.25** (was 0.20) | 過去 60 日中該股**排名前 20%（外資金額/mv）**的天數比例 |
+| **consistency** | **0.0** (was 0.20, deprecated) | 過去 20 日中**外資+投信同方向**正淨額的天數比例（P1-D 78% 0-sparsity，移除權重） |
 
 **為什麼 v2**（vs v1 單一 net-flow snapshot）：v1 IC 實測 = -0.053（fail）；
 v2 用持續性訊號取代 noise-prone 即時值。
@@ -392,11 +417,12 @@ st.markdown(
 | **產業動量** | — | — | — | — | 20% | — | D-F 變體 |
 | **特質波動 + MAX** | — | — | — | — | — | 20% | D-G 變體 |
 | **月營收動能** | — | — | — | — | — | — | 個別 IC 測試（未進策略）|
-| **外資 4 子訊號** | — | — | — | — | — | — | 個別 IC 測試（未進策略）|
+| **外資法人因子 v2** | — | — | — | — | — | — | 個別 IC 測試（未進策略）|
 
 **為什麼月營收與外資沒進策略候選**：
-- **月營收動能**：個別 IC 0.012 / DSR fail（與 PEAD 重疊度高，PEAD 已涵蓋基本面意涵）
-- **外資 4 子訊號 v1**：IC = -0.053 fail；v2 是改進版但仍待後續實證
+- **月營收動能**：個別 IC ≈ +0.0145（p=0.113，未過 0.05）/ DSR=0 fail（與 PEAD 重疊度高，corr ≈ 0.38，PEAD 已涵蓋基本面意涵）
+- **外資法人因子 v1** (legacy `institutional.py`)：IC = -0.053 fail（單一 net-flow snapshot，已棄用）
+- **外資法人因子 v2** (`foreign_investor_v2`)：⚠️ 2026-05-10 Codex R26 audit 發現 PIT contamination（latest market value + 量綱錯誤）；2026-05-10 R28 fresh rerun 完成（PIT-asof market_value + dollar 制 cum_ratio + last20 stale guard + consistency=0 + covered-weight rescale）：**新 mean IC = -0.0077, p=0.5007, Bootstrap CI [-0.0276, +0.0116] 跨 0 不顯著**（vs 舊 -0.0195 p=0.082 CI 全<0），verdict **DROP**（PIT 修法後實證 alpha 微弱）。詳見 `reports/factor_ic/foreign_investor_v2_ic.json::pit_violation`（violated=false 已標 fresh rerun）+ `reports/factor_ic/_closeout/old_vs_new_comparison_2026-05-10.md`
 
 → 6 個策略候選把因子篩成「兩個共用 + 一個變體」結構，避免 high-dimensional overfit。
 """

@@ -13,7 +13,7 @@ import pandas as pd
 
 from ..backtest.metrics import adjust_splits
 from ..data.finmind import _BacktestCacheMissError
-from ..features.foreign_broker_v2 import compute_foreign_broker_v2_universe
+from ..features.foreign_investor_v2 import compute_foreign_investor_v2_universe
 from ..features.high_proximity import compute_high_proximity_universe
 from ..features.institutional import score_institutional
 from ..features.margin_short_ratio import compute_margin_short_ratio_universe
@@ -72,16 +72,20 @@ DEFAULT_PORTFOLIO_CONFIG = {
         "risk_off": 0.35,
     },
     "score_weights": {
-        "price_momentum": 0.45,
-        "trend_quality": 0.25,
-        "revenue_momentum": 0.20,
-        "institutional_flow": 0.10,
+        # 2026-05-11 R30-6 fix (Codex R30): institutional_flow 0.10 → 0.0
+        # 對齊 active config/settings.yaml（legacy 因子，profile 切換時不該被
+        # 意外帶回；外資 v1 IC=-0.053 已被 R26-R29 確認 fail，v2 R28 DROP）.
+        # 舊 default 0.45/0.25/0.20/0.10 重分配為 0.55/0.20/0.25/0.00.
+        "price_momentum": 0.55,
+        "trend_quality": 0.20,
+        "revenue_momentum": 0.25,
+        "institutional_flow": 0.00,
         # Phase A2 Step 2: new factor slots (default 0.0; enable via settings.yaml)
         "high_proximity": 0.0,
         "pead_eps": 0.0,
         "margin_short_ratio": 0.0,
         "revenue_momentum_v2": 0.0,
-        "foreign_broker_v2": 0.0,
+        "foreign_investor_v2": 0.0,
     },
     # 交易成本相關
     "turnover_cost": TW_ROUND_TRIP_COST,
@@ -120,7 +124,7 @@ PORTFOLIO_PROFILES = {
             "pead_eps": 0.0,
             "margin_short_ratio": 0.0,
             "revenue_momentum_v2": 0.0,
-            "foreign_broker_v2": 0.0,
+            "foreign_investor_v2": 0.0,
         },
     },
     "tw_6m_defensive": {
@@ -139,16 +143,19 @@ PORTFOLIO_PROFILES = {
             "risk_off": 0.35,
         },
         "score_weights": {
-            "price_momentum": 0.40,
+            # 2026-05-11 R30-6 fix (Codex R30): institutional_flow 0.10 → 0.0
+            # 同主 profile（legacy 因子已 R26-R29 確認 fail；redistribute 至
+            # price_momentum + revenue_momentum 保持 sum=1）.
+            "price_momentum": 0.50,
             "trend_quality": 0.20,
             "revenue_momentum": 0.30,
-            "institutional_flow": 0.10,
+            "institutional_flow": 0.00,
             # Phase A2 Step 2: new factor slots (default 0.0 for this profile too)
             "high_proximity": 0.0,
             "pead_eps": 0.0,
             "margin_short_ratio": 0.0,
             "revenue_momentum_v2": 0.0,
-            "foreign_broker_v2": 0.0,
+            "foreign_investor_v2": 0.0,
         },
     },
 }
@@ -862,7 +869,7 @@ def _rank_analyses(
         "pead_eps": "pead_eps_raw",
         "margin_short_ratio": "margin_short_ratio_raw",
         "revenue_momentum_v2": "revenue_momentum_v2_raw",
-        "foreign_broker_v2": "foreign_broker_v2_raw",
+        "foreign_investor_v2": "foreign_investor_v2_raw",
     }
 
     # Phase A3.1.1: opt-in sector-neutral ranking per factor.
@@ -1012,55 +1019,108 @@ def _safe_fetch(fetch_func, symbol: str, *extra_args, **kwargs):
         return None
 
 
-def _bulk_fetch_latest_market_value(source) -> dict[str, float]:
-    """Fetch the latest market_value snapshot for every symbol in one call.
+def _bulk_fetch_latest_market_value(
+    source,
+    as_of: pd.Timestamp | None = None,
+) -> dict[str, float]:
+    """Bulk fetch market_value (PIT-aware after R30 architecture cleanup).
 
-    Codex Round 14 P0-1 FIX: ``fetch_market_value(days=10)`` takes ``days`` (int)
-    — it does NOT accept a symbol argument. It returns a full-market DataFrame
-    (stock_id, date, market_value). We take the latest row per stock_id.
+    2026-05-11 R30 cleanup (Codex R29 finding 2): aligned with IC pipeline +
+    portfolio path issued_capital helper to use single source-of-truth PIT
+    helpers from ``src.data.pit_helpers``. Adds ``as_of`` keyword (default
+    None = today/live mode).
+
+    Behavior:
+        - ``as_of=None`` (live mode): falls through to legacy
+          ``source.fetch_market_value(days=10)`` for fast latest snapshot.
+        - ``as_of=<historical>``: uses disk cache PIT panel +
+          ``_market_value_asof()`` for PIT-correct lookup. Caller (backtest
+          replay) needs cache populated for the target date.
+
+    Codex Round 14 P0-1 FIX context: ``fetch_market_value(days=10)`` takes
+    ``days`` (int) — does NOT accept a symbol argument. Returns full-market
+    DataFrame (stock_id, date, market_value).
     """
-    try:
-        mv_panel = source.fetch_market_value()  # default days=10
-    except _BacktestCacheMissError:
-        raise
-    except Exception as exc:
-        logger.warning("bulk market_value fetch failed: %s", exc)
-        return {}
-    if mv_panel is None or mv_panel.empty:
-        return {}
-    latest = mv_panel.sort_values("date").groupby("stock_id").tail(1)
-    return {
-        str(row["stock_id"]): float(row["market_value"])
-        for _, row in latest.iterrows()
-        if pd.notna(row.get("market_value"))
-    }
+    # Live mode: as_of None or today → fast latest snapshot via source
+    if as_of is None or pd.Timestamp(as_of).date() >= pd.Timestamp.today().date():
+        try:
+            mv_panel = source.fetch_market_value()  # default days=10
+        except _BacktestCacheMissError:
+            raise
+        except Exception as exc:
+            logger.warning("bulk market_value fetch failed: %s", exc)
+            return {}
+        if mv_panel is None or mv_panel.empty:
+            return {}
+        latest = mv_panel.sort_values("date").groupby("stock_id").tail(1)
+        return {
+            str(row["stock_id"]): float(row["market_value"])
+            for _, row in latest.iterrows()
+            if pd.notna(row.get("market_value"))
+        }
 
-
-def _load_issued_capital_dict(universe_symbols: list[str]) -> dict[str, float]:
-    """Load issued_shares for universe symbols from the global pickle cache.
-
-    Codex Round 14 P0-2 FIX: explicit dtype cast (stock_id->str, issued_shares
-    ->float) + coverage warning when some universe symbols are missing from
-    the cache (e.g. ETFs like 0050/0056, or newly listed stocks).
-    """
-    path = Path(resolve_cache_dir()) / "issued_capital" / "_global.pkl"
-    if not path.exists():
+    # Backtest mode: PIT-asof from disk cache panel
+    from src.data.pit_helpers import _load_market_value_panel, _market_value_asof
+    cache_dir = Path(resolve_cache_dir())
+    panel = _load_market_value_panel(cache_dir)
+    if panel.empty:
         logger.warning(
-            "issued_capital/_global.pkl missing — margin_short_ratio batch will skip",
+            "market_value PIT panel empty — backtest as_of=%s lookup will return {}",
+            as_of,
         )
         return {}
-    df = pd.read_pickle(path)
-    out: dict[str, float] = {}
-    for _, row in df.iterrows():
-        issued = row.get("issued_shares")
-        if pd.notna(issued) and issued > 0:
-            out[str(row["stock_id"])] = float(issued)
+    return _market_value_asof(panel, pd.Timestamp(as_of))
+
+
+def _load_issued_capital_dict(
+    universe_symbols: list[str],
+    as_of: pd.Timestamp | None = None,
+) -> dict[str, float]:
+    """Load issued_shares for universe symbols (Codex R28-2 PIT-aligned).
+
+    2026-05-10 Codex R28-2 修法: was reading global latest snapshot (one-shot
+    dict). Now imports the same panel + asof helper as IC pipeline
+    (`scripts._factor_ic_helpers`), so portfolio/backtest path gets the same
+    PIT discipline (or fallback static-snapshot warning when cache lacks date).
+
+    Codex Round 14 P0-2 history: explicit dtype cast (stock_id->str,
+    issued_shares->float) + coverage warning when universe symbols missing
+    from cache (e.g. ETFs like 0050/0056, or newly listed stocks).
+
+    Args:
+        universe_symbols: list of stock_ids to look up
+        as_of: target date for PIT lookup. None = today (live mode).
+    """
+    from scripts._factor_ic_helpers import (
+        _load_issued_capital_panel,
+        _issued_capital_asof,
+    )
+
+    cache_dir = Path(resolve_cache_dir())
+    panel = _load_issued_capital_panel(cache_dir)
+    if panel.empty:
+        logger.warning(
+            "issued_capital panel empty — margin_short_ratio batch will skip",
+        )
+        return {}
+
+    target = pd.Timestamp(as_of) if as_of is not None else pd.Timestamp.today().normalize()
+    if target.tz is not None:
+        target = target.tz_convert(None)
+
+    asof_dict = _issued_capital_asof(panel, target)
+    out: dict[str, float] = {
+        sym: float(v)
+        for sym, v in asof_dict.items()
+        if v is not None and v > 0
+    }
+
     missing = [s for s in universe_symbols if s not in out]
     if missing:
         logger.warning(
             "margin_short_ratio: %d/%d universe symbols missing issued_shares "
-            "(first 5: %s) — those symbols will be dropped from the batch factor",
-            len(missing), len(universe_symbols), missing[:5],
+            "at as_of=%s (first 5: %s) — those symbols will be dropped from the batch factor",
+            len(missing), len(universe_symbols), target.date(), missing[:5],
         )
     return out
 
@@ -1101,7 +1161,10 @@ def _compute_universe_batch_factors(
 
     if float(sw.get("margin_short_ratio", 0)) > 0:
         margin_by_sym = {s: _safe_fetch(source.fetch_margin_short, s) for s in universe_symbols}
-        issued_by_sym = _load_issued_capital_dict(universe_symbols)
+        # 2026-05-10 Codex R28-2: pass as_of so issued_shares is PIT-aligned with
+        # IC pipeline (still falls back to static snapshot when cache lacks date
+        # column — same approximation as IC pipeline, consistent across paths).
+        issued_by_sym = _load_issued_capital_dict(universe_symbols, as_of=as_of_ts)
         series = compute_margin_short_ratio_universe(
             margin_by_sym, issued_by_symbol=issued_by_sym, as_of=as_of_ts,
         )
@@ -1112,13 +1175,31 @@ def _compute_universe_batch_factors(
         series = compute_revenue_momentum_v2_universe(rev_by_sym, as_of=as_of_ts)
         out["revenue_momentum_v2"] = series.to_dict()
 
-    if float(sw.get("foreign_broker_v2", 0)) > 0:
+    if float(sw.get("foreign_investor_v2", 0)) > 0:
+        # 2026-05-10 P1-3 (Codex R27): foreign_investor_v2 v2 API requires
+        # close_by_symbol for dollar-denominated cum_ratio + rank_stability
+        # (P0-B 修法). Without it both sub-signals are skipped and
+        # covered_weight drops below 0.5 threshold → universe goes empty.
+        # 2026-05-11 R30 4-path PIT cleanup (Codex R29 finding 2):
+        # _bulk_fetch_latest_market_value now PIT-aware with as_of kwarg.
+        # Live mode (as_of=today): fast source.fetch_market_value path.
+        # Backtest mode (as_of=historical): disk cache panel + asof lookup.
         inst_by_sym = {s: _safe_fetch(source.fetch_three_institutional, s) for s in universe_symbols}
-        mv_by_sym = _bulk_fetch_latest_market_value(source)
-        series = compute_foreign_broker_v2_universe(
-            inst_by_sym, market_value_by_symbol=mv_by_sym, as_of=as_of_ts,
+        mv_by_sym = _bulk_fetch_latest_market_value(source, as_of=as_of_ts)
+        # Build close panel: reuse fetched ohlcv if high_proximity already loaded
+        # else fetch fresh.
+        if "high_proximity" in out and "ohlcv_by_sym" in dir():
+            close_by_sym = {s: df["close"].copy() for s, df in ohlcv_by_sym.items() if df is not None and "close" in df.columns}
+        else:
+            ohlcv_for_fb = {s: _safe_fetch(source.fetch_ohlcv, s, "D", 500) for s in universe_symbols}
+            close_by_sym = {s: df["close"].copy() for s, df in ohlcv_for_fb.items() if df is not None and "close" in df.columns}
+        series = compute_foreign_investor_v2_universe(
+            inst_by_sym,
+            market_value_by_symbol=mv_by_sym,
+            as_of=as_of_ts,
+            close_by_symbol=close_by_sym,
         )
-        out["foreign_broker_v2"] = series.to_dict()
+        out["foreign_investor_v2"] = series.to_dict()
 
     return out
 

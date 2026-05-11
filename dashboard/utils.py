@@ -24,15 +24,32 @@ FIVE_FACTORS = [
     "pead_eps",
     "revenue_momentum_v2",
     "margin_short_ratio",
-    "foreign_broker_v2",
+    "foreign_investor_v2",
 ]
+
+# 2026-05-11 補測 Phase D 3 因子 single IC（之前只在 v7 cell sweep aggregate 中露面）
+PHASE_D_FACTORS = [
+    "quality_v3",
+    "industry_momentum",
+    "idio_vol_max",
+]
+
+ALL_FACTORS = FIVE_FACTORS + PHASE_D_FACTORS
 
 FACTOR_DISPLAY_NAMES = {
     "high_proximity": "52W 高接近度",
     "pead_eps": "PEAD / EPS Surprise",
     "revenue_momentum_v2": "月營收動能 v2",
     "margin_short_ratio": "融資/融券反向",
-    "foreign_broker_v2": "外資 4 子訊號",
+    # 2026-05-11 rename: "外資 4 子訊號" → "外資法人因子 v2"
+    # 「外資法人」對齊 FinMind row name "Foreign_Investor"（QFII / 境外機構投資者）
+    # 標準台股中文翻譯；舊「4 子訊號」schema 因 R28 P1-D deprecate consistency
+    # 後變誤導（實際 3 active sub-signal）。
+    "foreign_investor_v2": "外資法人因子 v2",
+    # Phase D 3 因子（2026-05-11 補跑 single IC）
+    "quality_v3": "品質",
+    "industry_momentum": "產業動量",
+    "idio_vol_max": "特質波動+樂透",
 }
 
 
@@ -145,6 +162,17 @@ def load_all_factor_ics() -> dict[str, dict]:
     """5 因子 IC raw 總集（factor_name → ic dict）。"""
     out: dict[str, dict] = {}
     for f in FIVE_FACTORS:
+        ic = load_factor_ic(f)
+        if ic is not None:
+            out[f] = ic
+    return out
+
+
+@st.cache_data(ttl=600)
+def load_all_eight_factor_ics() -> dict[str, dict]:
+    """8 因子 IC raw 總集（Phase A1 5 + Phase D 3）；2026-05-11 補測。"""
+    out: dict[str, dict] = {}
+    for f in ALL_FACTORS:
         ic = load_factor_ic(f)
         if ic is not None:
             out[f] = ic
