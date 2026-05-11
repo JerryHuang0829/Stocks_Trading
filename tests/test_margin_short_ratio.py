@@ -181,16 +181,16 @@ def test_score_wrapper_insufficient_returns_none():
     assert res["detail"] == "insufficient"
 
 
-# Codex R8-1 mutation-proof test ----------------------------------------------
+# R8-1 mutation-proof test ----------------------------------------------
 
 
 def test_zscore_with_tolerance_fires_on_sub_tolerance_std():
-    """R8-1 (rewrite after Codex Round 7 showed R7-2 wasn't mutation-proof):
+    """R8-1 (rewrite after external audit Round 7 showed R7-2 wasn't mutation-proof):
     directly verify that `_zscore_with_tolerance` fires on std that is
     **greater than zero but below 1e-12** — the exact failure mode the
     R6-3 fix was supposed to catch.
 
-    Codex's R7 mutation showed the previous R7-2 test's input (`1e-17`
+    external audit's R7 mutation showed the previous R7-2 test's input (`1e-17`
     symbol offset on 10000.0 base) was silently flattened to *identical*
     values because 1e-17 is below float epsilon at 1e4 scale. Std was
     exactly 0, even the old `std == 0` exact-compare guard fired, so

@@ -48,7 +48,7 @@ pivot 決策紀錄：**強 IC ≠ 強策略**的判斷力 demo。
 多視角 multi-perspective audit demo。
 
 - [sprint_pro_validation/J_multi_perspective_audit.md](sprint_pro_validation/J_multi_perspective_audit.md) ⭐⭐
-  **21 個攻擊角度全答**（7 角色：量化主管 / 策略員 / vol trader / CRO / 面試官 / 資料工程師 / 台灣 retail + Codex audit）
+  **21 個攻擊角度全答**（7 角色：量化主管 / 策略員 / vol trader / CRO / 面試官 / 資料工程師 / 台灣 retail + 獨立 audit）
 - [sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md](sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md)
   upstream canonical evidence anchor（綁 commit hash 防漂移）
 - 子目錄：
@@ -74,11 +74,11 @@ pivot 決策紀錄：**強 IC ≠ 強策略**的判斷力 demo。
 - [phase_d/A11_l6_ci_comparison.md](phase_d/A11_l6_ci_comparison.md)
   L6 80% vs 95% bootstrap CI 實證對照（為什麼降標 80%）
 
-### Codex audit + 自審
+### 獨立 audit + 自審
 - [phase_d/R24_resolution.md](phase_d/R24_resolution.md)
-  5 個 P0 + 7 個設計修法（Codex Round 24）
+  5 個 P0 + 7 個設計修法（external audit Round 24）
 - [phase_d/pre_implementation_review_2026-05-04.md](phase_d/pre_implementation_review_2026-05-04.md)
-  Claude in-house Pro Review（multi-perspective + self-audit + forensic-sweep）verdict GO-WITH-CAVEATS
+  self-audit in-house Pro Review（multi-perspective + self-audit + forensic-sweep）verdict GO-WITH-CAVEATS
 
 ### 18-cell canonical 結果（NO-GO 證據）
 - [phase_d/v7_outcome2_summary.md](phase_d/v7_outcome2_summary.md) ⭐⭐⭐
@@ -113,7 +113,7 @@ L5 是 aggregate A1 gate（active_corr ≤ 0.50 AND TE ≥ 0.10 AND beta-adjuste
 | 多視角 audit（防 confirmation bias）| sprint_pro_validation/J_multi_perspective |
 | 揭穿自己舊結果（科學誠實）| diagnosis/2026-04-16_edge_diagnosis |
 | Pro 統計方法論（DSR / Bootstrap / FDR / PIT）| factor_ic / sprint_pro_validation/B_repro |
-| Codex 外部 audit（last line of defense）| phase_d/R24_resolution + cell_summary.json |
+| external audit 外部 audit（last line of defense）| phase_d/R24_resolution + cell_summary.json |
 | 接受 NO-GO（不硬要找 alpha）| phase_d/cell_summary.json Outcome-2 |
 
 → 合起來證明這不是隨便跑 backtest，是 institutional 等級流程。

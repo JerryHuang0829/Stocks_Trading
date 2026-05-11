@@ -105,7 +105,7 @@ def test_active_corr_length_mismatch_raises():
 
 
 def test_active_corr_index_misalignment_raises_v0_14():
-    """V0.14 P0-4 fix per R25-mid Codex audit: docstring promised non-aligned
+    """V0.14 P0-4 fix per R25-mid 獨立 audit: docstring promised non-aligned
     index check but original code only verified length. Same length ≠ same
     dates; pandas Series subtract auto-aligns by index which silently produces
     wrong result if dates differ. Caller MUST align by date index first.

@@ -28,7 +28,7 @@ factor_ic:
     rank_stability: 50           # foreign_investor_v2 rank_stability 日內 universe 下限（P1-新7）
 
 factor_specific:
-  # ⚠️ SPEC-MIRROR sections (Codex R32 note): high_proximity / pead_eps /
+  # ⚠️ SPEC-MIRROR sections (R32 note): high_proximity / pead_eps /
   # margin_short_ratio below are NOT read by their modules (modules hard-code
   # these values). They mirror the module constants for documentation; edit
   # BOTH if changing. foreign_investor_v2 / revenue_momentum_v2 ARE yaml-driven
@@ -38,12 +38,12 @@ factor_specific:
     shift: 1                     # as_of 當日不入 rolling max
 
   revenue_momentum_v2:
-    # 2026-05-11 Codex R32 finding: keys renamed accel_3m3m→accel, pct_24m→percentile
+    # 2026-05-11 R32 finding: keys renamed accel_3m3m→accel, pct_24m→percentile
     # to match src/features/revenue_momentum_v2.py::SUBSIGNAL_WEIGHTS so the module's
     # _subsignal_weights() can actually read this section (was a silent config drift —
     # module hardcoded, yaml never read, and keys mismatched so naive wiring would noop).
     #
-    # ⚠️ PARTIAL-LIVE SECTION (Codex R33 B2): only `weights` below is yaml-driven
+    # ⚠️ PARTIAL-LIVE SECTION (R33 B2): only `weights` below is yaml-driven
     # (read via _subsignal_weights()). `seasonal_window_months` is SPEC MIRROR — the
     # module hard-codes DEFAULT_SEASONAL_LOOKBACK_MONTHS=24; edit the module if changing.
     # (`yoy_strict_month_matching` removed 2026-05-11: P1-新6 removed the ±45-day
@@ -62,7 +62,7 @@ factor_specific:
     use_trading_day_offset: true # module 用 row-offset iloc[-21]（不是 calendar offset）
 
   foreign_investor_v2:
-    # 2026-05-10 P1-D 修法：剔除 consistency（Codex R26 audit: 78% symbols
+    # 2026-05-10 P1-D 修法：剔除 consistency（R26 audit: 78% symbols
     # consistency=0, std 0.094 vs persistence 0.171, 訊雜比差），weight 重分配
     weights:
       foreign_cum_ratio: 0.50    # was 0.40
@@ -103,7 +103,7 @@ factor_specific:
 universe:
   mode: "intersection"           # P1-新1：全因子共用 intersection
   min_universe_size: 50          # panel 至少此數 symbol 才進 intersection
-  # follow-up-4 (Codex R5-1): per-panel thresholds so quarterly/monthly panels
+  # follow-up-4 (R5-1): per-panel thresholds so quarterly/monthly panels
   # (~28 rows / symbol over 7Y) are not mass-dropped by the daily-frequency
   # 250-row bar. A pre-Round-4 version had this as a scalar which
   # deep-merged OVER the DEFAULTS dict and silently reinstated 250 for every

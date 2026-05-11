@@ -1,6 +1,6 @@
 # H_v8_idio_led — Plan v8 Idio-Led Variant Pre-Registration DRAFT
 
-**Status**: 🟡 **DRAFT — awaiting latest Codex audit pass (currently R33) + user sign-off lock**
+**Status**: 🟡 **DRAFT — awaiting latest 獨立 audit pass (currently R33) + user sign-off lock**
 **Date drafted**: 2026-05-11
 **Predecessor**: H_d_v6 (v7 cell sweep, locked 2026-05-04)
 **Trigger**: 2026-05-11 Phase D 3 因子 single IC 補測 → idio_vol_max +0.0588 = 8 因子最強 single IC
@@ -10,8 +10,8 @@
 ## ⚠️ Status & Lock Requirement
 
 本 doc 是 **DRAFT**。lock 必須滿足兩條件：
-1. **Codex audit pass on the Plan-v8 pre-reg block**（R32 已 PASS C1-C7：post-hoc bias / sample reuse / L1-L6 不降標 / n_trials=24 / 8×3=24 cells / pre-rerun checklist / sign-off / 同 v7 不可改；R33 確認 R32-fix 後 baseline + round reference 不 stale）
-2. **User 明確簽 lock signature**（user 看完 codex audit 後拍板）
+1. **獨立 audit pass on the Plan-v8 pre-reg block**（R32 已 PASS C1-C7：post-hoc bias / sample reuse / L1-L6 不降標 / n_trials=24 / 8×3=24 cells / pre-rerun checklist / sign-off / 同 v7 不可改；R33 確認 R32-fix 後 baseline + round reference 不 stale）
+2. **User 明確簽 lock signature**（user 看完 外部 audit 後拍板）
 
 **未 lock 前**：不可跑 24-cell v8 sweep，不可寫 v8 cell yaml configs，不可 freeze candidate sets。
 
@@ -145,7 +145,7 @@ top_n_values: [8, 12, 16]
 | L5 | A1 active_corr ≤ 0.50 | H_d_v6 §"6 hard gates" line 5 |
 | L6 | 80% bootstrap CI lower > 0 | H_d_v6 §"6 hard gates" line 6 |
 
-**禁止任何 silent threshold adjust**。Codex audit 會逐條 grep 確認。
+**禁止任何 silent threshold adjust**。獨立 audit 會逐條 grep 確認。
 
 ---
 
@@ -176,14 +176,14 @@ top_n_values: [8, 12, 16]
 
 | # | Item | Status | Verifier |
 |---|---|---|---|
-| 1 | Codex audit Plan-v8 block all PASS / SUFFICIENT（R32 PASS C1-C7；R33 final confirm） | ⏳ pending | Codex |
+| 1 | 獨立 audit Plan-v8 block all PASS / SUFFICIENT（R32 PASS C1-C7；R33 final confirm） | ⏳ pending | external audit |
 | 2 | User 簽 lock signature | ⏳ pending | User |
-| 3 | pytest baseline passed 0 regression（685 → 690：Phase D IC schema parity tests + foreign/revenue yaml-sync tests；Codex R33 實測 690 passed） | ✅ done | Claude this session |
+| 3 | pytest baseline passed 0 regression（685 → 690：Phase D IC schema parity tests + foreign/revenue yaml-sync tests；R33 實測 690 passed） | ✅ done | self-audit this session |
 | 4 | Cache up to date through 2025-12-31 | ✅ done | (sample IS+OOS 截至 2025-12-31) |
-| 5 | 8 candidate yaml configs 寫好 | ⏳ DRAFT | Claude pending lock |
-| 6 | `scripts/d_cell_sweep_v8.py` adapter from v7 | ⏳ DRAFT | Claude pending lock |
-| 7 | `scripts/d_cell_aggregate_v8.py` aggregator (n_trials=24) | ⏳ DRAFT | Claude pending lock |
-| 8 | `reports/phase_d_v8/v8_validation_manifest.md` | ⏳ DRAFT | Claude pending lock |
+| 5 | 8 candidate yaml configs 寫好 | ⏳ DRAFT | self-audit pending lock |
+| 6 | `scripts/d_cell_sweep_v8.py` adapter from v7 | ⏳ DRAFT | self-audit pending lock |
+| 7 | `scripts/d_cell_aggregate_v8.py` aggregator (n_trials=24) | ⏳ DRAFT | self-audit pending lock |
+| 8 | `reports/phase_d_v8/v8_validation_manifest.md` | ⏳ DRAFT | self-audit pending lock |
 
 ---
 
@@ -191,13 +191,13 @@ top_n_values: [8, 12, 16]
 
 | Phase | 內容 | 工時 |
 |---|---|---|
-| Lock | Codex audit pass (Plan-v8 block) + user 簽 | (即時) |
+| Lock | 獨立 audit pass (Plan-v8 block) + user 簽 | (即時) |
 | S1 | 寫 8 candidate yaml configs | 1 hr |
 | S2 | adapter `d_cell_sweep_v8.py` + `d_cell_aggregate_v8.py` (n_trials=24) | 2 hr |
 | S3 | 24-cell sweep run | 5-8 hr |
 | S4 | merge + aggregate + outcome classification | 1 hr |
 | S5 | closeout report + v7 對照 + bias disclosure | 3 hr |
-| S6 | Codex R32 audit (v8 final) | (1.5 hr) |
+| S6 | R32 audit (v8 final) | (1.5 hr) |
 | S7 | If APPROVE → user 拍板 paper trade kickoff (Outcome-1) OR 結案 (Outcome-2/3) | (variable) |
 | | **TOTAL post-lock** | **~13-15 hr** |
 
@@ -219,8 +219,8 @@ top_n_values: [8, 12, 16]
 
 | Role | Name | Date | Sign |
 |---|---|---|---|
-| Researcher | Claude (this session) | 2026-05-11 | (DRAFT 只簽 draft submission) |
-| Auditor | Codex (latest audit, currently R33) | TBD | TBD |
+| Researcher | self-audit (this session) | 2026-05-11 | (DRAFT 只簽 draft submission) |
+| Auditor | external audit (latest audit, currently R33) | TBD | TBD |
 | Final lock | User | TBD | TBD |
 
 ---
@@ -229,12 +229,12 @@ top_n_values: [8, 12, 16]
 
 | Risk | Mitigation |
 |---|---|
-| Post-hoc weight selection bias | §2.2 完整 disclosure + Codex audit (post-hoc bias block) |
+| Post-hoc weight selection bias | §2.2 完整 disclosure + 獨立 audit (post-hoc bias block) |
 | Partial sample reuse (2025 OOS 已被 v7 看過) | §2.3 完整 disclosure + closeout 必說明 |
 | 24-cell sweep timeout | S3 切 batch 分段（每 batch ~6 cells）+ cache 中間結果 |
-| Silent gate threshold adjust | §5 hard threshold list + Codex K.3 audit |
+| Silent gate threshold adjust | §5 hard threshold list + external audit K.3 audit |
 | DSR n_trials silent drift | §7 explicit kwarg + V0.13 Assertion 3 enforce |
-| 8 candidate yaml configs typo / weight 不 sum 1.0 | S1 寫完後 mutation test 驗 weight sum + Codex 復檢 |
+| 8 candidate yaml configs typo / weight 不 sum 1.0 | S1 寫完後 mutation test 驗 weight sum + external audit 復檢 |
 
 ---
 
@@ -244,8 +244,8 @@ top_n_values: [8, 12, 16]
 - v7 cell sweep results: `reports/phase_d/cell_sweep_v7_2026_05_06/`
 - v7 closeout: `reports/phase_d/v7_outcome2_summary.md`
 - 2026-05-11 Phase D 3 因子 IC: `reports/factor_ic/{quality_v3,industry_momentum,idio_vol_max}_ic.json`
-- Codex audit prompt: `Codex-Prompt.md` (currently R33)
+- audit prompt: `audit-prompt.md` (currently R33)
 
 ---
 
-## DRAFT 結束 — 等 Codex audit pass (Plan-v8 block) + user 簽 lock
+## DRAFT 結束 — 等 獨立 audit pass (Plan-v8 block) + user 簽 lock

@@ -165,7 +165,7 @@ def test_composite_handles_partial_none_subsignals():
 
 
 def test_subsignal_weights_yaml_in_sync_with_constant():
-    """2026-05-11 Codex R32 finding: the module now reads weights from
+    """2026-05-11 R32 finding: the module now reads weights from
     `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2.weights`
     via `_subsignal_weights()` (yaml keys renamed accel_3m3m→accel, pct_24m→percentile
     to match the module). Guard that yaml and the module fallback constant stay in
@@ -248,7 +248,7 @@ def test_zero_revenue_base_handled_gracefully():
     assert "yoy" in out
 
 
-# Codex R6-3 companion --------------------------------------------------
+# R6-3 companion --------------------------------------------------
 
 
 def test_seasonal_z_handles_near_constant_peer_window():

@@ -1036,7 +1036,7 @@ class FinMindSource(DataSource):
         multiplies by historical close prices from the OHLCV disk cache to
         produce a full historical market_value DataFrame.
 
-        ⚠️ **NOT FULLY PIT** (Codex R30 finding 2, 2026-05-11)：
+        ⚠️ **NOT FULLY PIT** (R30 finding 2, 2026-05-11)：
             shares 是 cache build 時 fetch_twse_issued_capital() 的 latest
             snapshot；historical close 是真歷史。所以每個 (stock_id, date) row：
               - close: PIT-correct ✅
@@ -1252,7 +1252,7 @@ class FinMindSource(DataSource):
             return None
 
     # ----------------------------------------- quarterly_financial_full (V0.14 P-B)
-    # S6.1 Path B (R25-mid Codex audit P-B fix, 2026-05-05): full quarterly
+    # S6.1 Path B (R25-mid 獨立 audit P-B fix, 2026-05-05): full quarterly
     # income statement history (Revenue / GrossProfit / IncomeAfterTaxes / EPS
     # / etc) for D-E quality_v3 PIT-correct TTM ROE + gross_margin computation.
     # Existing fetch_quarterly_eps stores EPS-only subset (per finmind.py:674
@@ -1312,7 +1312,7 @@ class FinMindSource(DataSource):
         return cached.sort_values("date") if "date" in cached.columns else cached
 
     # ----------------------------------------- balance_sheet (V0.14 P-B)
-    # S6.1 Path B (R25-mid Codex audit P-B fix): quarterly balance sheet
+    # S6.1 Path B (R25-mid 獨立 audit P-B fix): quarterly balance sheet
     # history (Equity / TotalAssets / TotalLiabilities / etc) for D-E
     # quality_v3 Δassets YoY + ROE Equity 分母. Existing fetch_financial_quality
     # cached single-snapshot dict (line 1112-1183); this method stores full

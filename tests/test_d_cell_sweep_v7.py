@@ -151,7 +151,7 @@ def test_yaml_unknown_candidate_raises():
 
 
 def test_yaml_d_d_has_3_factors_v0_14_no_revenue_v2():
-    """V0.14 R25-mid Codex audit P0-2 fix: D-D redesigned from 4-factor to
+    """V0.14 R25-mid 獨立 audit P0-2 fix: D-D redesigned from 4-factor to
     3-factor IR-weighted normalize (revenue_momentum_v2 移除 per pre-commit #8
     V0.14 clarify). Verifies D-D V0.14 contains exactly 3 factors AND
     revenue_momentum_v2 NOT in factors."""
@@ -212,7 +212,7 @@ def test_cell_grid_stub_no_d_a_in_cells():
 # ---------------------------------------------------------------------------
 # V0.14 Assertion 2 強化 — composition-level forbidden check (P0-1 fix)
 # ---------------------------------------------------------------------------
-# R25-mid Codex audit P0-1: D-C 50/50 ≡ D-A composition; existing string-only
+# R25-mid 獨立 audit P0-1: D-C 50/50 ≡ D-A composition; existing string-only
 # Assertion 2 cannot catch. V0.14 adds module-level _composition_equals_forbidden()
 # helper + caller-side check in load_candidate_config(). These tests verify
 # composition equivalence catch.
@@ -243,7 +243,7 @@ def test_v0_14_load_yaml_with_d_a_composition_raises(tmp_path, monkeypatch):
     matches D-A even if candidate_id differs. Mutation reverts the V0.14 check
     → load returns silently with D-A-equivalent candidate."""
     from scripts.d_cell_sweep_v7 import load_candidate_config, CANDIDATE_FACTOR_SETS
-    # Create a temp yaml file masquerading as D-C with 50/50 (the bug Codex caught)
+    # Create a temp yaml file masquerading as D-C with 50/50 (the bug external audit caught)
     fake_yaml_dir = tmp_path / "fake_d_v7"
     fake_yaml_dir.mkdir()
     fake_yaml = fake_yaml_dir / "D-C.yaml"
@@ -280,7 +280,7 @@ def test_v0_14_real_d_c_loads_with_pead_weighted_60_40():
 
 
 def test_v0_14_assertion_3_dynamic_matches_actual():
-    """V0.14 fix per Codex 建議: EXPECTED_N_TRIALS computed dynamically from
+    """V0.14 fix per external audit 建議: EXPECTED_N_TRIALS computed dynamically from
     len(CANDIDATE_FACTOR_SETS) × len(TOP_N_VALUES); not just hardcoded 18."""
     from scripts.d_cell_sweep_v7 import (
         CANDIDATE_FACTOR_SETS,

@@ -1,12 +1,12 @@
 # D-C candidate (per H_d_v6:177 V0.14 redesign)
 # 52W high proximity + PEAD (40/60 PEAD-weighted variant; NOT 50/50 D-A baseline)
-# V0.14 fix per R25-mid Codex audit P0-1: D-C 50/50 ≡ D-A D1_v2 design (pre-disqualified);
+# V0.14 fix per R25-mid 獨立 audit P0-1: D-C 50/50 ≡ D-A D1_v2 design (pre-disqualified);
 # Re-weighted 40/60 PEAD-weighted to differentiate from D-A composition.
 # pead_eps IR (0.2902) > high_proximity IR (0.2738) → PEAD-weighted is approx IR-weighted.
 candidate_id: D-C
-description: high_proximity + pead_eps (40/60 PEAD-weighted variant; NOT 50/50 D-A baseline; V0.14 redesign per R25-mid Codex audit P0-1)
+description: high_proximity + pead_eps (40/60 PEAD-weighted variant; NOT 50/50 D-A baseline; V0.14 redesign per R25-mid 獨立 audit P0-1)
 factors:
   high_proximity: 0.40
   pead_eps: 0.60
 top_n_values: [8, 12, 16]
-spec_source: "H_d_v6:177 D-C row V0.14 redesign (R25-mid Codex audit P0-1 fix; weight ≠ 50/50 to avoid D-A composition equivalence)"
+spec_source: "H_d_v6:177 D-C row V0.14 redesign (R25-mid 獨立 audit P0-1 fix; weight ≠ 50/50 to avoid D-A composition equivalence)"

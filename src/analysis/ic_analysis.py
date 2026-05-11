@@ -87,13 +87,13 @@ class FactorICResult:
     deflated_sharpe_n_trials: int | None = None
     # R3-1: empirical skew / Pearson kurtosis fed into DSR (default Gaussian
     # fallback). `deflated_sharpe_moments_estimated` distinguishes "really
-    # estimated" from "fell back silently" so Codex-style mutation tests can
-    # pin down which branch executed (Codex C2 / Round 3.5).
+    # estimated" from "fell back silently" so external audit-style mutation tests can
+    # pin down which branch executed (external audit C2 / Round 3.5).
     deflated_sharpe_skewness: float = 0.0
     deflated_sharpe_kurtosis: float = 3.0
     deflated_sharpe_moments_estimated: bool = False
     # n_obs used by DSR (time-series n_periods, NOT effective_n). Recorded
-    # for transparency after Codex flagged dimension confusion.
+    # for transparency after external audit flagged dimension confusion.
     deflated_sharpe_n_obs: int | None = None
     # Cross-sectional cluster shrinkage value. METADATA ONLY — never wired
     # into p-value or DSR (see known_biases).
@@ -195,7 +195,7 @@ def _estimate_tie_ratio(values: Sequence[float]) -> float | None:
     information content degrades; callers should treat tie_ratio > 0.3 as
     reduced confidence.
 
-    Codex R5-4: returns **None** when the input is degenerate (empty, all
+    R5-4: returns **None** when the input is degenerate (empty, all
     NaN, or single observation) so callers can distinguish "cannot
     evaluate" from "zero ties". Previously any degenerate input returned
     0.0, silently masking all-NaN periods as tie-free.
@@ -214,7 +214,7 @@ def compute_period_ic_stats(ics: Sequence[float | None]) -> dict:
     Returns: mean, std, IC_IR, t_stat, p_value, n, t_df.
     Uses Student-t for p-value (exact small-sample, superior to normal approx).
 
-    ADR — time-series df, not cross-sectional (Codex Round 3.5, 2026-04-17)
+    ADR — time-series df, not cross-sectional (external audit Round 3.5, 2026-04-17)
     -----------------------------------------------------------------------
     Earlier revisions accepted a cross-sectional cluster override that
     replaced Student-t ``df = n - 1`` with ``effective_n - 1``. That was a
@@ -247,7 +247,7 @@ def compute_period_ic_stats(ics: Sequence[float | None]) -> dict:
             "t_stat": None, "p_value": None, "n": 1, "t_df": None,
         }
     sd = math.sqrt(sum((v - mu) ** 2 for v in clean) / (n - 1))
-    # Codex R5-2: `sd == 0` exact comparison is brittle against float noise.
+    # R5-2: `sd == 0` exact comparison is brittle against float noise.
     # A constant series like [0.2, 0.2, 0.2] can yield sd ≈ 1e-17 depending on
     # accumulation order, which previously produced ic_ir ~ 5.88e15 and
     # p_value = 0.0. Use a tight absolute tolerance so numerically-degenerate
@@ -261,7 +261,7 @@ def compute_period_ic_stats(ics: Sequence[float | None]) -> dict:
     t_stat = ic_ir * math.sqrt(n)
     df = n - 1
     p_value = 2.0 * float(stats.t.sf(abs(t_stat), df=df))
-    # Codex R6-2 fix: `round(sd, 4)` collapses microscopic-but-above-guard
+    # R6-2 fix: `round(sd, 4)` collapses microscopic-but-above-guard
     # standard deviations (e.g. 1.58e-10) to 0.0 while ic_ir / t_stat /
     # p_value still carry the real signal (ic_ir ~ 6.3e8). Downstream
     # readers then see `std_ic=0.0` next to "statistically significant"
@@ -477,7 +477,7 @@ def regime_conditional_ic(
 ) -> dict:
     """Group period ICs by regime, return {regime: stats_dict} for each bucket.
 
-    Codex Round 3.5 correction: the previous cross-sectional cluster
+    external audit Round 3.5 correction: the previous cross-sectional cluster
     override has been removed because mixing cross-sectional cluster
     shrinkage into a time-series t-test inverted the conservatism direction.
     Each regime now simply runs `compute_period_ic_stats` on its own
@@ -713,7 +713,7 @@ def factor_ic_report(
         symbols_seen.update(str(s) for s in aligned.index)
 
     # Cross-sectional effective-n (symbol-cluster shrinkage). Kept as JSON
-    # metadata + known-biases warning ONLY — Codex Round 3.5 showed that
+    # metadata + known-biases warning ONLY — external audit Round 3.5 showed that
     # plumbing it into Student-t df or DSR n_obs mixes dimensions and
     # produces the wrong direction of conservatism (see ADR note in
     # compute_period_ic_stats docstring).
@@ -725,7 +725,7 @@ def factor_ic_report(
     effective_n_metadata = eff_n if eff_n and eff_n > 1 else None
 
     overall = compute_period_ic_stats(period_ics_float)
-    # Note (Codex R5-5): top-level `FactorICResult.effective_n` already
+    # Note (R5-5): top-level `FactorICResult.effective_n` already
     # surfaces this as metadata. An earlier revision also wrote
     # `overall["effective_n_cross_sectional"] = effective_n_metadata` but
     # that produced identical duplicate values in the serialised JSON. The
@@ -766,7 +766,7 @@ def factor_ic_report(
 
     # Deflated Sharpe Ratio on the IC-IR.
     #
-    # n_obs = number of time-series observations (= n_periods). Codex Round 3.5
+    # n_obs = number of time-series observations (= n_periods). external audit Round 3.5
     # caught the earlier version substituting cross-sectional `effective_n`
     # here — that mixes dimensions the same way as the Student-t df error.
     # Sharpe / IR is a time-series statistic; Mertens (2002) variance is
@@ -818,7 +818,7 @@ def factor_ic_report(
     biases = list(known_biases or [])
     # Document methodology caveats so downstream readers cannot forget them.
     #
-    # Codex Round 3.5 corrections applied below:
+    # external audit Round 3.5 corrections applied below:
     #   * effective_n is metadata only (NOT wired into any p-value / DSR).
     #   * Survivorship boilerplate is unconditional here; callers should no
     #     longer pass their own "cache-scan survivorship" string to avoid
@@ -869,7 +869,7 @@ def factor_ic_report(
             + ("..." if len(high_tie_periods) > 5 else "")
         )
 
-    # Codex R5-3 precision fix for C5 dedup:
+    # R5-3 precision fix for C5 dedup:
     # Earlier versions used substring keyword match which swallowed unrelated
     # caller notes. A first R5-3 attempt bucketed all canonical phrases into
     # one set, but that cross-contaminated *topics* — e.g. an already-

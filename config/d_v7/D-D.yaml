@@ -1,6 +1,6 @@
 # D-D candidate (per H_d_v6:178 V0.14 redesign)
 # 3-factor: 52W + PEAD + Margin Short (IR-weighted normalize, NO 20% Margin cap)
-# V0.14 fix per R25-mid Codex audit P0-2: revenue_momentum_v2 移除 (pre-commit #8 V0.14 clarify
+# V0.14 fix per R25-mid 獨立 audit P0-2: revenue_momentum_v2 移除 (pre-commit #8 V0.14 clarify
 # Revenue_v2 EXCLUDED from candidate pool); 4-factor → 3-factor.
 # 區分機制 vs D-B: D-B IR-weighted WITH 20% Margin cap (39/41/20); D-D IR-weighted
 # WITHOUT cap (34/36/30) — explore unconstrained allocation.
@@ -12,4 +12,4 @@ factors:
   pead_eps: 0.36
   margin_short_ratio: 0.30
 top_n_values: [8, 12, 16]
-spec_source: "H_d_v6:178 D-D row V0.14 redesign (R25-mid Codex audit P0-2 fix; 3-factor IR-weighted normalize; revenue_v2 移除 per pre-commit #8 V0.14 clarify)"
+spec_source: "H_d_v6:178 D-D row V0.14 redesign (R25-mid 獨立 audit P0-2 fix; 3-factor IR-weighted normalize; revenue_v2 移除 per pre-commit #8 V0.14 clarify)"

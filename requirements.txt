@@ -17,7 +17,7 @@ FinMind>=1.6.0
 #     INCOMPATIBLE with numpy >= 2.0 (NaN attribute removed; only `nan`
 #     remains). Importing 0.3.x under numpy 2.x triggers a chained
 #     ImportError that manifests as a 60-120s "hang" in some sandboxes
-#     (Codex audit env 2026-05-07 hit this).
+#     (獨立 audit env 2026-05-07 hit this).
 #   - 0.4.x rewrite (current pandas-ta dev branch, beta-tagged on PyPI)
 #     replaces all `numpy.NaN` references with `numpy.nan` and is fully
 #     compatible with numpy 2.x / pandas 3.x / Python 3.12+.

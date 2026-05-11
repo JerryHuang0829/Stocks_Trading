@@ -70,7 +70,7 @@ DATASET_CONFIG = {
         "default_start": "2016-01-01",
         "min_rows": 12,   # 12 quarters
     },
-    # S6.1 Path B (R25-mid Codex audit P-B fix, 2026-05-05): D-E quality_v3
+    # S6.1 Path B (R25-mid 獨立 audit P-B fix, 2026-05-05): D-E quality_v3
     # full income statement + balance sheet history. Existing quarterly_eps
     # is EPS-only subset (per finmind.py:674); these new datasets store full
     # income statement + balance sheet for TTM ROE / gross_margin / Δassets.
@@ -114,7 +114,7 @@ def _load_stock_ids(cache_dir: pathlib.Path, top_n: int | None = None) -> list[s
     data — including them causes ``failed_count`` false-positives which
     wrongly trigger token/proxy rotation).
 
-    S6.1 Path B (R25-mid Codex audit + user 提醒, 2026-05-05): top_n filter
+    S6.1 Path B (R25-mid 獨立 audit + user 提醒, 2026-05-05): top_n filter
     縮 universe to top-N by 60-day mean(close × volume) per H_d_v6:69 + per
     `config/settings.yaml:auto_universe_size`. Mitigates over-fetch (v7 cell
     sweep only uses top-80; full 1968-stock fill cycles 3 quota slots × 65min
@@ -201,7 +201,7 @@ def rebuild_dataset(
         return
 
     rotator = TokenRotator()
-    # S6.1 Path B (R25-mid Codex audit + user 提醒, 2026-05-05): if starting_with_proxy,
+    # S6.1 Path B (R25-mid 獨立 audit + user 提醒, 2026-05-05): if starting_with_proxy,
     # fetch fresh Proxifly SOCKS5 for Slot 0 BEFORE first call. Per memory
     # `FinMind Tokens & Quota`: 3 tokens all bound to same IP (<isp_ip>).
     # Default starting Direct means Token1 runs 580 calls on workstation IP
@@ -387,7 +387,7 @@ def seed_issued_capital(cache_dir: pathlib.Path) -> pathlib.Path:
     Writes ``issued_capital/_global.pkl`` with columns (stock_id, date,
     issued_shares). Consumed by ``run_factor_ic.py::_load_issued_capital``.
 
-    ⚠️ **NOT TRUE PIT HISTORICAL ISSUED_SHARES** (Codex R29 finding 4)：
+    ⚠️ **NOT TRUE PIT HISTORICAL ISSUED_SHARES** (R29 finding 4)：
     market_value cache 本身是 ``latest_shares × historical_close`` (per
     ``src/data/finmind.py:_compute_market_value_from_twse``). 故 derive shares
     = ``market_value / close`` = ``latest × historical_close / historical_close``
@@ -505,7 +505,7 @@ def main() -> None:
         "--starting-with-proxy",
         action="store_true",
         help=(
-            "S6.1 Path B (R25-mid Codex audit, 2026-05-05): start Token1 + "
+            "S6.1 Path B (R25-mid 獨立 audit, 2026-05-05): start Token1 + "
             "fresh Proxifly SOCKS5 proxy instead of Direct. Per memory "
             "FinMind Tokens & Quota: 3 tokens all bound to same IP "
             "(<isp_ip>); default Direct means Token1 runs 580 calls on "
@@ -519,7 +519,7 @@ def main() -> None:
         type=int,
         default=None,
         help=(
-            "S6.1 Path B (R25-mid Codex audit + user 提醒, 2026-05-05): "
+            "S6.1 Path B (R25-mid 獨立 audit + user 提醒, 2026-05-05): "
             "縮 universe to top-N by 60-day mean(close × volume) per "
             "H_d_v6:69 universe spec + config/settings.yaml:auto_universe_size. "
             "Mitigates over-fetch (v7 cell sweep only uses top-80 stocks). "

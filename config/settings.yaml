@@ -81,7 +81,7 @@ portfolio:
   # `_metric_ranks` 缺資料股票回 None sentinel；`_rank_analyses` per-symbol
   # weight_sum normalize；coverage 低於此值 → portfolio_score=0 forced.
   # 預設 0.6 = 5 因子至少 3 個有資料；threshold sensitivity 待 D.2 開跑前
-  # 跑 0.5/0.6/0.7/0.8 比較 OOS Sharpe (Codex R19 P2 抓的 caveat).
+  # 跑 0.5/0.6/0.7/0.8 比較 OOS Sharpe (R19 P2 抓的 caveat).
   min_factor_coverage_per_symbol: 0.6
   score_weights:
     price_momentum: 0.55

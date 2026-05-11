@@ -262,7 +262,7 @@ def main() -> None:
     )
     log.info("Wrote %s", out_path)
 
-    # 2026-05-11 Codex R31 finding 1 fix: enrich the JSON in-place with the
+    # 2026-05-11 R31 finding 1 fix: enrich the JSON in-place with the
     # same decile / monotonicity / peak-in-middle / price-score-corr /
     # pit_violation diagnostics the Phase A1 5-factor JSONs carry, so the
     # Phase D 3-factor JSONs have full schema parity (was only writing

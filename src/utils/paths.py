@@ -8,7 +8,7 @@ fallback for local (Windows) development. That asymmetry caused
 was unset on a workstation — the universe then fell back to stock_info order
 and produced garbage rankings without any error.
 
-Phase 0 V0.2 (R24 Codex audit P0-2 fix, 2026-05-04):
+Phase 0 V0.2 (R24 獨立 audit P0-2 fix, 2026-05-04):
     On Windows, ``Path("/app/data/cache").exists()`` resolves to
     ``E:\\app\\data\\cache`` (current drive root) which may be a stale partial
     cache from prior Docker volume mounts. That partial cache historically

@@ -24,7 +24,7 @@ from .universe import HistoricalUniverse
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SLIPPAGE_BPS = 10  # 對齊 config/settings.yaml:72 (R19 Codex P1 fix 2026-05-02 + Pro sprint 2026-05-04 補 src/scripts 層)
+DEFAULT_SLIPPAGE_BPS = 10  # 對齊 config/settings.yaml:72 (R19 external audit P1 fix 2026-05-02 + Pro sprint 2026-05-04 補 src/scripts 層)
 
 
 def _compute_theme_concentration(

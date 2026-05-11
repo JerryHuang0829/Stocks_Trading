@@ -86,7 +86,7 @@ def _load_universe_ohlcv(cache_dir: pathlib.Path, start: datetime, end: datetime
     future prices (e.g. 2020-01 rebal sees 2020-2024 prices). Caller MUST apply
     per-rebal-date MIN_PRICE filter using `df[df.index <= rebal]["close"].iloc[-1]`.
 
-    Trigger: 2026-05-06 Codex audit found this look-ahead bug. Filter is now
+    Trigger: 2026-05-06 獨立 audit found this look-ahead bug. Filter is now
     PIT-safe by being applied at rebalance time (see d_cell_sweep_v7_real.py).
     """
     ohlcv_dir = cache_dir / "ohlcv"

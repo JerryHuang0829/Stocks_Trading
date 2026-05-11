@@ -106,5 +106,5 @@ MSYS_NO_PATHCONV=1 docker compose run --rm --entrypoint python portfolio-bot \
 
 - **Baseline commit**：`27e5fe6` (tag `phase-b0-baseline`)
 - **R19 audit chain**：commit msg 引用「R19 audit + 3 件 Pro 補強：pivot back from Options 後第一輪研究紀律」
-- **R20 audit**（Codex 已給 v1 plan NO-GO）：findings 整合在本 H_lite 設計（DSR n_trials 從 7 升 12 / "OOS" 正名 「historical validation set」 / A1 gate 推遲到 full B0 重設計）
-- **下一輪 audit**：B0-Lite spike 跑完後 user 可選擇送 Codex R21 audit 或直接進 full B0
+- **R20 audit**（external audit 已給 v1 plan NO-GO）：findings 整合在本 H_lite 設計（DSR n_trials 從 7 升 12 / "OOS" 正名 「historical validation set」 / A1 gate 推遲到 full B0 重設計）
+- **下一輪 audit**：B0-Lite spike 跑完後 user 可選擇送 R21 audit 或直接進 full B0

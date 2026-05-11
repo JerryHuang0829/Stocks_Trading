@@ -1,8 +1,8 @@
 # H_a1 Hypothesis Lock Amendment — Consistency Sub-Signal Deprecation
 
 **Date**: 2026-05-10
-**Plan reference**: `codex-pro-codex-precious-reef.md` Phase 2 P1-D
-**Trigger**: Codex R26 audit findings (Section C3)
+**Plan reference**: `(internal plan)` Phase 2 P1-D
+**Trigger**: R26 audit findings (Section C3)
 
 ## Original H_a1 lock (Phase A1 baseline, 2026-04-17)
 
@@ -29,9 +29,9 @@ Reset `consistency` weight from 0.20 to **0.0**. Redistribute 0.20 weight:
 | rank_stability | 0.20 | **0.25** | +0.05 |
 | consistency | 0.20 | **0.0** | -0.20 |
 
-## Justification (Codex R26 Section C3 evidence)
+## Justification (R26 Section C3 evidence)
 
-Codex R26 ran cross-section diagnostic on all 71 saved periods of the contaminated `foreign_investor_v2_ic.json`:
+R26 ran cross-section diagnostic on all 71 saved periods of the contaminated `foreign_investor_v2_ic.json`:
 
 ```
 71-period statistics:
@@ -66,4 +66,4 @@ Amendment **accepted** under the rationale that:
 - (b) the 0.20 weight that consistency was carrying was effectively contributing noise, and removing it improves composite SNR
 - (c) the alternative (keeping consistency=0.20 for purity of pre-registration) means accepting known noise in production composite, which fails the "贏 0050 / 贏大盤" goal
 
-This amendment is documented in `reports/factor_ic/_amend/` and referenced from the post-Phase-3 closeout report so future Codex rounds can audit the methodology drift.
+This amendment is documented in `reports/factor_ic/_amend/` and referenced from the post-Phase-3 closeout report so future external audit rounds can audit the methodology drift.

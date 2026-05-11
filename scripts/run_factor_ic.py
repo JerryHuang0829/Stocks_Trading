@@ -242,7 +242,7 @@ def main() -> None:
 
     # Optional aux panel — 2026-05-10 P0-A / P1-A: load PIT panel, build
     # as-of dict per rebalance date inside the loop instead of taking latest
-    # once outside (which violated PIT discipline; see Codex R26 audit).
+    # once outside (which violated PIT discipline; see R26 audit).
     aux_mv_panel: pd.DataFrame | None = None
     aux_issued_panel: pd.DataFrame | None = None
     if aux_panel_kind == "issued_capital":
@@ -391,7 +391,7 @@ def main() -> None:
     # factor_ic_report auto-appends standard boilerplate (survivorship +
     # price-only + bootstrap/permutation/DSR/effective_n notes). We only
     # supply caller-specific run-time facts here to avoid duplicate wording
-    # (Codex C5 / Round 3.5).
+    # (external audit C5 / Round 3.5).
     biases = [
         "regime computed from 0050 benchmark (not per-stock)",
     ]

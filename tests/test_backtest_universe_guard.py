@@ -1,7 +1,7 @@
 """Regression tests for backtest size-proxy guard.
 
 直接打到 `src/backtest/universe.py` 的 size-proxy loop，而非只 mock 上游。
-確保 cached_total 的小樣本洞（Codex 2026-04-15 指出）不會繞過字典序保護。
+確保 cached_total 的小樣本洞（external audit 2026-04-15 指出）不會繞過字典序保護。
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ def _prime_ohlcv_cache(tmp_path: pathlib.Path, stock_ids: list[str]) -> pathlib.
 class TestBacktestSizeProxyGuard:
 
     def test_small_sample_all_fail_raises(self, tmp_path, monkeypatch):
-        """Codex 指出的小樣本洞：9 cached + 全 raise → 必須 raise（cached_success==0）."""
+        """external audit 指出的小樣本洞：9 cached + 全 raise → 必須 raise（cached_success==0）."""
         monkeypatch.setenv("DATA_CACHE_DIR", str(tmp_path))
         info = _stock_info(20)
         cached = [f"{2000 + i:04d}" for i in range(9)]  # 9 < 10 門檻

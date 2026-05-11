@@ -110,7 +110,7 @@ def test_bootstrap_ci_insufficient_samples():
 def test_bootstrap_ci_clamps_lower_bound_for_small_n():
     """P1-新3B: with small n_bootstrap, lo_idx = int(alpha/2 * n) floors to 0.
 
-    Codex (follow-up-5) noted the previous version of this test only asserted
+    external audit (follow-up-5) noted the previous version of this test only asserted
     `ci[0] <= ci[1]` which the un-fixed code would also satisfy. This version
     specifically exercises the under-flow scenario: n=20 bootstrap iterations
     with alpha=0.05 yields lo_idx = int(0.025*20) = 0, which happens to be a
@@ -382,16 +382,16 @@ def test_effective_n_empty_universe_returns_zero():
     assert effective_n_cluster([]) == 0
 
 
-# ---------------------------- effective_n as metadata (Codex Round 3.5) ----------------------------
+# ---------------------------- effective_n as metadata (external audit Round 3.5) ----------------------------
 
 
 def test_compute_period_ic_stats_df_is_always_n_minus_one():
-    """After Codex Round 3.5: df = n_periods - 1 always (no override).
+    """After external audit Round 3.5: df = n_periods - 1 always (no override).
 
     Previously we wired `effective_n_override` into Student-t df but that
     mixed a cross-sectional symbol-cluster metric into a time-series t-test
     and, because effective_n > n_periods in practice, actually LOWERED the
-    p-value (wrong direction of conservatism). Codex caught this with an
+    p-value (wrong direction of conservatism). external audit caught this with an
     8-period / effective_n=40 example: p dropped from 0.0331 to 0.0117.
 
     The correct policy is: df is always (n - 1). effective_n is recorded
@@ -408,7 +408,7 @@ def test_compute_period_ic_stats_df_is_always_n_minus_one():
 def test_factor_ic_report_effective_n_is_metadata_only():
     """Industry-cluster shrinkage must NOT change the overall p-value.
 
-    This is the direct antidote to Codex's Round 3.5 finding: compute two
+    This is the direct antidote to external audit's Round 3.5 finding: compute two
     factor reports on the same period ICs, one with a heavily-clustered
     industry map and one with scattered (near-iid) labels, and verify that
     `overall.p_value` is identical between the two. Only the JSON metadata
@@ -456,7 +456,7 @@ def test_factor_ic_report_dsr_n_obs_is_time_series_n():
     """DSR `n_obs` must be the time-series period count, never effective_n.
 
     Mertens (2002) variance is parameterised by time-series observations;
-    swapping in a cross-sectional symbol count (as the pre-Codex-3.5 version
+    swapping in a cross-sectional symbol count (as the pre-external audit-3.5 version
     did) made var_SR shrink and DSR p drop — the same dimension confusion.
     """
     rng = np.random.default_rng(7)
@@ -611,12 +611,12 @@ def test_factor_ic_report_end_to_end():
     # R3-1 DSR moments echoed in top-level JSON for reproducibility
     assert "deflated_sharpe_skewness" in d
     assert "deflated_sharpe_kurtosis" in d
-    # Codex Round 3.5: new transparency fields
+    # external audit Round 3.5: new transparency fields
     assert "deflated_sharpe_n_obs" in d
     assert d["deflated_sharpe_n_obs"] == d["n_periods"]  # time-series n, NOT effective_n
     assert "deflated_sharpe_moments_estimated" in d
     assert d["overall"]["t_df"] == d["n_periods"] - 1  # time-series df
-    # Codex R5-5: cross-sectional effective_n lives at top level only;
+    # R5-5: cross-sectional effective_n lives at top level only;
     # `overall` is time-series metadata. No duplicate serialisation.
     assert "effective_n_cross_sectional" not in d["overall"]
     assert "effective_n" in d
@@ -679,7 +679,7 @@ def test_factor_ic_report_dsr_uses_empirical_moments_when_available():
     r = factor_ic_report("leptokurtic", periods, n_permutation=20)
     # Kurtosis must differ from Gaussian fallback (3.0) — empirical moments were used
     assert r.deflated_sharpe_kurtosis != 3.0
-    # Explicit estimated flag so Codex-style mutation ("dsr_skew_used = 0.0")
+    # Explicit estimated flag so external audit-style mutation ("dsr_skew_used = 0.0")
     # and ("dsr_kurt_used = 3.0") are both detectable via a single assertion
     assert r.deflated_sharpe_moments_estimated is True
     biases = " | ".join(r.known_biases)
@@ -687,11 +687,11 @@ def test_factor_ic_report_dsr_uses_empirical_moments_when_available():
 
 
 def test_factor_ic_report_dsr_skew_mutation_caught(monkeypatch):
-    """Codex C2 follow-up: the skew branch must be independently verifiable.
+    """external audit C2 follow-up: the skew branch must be independently verifiable.
 
     Constructs a strongly skewed period IC distribution so that
     `r.deflated_sharpe_skewness` is **unambiguously non-zero**. A mutation
-    like `dsr_skew_used = 0.0` (Codex's Round 3.5 attack) would make this
+    like `dsr_skew_used = 0.0` (external audit's Round 3.5 attack) would make this
     assertion fail, closing the gap the earlier test left open.
     """
     symbols = [f"s{i}" for i in range(40)]
@@ -788,17 +788,17 @@ def test_factor_ic_report_respects_industry_labels_for_effective_n():
     assert clustered.effective_n < baseline.effective_n
 
 
-# ---------------------------- Codex Round 5 mutation-proof tests ----------------------------
+# ---------------------------- external audit Round 5 mutation-proof tests ----------------------------
 
 
 def test_zero_variance_guard_tolerates_float_noise():
     """R5-2: a series of identical-value ICs must be flagged as zero-variance.
 
-    Pre-R5 used `sd == 0` exact comparison. Codex showed that [0.2,0.2,0.2]
+    Pre-R5 used `sd == 0` exact comparison. external audit showed that [0.2,0.2,0.2]
     still produced ic_ir ≈ 5.88e15 because of accumulation noise. The fix
     uses `sd < 1e-12` so float round-off falls into the guard branch.
 
-    Self-audit note (Claude Round 5.5): an earlier version of this test used
+    Self-audit note (self-audit Round 5.5): an earlier version of this test used
     `step = 1e-18` which is below the float epsilon of 0.1 (~1e-17), so the
     Python runtime silently collapsed the list back to exact-constant. The
     test was only exercising the exact-zero branch — the tolerance branch
@@ -828,7 +828,7 @@ def test_zero_variance_guard_tolerates_float_noise():
 
 
 def test_std_ic_preserves_precision_when_sd_is_tiny():
-    """Codex R6-2: `round(sd, 4)` would collapse sd=1.58e-10 to 0.0, creating
+    """R6-2: `round(sd, 4)` would collapse sd=1.58e-10 to 0.0, creating
     a serialised contradiction (std_ic=0.0 next to ic_ir=6.3e8). The fix
     uses `round(sd, 10)` so microscopic-but-above-guard standard deviations
     remain visible and downstream readers can reconcile the statistics.
@@ -837,7 +837,7 @@ def test_std_ic_preserves_precision_when_sd_is_tiny():
     vals = [0.1 + i * 1e-10 for i in range(5)]
     r = compute_period_ic_stats(vals)
     assert r["ic_ir"] is not None
-    # std_ic must be non-zero (Codex's failure mode): rounding to 10 digits
+    # std_ic must be non-zero (external audit's failure mode): rounding to 10 digits
     # preserves the 1.58e-10 scale instead of showing 0.0.
     assert r["std_ic"] != 0.0, (
         f"std_ic collapsed to 0.0 despite sd being above the guard threshold; "
@@ -959,7 +959,7 @@ def test_per_panel_min_obs_yaml_dict_is_respected():
 
 def test_per_panel_min_obs_scalar_override_has_safety_net(monkeypatch):
     """R5-1 defensive fallback: if someone writes
-    `universe.min_obs_per_symbol: 250` as a scalar (Codex-observed
+    `universe.min_obs_per_symbol: 250` as a scalar (external audit-observed
     regression mode), per_panel_min_obs must still work and fall back to
     the scalar rather than raising."""
     from src.utils import thresholds

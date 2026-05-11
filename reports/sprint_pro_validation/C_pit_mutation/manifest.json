@@ -25,7 +25,7 @@
     "result": "AssertionError correctly raised — assert logic CAN catch forward leak",
     "implication": "If someone changes `<=` to `<` or removes the filter in src/backtest/engine.py:139/191/_truncate_by_date_col, ALL 4 tests will fail"
   },
-  "what_codex_missed": "Codex 上輪只做 smoke check (read code, look for .shift(-1), .iloc[-1:] 等可疑模式)，無 mutation test。Pro Research Standard 要求 mutation test 證 cutoff 真的 enforce，否則只是 'code looks right' 不是 'code blocks bad data'。",
+  "what_prior_review_missed": "external audit 上輪只做 smoke check (read code, look for .shift(-1), .iloc[-1:] 等可疑模式)，無 mutation test。Pro Research Standard 要求 mutation test 證 cutoff 真的 enforce，否則只是 'code looks right' 不是 'code blocks bad data'。",
   "scope_notes": [
     "本批 4 tests 涵蓋 OHLCV / institutional / monthly_revenue 三個主要 fetch path + boundary inclusive check",
     "未測試 quarterly_eps / margin_short / market_value 其他 panel — 這些走相同 _truncate_by_date_col 邏輯，cutoff 共用",

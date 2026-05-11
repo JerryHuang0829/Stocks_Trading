@@ -1,10 +1,10 @@
 """Phase 0 audit: B3 score Spearman divergence root-cause (FAST version).
 
-Claude R1 reported (latest mv vs as-of mv ranking Spearman):
+R1 reported (latest mv vs as-of mv ranking Spearman):
     2020-01-13: 0.9675
     2025-11-12: 0.9945
 
-Codex R2 reported:
+R2 reported:
     2020-01-13: 0.9633  (diff -0.0042)
     2025-11-12: 0.9914  (diff -0.0031)
 
@@ -86,7 +86,7 @@ print(f"      Loaded {len(inst_by_symbol)} symbols", flush=True)
 
 
 def cum_only(target_date: pd.Timestamp, mv_dict: dict, *, require_min_history: bool = True) -> pd.Series:
-    """Hand-written cum_foreign / mv simulator (Claude R1 + Codex R2 method)."""
+    """Hand-written cum_foreign / mv simulator (R1 + R2 method)."""
     rows: dict[str, float] = {}
     for sym, df in inst_by_symbol.items():
         wide = _pivot_long_to_wide(df)
@@ -132,8 +132,8 @@ def metrics(s_lat: pd.Series, s_asof: pd.Series, *, intersection: bool) -> dict:
 
 print("[3/5] Running 4 filter variants on 2 dates ...", flush=True)
 
-claude_r1 = {"2020-01-13": 0.9675, "2025-11-12": 0.9945}
-codex_r2 = {"2020-01-13": 0.9633, "2025-11-12": 0.9914}
+impl_a = {"2020-01-13": 0.9675, "2025-11-12": 0.9945}
+impl_b = {"2020-01-13": 0.9633, "2025-11-12": 0.9914}
 
 results: list[dict] = []
 
@@ -170,7 +170,7 @@ for date_str in ["2020-01-13", "2025-11-12"]:
 
 
 print("[4/5] Results:", flush=True)
-print(f'{"Date":12s}  {"Variant":42s}  {"n_common":>9s}  {"Spearman":>10s}  {"Δvs Claude":>11s}  {"Δvs Codex":>11s}  match', flush=True)
+print(f'{"Date":12s}  {"Variant":42s}  {"n_common":>9s}  {"Spearman":>10s}  {"Δvs self-audit":>11s}  {"Δvs external audit":>11s}  match', flush=True)
 print("-" * 130, flush=True)
 for r in results:
     if r.get("skip"):
@@ -178,11 +178,11 @@ for r in results:
         continue
     d = r["date"]
     sp = r["spearman"]
-    d_cl = sp - claude_r1[d]
-    d_co = sp - codex_r2[d]
+    d_cl = sp - impl_a[d]
+    d_co = sp - impl_b[d]
     match = []
-    if abs(d_cl) < 0.001: match.append("Claude R1")
-    if abs(d_co) < 0.001: match.append("Codex R2")
+    if abs(d_cl) < 0.001: match.append("R1")
+    if abs(d_co) < 0.001: match.append("R2")
     match_str = " / ".join(match) if match else "neither"
     print(
         f'{d:12s}  {r["variant"]:42s}  {r["n_common"]:>9d}  {sp:>10.6f}  '
@@ -194,10 +194,10 @@ for r in results:
 print("[5/5] Writing report ...", flush=True)
 with OUT_PATH.open("w", encoding="utf-8") as f:
     f.write("# B3 Divergence Root Cause Audit — 2026-05-10\n\n")
-    f.write("**Plan reference**: codex-pro-codex-precious-reef.md Phase 0\n\n")
+    f.write("**Plan reference**: (internal plan) Phase 0\n\n")
     f.write("## Question\n\n")
-    f.write("Claude R1 reported score Spearman 0.9675/0.9945 (latest mv vs as-of mv ranking); ")
-    f.write("Codex R2 reported 0.9633/0.9914. Diff 0.003-0.004 across both dates.\n\n")
+    f.write("R1 reported score Spearman 0.9675/0.9945 (latest mv vs as-of mv ranking); ")
+    f.write("R2 reported 0.9633/0.9914. Diff 0.003-0.004 across both dates.\n\n")
     f.write("## Method\n\n")
     f.write("Both rounds reportedly used a `cum_foreign / mv` simulator (no full composite). ")
     f.write("Test 4 universe-filter variants of the simulator to find which produces 0.9675 and which 0.9633.\n\n")
@@ -206,12 +206,12 @@ with OUT_PATH.open("w", encoding="utf-8") as f:
     f.write("- **V3**: relaxed (no min_history filter, only `len(last20) >= 5`)\n")
     f.write("- **V4**: V2 + drop extreme mv ratio (latest/asof > 10x or < 0.1x)\n\n")
     f.write("## Reference Numbers (Round 1 / Round 2)\n\n")
-    f.write("| Date | Claude R1 | Codex R2 | Diff |\n")
+    f.write("| Date | R1 | R2 | Diff |\n")
     f.write("|---|---:|---:|---:|\n")
     for d in ["2020-01-13", "2025-11-12"]:
-        f.write(f"| {d} | {claude_r1[d]:.4f} | {codex_r2[d]:.4f} | {claude_r1[d] - codex_r2[d]:+.4f} |\n")
+        f.write(f"| {d} | {impl_a[d]:.4f} | {impl_b[d]:.4f} | {impl_a[d] - impl_b[d]:+.4f} |\n")
     f.write("\n## Results\n\n")
-    f.write(f"| Date | Variant | n_common | Spearman | Δ vs Claude R1 | Δ vs Codex R2 | Match |\n")
+    f.write(f"| Date | Variant | n_common | Spearman | Δ vs R1 | Δ vs R2 | Match |\n")
     f.write(f"|---|---|---:|---:|---:|---:|---|\n")
     for r in results:
         if r.get("skip"):
@@ -219,11 +219,11 @@ with OUT_PATH.open("w", encoding="utf-8") as f:
             continue
         d = r["date"]
         sp = r["spearman"]
-        d_cl = sp - claude_r1[d]
-        d_co = sp - codex_r2[d]
+        d_cl = sp - impl_a[d]
+        d_co = sp - impl_b[d]
         match = []
-        if abs(d_cl) < 0.001: match.append("Claude R1")
-        if abs(d_co) < 0.001: match.append("Codex R2")
+        if abs(d_cl) < 0.001: match.append("R1")
+        if abs(d_co) < 0.001: match.append("R2")
         match_str = " / ".join(match) if match else "neither"
         f.write(
             f'| {d} | {r["variant"]} | {r["n_common"]} | {sp:.6f} | '
@@ -239,12 +239,12 @@ with OUT_PATH.open("w", encoding="utf-8") as f:
         f.write(f'| {r["date"]} | {r["variant"]} | {r["top10_jaccard"]:.6f} | {r["bot10_jaccard"]:.6f} |\n')
 
     f.write("\n## Conclusion\n\n")
-    f.write("(Per the Match column above. If a single variant matches Claude R1 and another matches ")
-    f.write("Codex R2, root cause is universe-filter handling — both rounds wrote correct simulators ")
+    f.write("(Per the Match column above. If a single variant matches R1 and another matches ")
+    f.write("R2, root cause is universe-filter handling — both rounds wrote correct simulators ")
     f.write("but used different mv-None / min_history handling. If no variant matches one reference, ")
     f.write("that round used a third method this audit didn't replicate.)\n\n")
     f.write("Phase 1+ implements MODIFY-AND-RERUN per the plan. After fresh rerun the contaminated ")
     f.write("-0.0195 baseline becomes obsolete and this divergence becomes purely historical reproducibility ")
-    f.write("evidence for Codex R3 alignment.\n")
+    f.write("evidence for R3 alignment.\n")
 
 print(f"[5/5] Wrote {OUT_PATH}", flush=True)

@@ -194,7 +194,7 @@ def test_q1_before_45d_lag_excluded():
     assert out["latest_eps"] == pytest.approx(2.0, abs=1e-9)
 
 
-# Codex R6-3 companion tests -----------------------------------------------
+# R6-3 companion tests -----------------------------------------------
 
 
 def test_pead_surprise_z_handles_near_constant_baseline():

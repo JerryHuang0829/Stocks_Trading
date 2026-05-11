@@ -4,14 +4,14 @@ Focuses on the pure helpers `_resolve_price_asof` and
 `_compute_intersection_universe`; the CLI `main()` requires a live cache and
 is covered by the IC smoke run instead.
 
-Note (Codex Round 3.5 fix, 2026-04-17)
+Note (external audit Round 3.5 fix, 2026-04-17)
 --------------------------------------
 Importing `scripts.run_factor_ic` pulls `src.strategy.indicators` which
-`import pandas_ta as ta`. On minimal Python installs (Codex sandbox / bare
+`import pandas_ta as ta`. On minimal Python installs (external audit sandbox / bare
 system Python) that import hangs for ~3 minutes before raising.
 
 Earlier version tried ``try: import pandas_ta`` first and only stubbed on
-exception — Codex showed the `try:` branch never returns in those envs, so
+exception — external audit showed the `try:` branch never returns in those envs, so
 the fallback stub never runs.
 
 New policy: **unconditional pre-stub before any import that touches
@@ -189,7 +189,7 @@ def test_intersection_universe_empty_when_no_panels(tmp_path):
 
 
 def test_intersection_universe_per_panel_min_obs_keeps_quarterly(tmp_path):
-    """follow-up-4 (codex-confirmed): quarterly_eps panel must not be dropped.
+    """follow-up-4 (audit-confirmed): quarterly_eps panel must not be dropped.
 
     Pre-fix: uniform `min_obs_per_symbol=250` applied to every panel. A
     quarterly panel has ~28 rows per symbol (7Y × 4Q), so every symbol would

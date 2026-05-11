@@ -1,7 +1,7 @@
 """Phase A2 Step 1.5 tests: shared _batch_precompute_and_analyze helper +
 _rank_analyses silent renormalize guard + BacktestEngine _backtest_context marker.
 
-Addresses Codex Round 14-plan-review P0-1 (duplicate analyze loop) and P0-2
+Addresses external audit Round 14-plan-review P0-1 (duplicate analyze loop) and P0-2
 (silent renormalize false-positive). These tests exist purely to lock in the
 refactored behavior — no new business logic.
 """

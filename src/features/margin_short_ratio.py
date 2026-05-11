@@ -16,7 +16,7 @@ So when used in IC pipeline:
   - mean IC > 0 → expected (the factor predicts return positively as designed)
   - decile rho > 0 (D9 > D0) → expected long-only behavior
 
-Sign-convention sanity check (Codex R28-4 release):
+Sign-convention sanity check (R28-4 release):
   Old docstring "higher factor score = lower expected return" was wrong-sign.
   Empirical fresh rerun 2026-05-10: mean IC = +0.0387, but per-period IC vs
   per-period (D9-D0 spread) Spearman = 0.946 (high consistency). Cross-period
@@ -54,7 +54,7 @@ LOTS_TO_SHARES = 1000
 def _zscore_with_tolerance(s: pd.Series, tolerance: float = 1e-12) -> pd.Series:
     """Cross-sectional z-score with float-noise tolerance guard.
 
-    Codex R8-1 fix: previously a closure inside
+    R8-1 fix: previously a closure inside
     `compute_margin_short_ratio_universe`, which blocked direct unit testing
     of the guard logic. Extracted to module level so a mutation-proof test
     can import it and verify that `std` below `tolerance` (e.g. 1e-13 from

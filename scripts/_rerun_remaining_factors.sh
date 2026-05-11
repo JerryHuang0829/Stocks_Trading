@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sequentially rerun 4 remaining Phase A1 factors after foreign_investor_v2 fresh rerun.
-# Plan: codex-pro-codex-precious-reef.md Phase 3b-e (user 拍板 B 全 5 因子重跑)
+# Plan: (internal plan) Phase 3b-e (user 拍板 B 全 5 因子重跑)
 #
 # Run from any cwd; uses absolute paths.
 # Output goes to reports/factor_ic/<factor>_ic.json (overwrites archived pre-rerun versions).
