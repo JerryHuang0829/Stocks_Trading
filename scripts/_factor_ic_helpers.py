@@ -27,7 +27,7 @@ Functions exported here (16):
     _compute_intersection_universe
     _compute_regimes
 
-PIT NOTICE (Codex R26 audit):
+PIT NOTICE (R26 audit):
     _load_market_value() and _load_issued_capital() return latest values
     via drop_duplicates(keep="last"), which violates point-in-time discipline
     when called once outside a rebalance loop (every period sees current-day
@@ -296,7 +296,7 @@ def _compute_intersection_universe(
     min_obs_per_symbol: "int | dict[str, int] | None" = None,
     log: logging.Logger | None = None,
 ) -> list[str]:
-    """P1-新1 + follow-up-4 (codex-confirmed): intersection universe with
+    """P1-新1 + follow-up-4 (audit-confirmed): intersection universe with
     **per-panel** `min_obs_per_symbol` so quarterly panels (~28 rows/symbol
     over 7Y) are not dropped by the daily-frequency threshold of 250.
 

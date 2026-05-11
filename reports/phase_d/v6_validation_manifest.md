@@ -22,12 +22,12 @@ If any value below diverges from a future Phase 2 cell sweep run without explana
 | pytest | 9.0.3 |
 | pandas_ta cold-import time (V0.1 sanity) | 3.66s (target < 5s) |
 
-**V0.1 status**: pandas_ta hangs reported by Codex in dual-env audit could NOT be reproduced in this conda env. Marked N/A pending future Codex re-run; if hangs reappear in CI, lazy-import shim is the next step.
+**V0.1 status**: pandas_ta hangs reported by external review in dual-env audit could NOT be reproduced in this conda env. Marked N/A pending future external audit re-run; if hangs reappear in CI, lazy-import shim is the next step.
 
-> **⚠️ Footnote (2026-05-07 added — Codex hang root cause confirmed)**：
-> 後續分析發現 Codex 卡住的根因是 `requirements.txt` 鎖的 `pandas-ta>=0.3.14b` 對 numpy 2.x 不相容（0.3.x 內含 `from numpy import NaN`，numpy 2.0+ 已移除大寫 `NaN`）。本表記錄的 0.4.71b0 是 PyPI 的 pre-release tag 版本，已修正 numpy 2.x 相容性問題。
+> **⚠️ Footnote (2026-05-07 added — external audit hang root cause confirmed)**：
+> 後續分析發現 external audit 卡住的根因是 `requirements.txt` 鎖的 `pandas-ta>=0.3.14b` 對 numpy 2.x 不相容（0.3.x 內含 `from numpy import NaN`，numpy 2.0+ 已移除大寫 `NaN`）。本表記錄的 0.4.71b0 是 PyPI 的 pre-release tag 版本，已修正 numpy 2.x 相容性問題。
 > 2026-05-07 後 `requirements.txt` 已升級鎖 `pandas-ta==0.4.71b0`（精確 pin pre-release tag，pip ≥ 21.x 在 PEP 440 規則下會自動允許）。歷史 v6 manifest 以此 footnote 為準。
-> 詳見：`docs/CHANGELOG.md`「2026-05-07 pandas-ta 升級」段、`requirements.txt` 開頭註解、`Codex-Prompt.md` 安裝說明。
+> 詳見：`docs/CHANGELOG.md`「2026-05-07 pandas-ta 升級」段、`requirements.txt` 開頭註解、`audit-prompt.md` 安裝說明。
 
 ---
 
@@ -129,7 +129,7 @@ This means the Plan v6 anchor commit is `0d31572`, NOT the `7ba18dd` referenced 
 
 **Uncommitted modifications at V0.6 snapshot time** (will be committed by V0.7):
 - `.gitignore` (V0.7 `!reports/phase_d/` exception + scratch dirs)
-- `Codex-Prompt.md` (pre-existing in-flight changes for R25 prep)
+- `audit-prompt.md` (pre-existing in-flight changes for R25 prep)
 - `HANDOFF.md` (V0.6 sub-fix updating 451 → 462 baseline)
 - `scripts/audit_doc_drift.py` (V0.6 R21 → R24 bump + phase_d/ coverage)
 - `src/utils/paths.py` (V0.2 Windows priority fix)
@@ -159,7 +159,7 @@ $ conda run -n quant python -m pytest tests/ -q
 462 passed, 6 warnings in 329.72s (0:05:29)
 ```
 
-Test count growth tracking (per CLAUDE.md):
+Test count growth tracking (per the dev guide):
 - 451 baseline (B0-Lite Session 1, 2026-05-03) — 451
 - + F5/F6 work (low_vol_v2 tests, factor_ic_helpers extraction tests) — 459 implied
 - + V0.2 regression tests (3 new) — **462 (current)**
@@ -177,15 +177,15 @@ These warnings predate V0.1 / V0.2 and are not v6-blocking.
 
 ## 8. SOP-Checklist for V0.2 paths.py fix
 
-Per CLAUDE.md "強制輸出格式":
+Per the dev guide "強制輸出格式":
 
 | Step | Status | Evidence |
 |------|--------|----------|
-| 1. Mutation test | ☑ | `.codex_pytest_tmp/v02_mutation_check.py` — pre-V0.2 returns `\app\data\cache`, post-V0.2 returns repo `data/cache`; MUTATION CAUGHT: True |
-| 2. 具體數字驗算 (3 inputs) | ☑ | `.codex_pytest_tmp/v02_three_inputs.py` — 3 PASS (Win+app, POSIX+app, Win+env) |
+| 1. Mutation test | ☑ | `.audit_pytest_tmp/v02_mutation_check.py` — pre-V0.2 returns `\app\data\cache`, post-V0.2 returns repo `data/cache`; MUTATION CAUGHT: True |
+| 2. 具體數字驗算 (3 inputs) | ☑ | `.audit_pytest_tmp/v02_three_inputs.py` — 3 PASS (Win+app, POSIX+app, Win+env) |
 | 3. Grep 終態 | ☑ | `/app/data/cache` 程式碼僅 `src/utils/paths.py:57` 一處（已 gate）；其他全是 docstring/comment/test |
 | 4. Cross-interference sweep | ☑ | `cache_fill.py:54` / `cache_health.py:21` 自有 `PROJECT_ROOT/data/cache` fallback (無同型 bug)；`cache_rebuild.py:41` 用不同 env var |
-| 5. Self-attack as Codex | ☑ | 4 challenges 列舉並反駁 (WSL / macOS / Path string normalize / monkey-patch leak) |
+| 5. Self-attack as external audit | ☑ | 4 challenges 列舉並反駁 (WSL / macOS / Path string normalize / monkey-patch leak) |
 | 6. Full pytest regression | ☑ | conda quant `pytest tests/ -q`：462 passed / 0 failed / 5m29s |
 
 ---
@@ -194,7 +194,7 @@ Per CLAUDE.md "強制輸出格式":
 
 | Step | Description | Status | Notes |
 |------|-------------|--------|-------|
-| V0.1 | pandas_ta import hang fix | ☑ | N/A in user env (3.66s import); future-Codex deferred |
+| V0.1 | pandas_ta import hang fix | ☑ | N/A in user env (3.66s import); future-external audit deferred |
 | V0.2 | resolve_cache_dir Windows priority | ☑ | Edit + 3 regression tests + SOP 6-step verified |
 | V0.3 | conda quant full pytest baseline | ☑ | 462 passed / 0 failed (target ≥ 459) |
 | V0.4 | IC + D1_v2 baseline numbers extraction | ☑ | All Plan v6 expected values match canonical sources exactly |
@@ -213,7 +213,7 @@ To re-run this manifest validation in a fresh checkout:
 ```bash
 cd <repo>
 conda run -n quant python -m pytest tests/ -q          # V0.3
-conda run -n quant python .codex_pytest_tmp/v04_baseline_dump.py   # V0.4 numbers
+conda run -n quant python .audit_pytest_tmp/v04_baseline_dump.py   # V0.4 numbers
 conda run -n quant python -c "from src.utils.paths import resolve_cache_dir; print(resolve_cache_dir())"   # V0.2
 git rev-parse HEAD ; git tag --list 'phase-d-v*-baseline'
 ```

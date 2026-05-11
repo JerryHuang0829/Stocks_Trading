@@ -129339,11 +129339,11 @@
   },
   "pit_violation": {
     "violated": false,
-    "plan": "C:/Users/chongweihuang/.claude/plans/codex-pro-codex-precious-reef.md",
+    "plan": "(internal plan reference)",
     "fixes_applied": [
       "2026-05-11: NEW single-factor IC 補測 via run_phase_d_factor_ic.py (CellSweepContext: financial_history / industry_label_map / market_returns)",
       "Universe = per-factor natural universe (NOT intersection with Phase A1 5 panels) — cross-factor comparison universe-asymmetric (see known_biases)",
-      "Enriched 2026-05-11 with decile / monotonicity / peak-in-middle / price-score-corr diagnostics for schema parity with Phase A1 5 factor JSONs (Codex R31 finding 1 fix)"
+      "Enriched 2026-05-11 with decile / monotonicity / peak-in-middle / price-score-corr diagnostics for schema parity with Phase A1 5 factor JSONs (R31 finding 1 fix)"
     ],
     "single_ic_date": "2026-05-11",
     "note": "Phase D factor — never contaminated; this is the first stand-alone single-factor IC report (previously only in v7 cell-sweep aggregate)."

@@ -109,7 +109,7 @@ def _compute_surprise_z(
         return None
     mu = float(baseline.mean())
     sd = float(baseline.std(ddof=1))
-    # Codex R6-3: `sd == 0` exact compare misses near-constant baselines that
+    # R6-3: `sd == 0` exact compare misses near-constant baselines that
     # yield sd ~ 1e-14 via float accumulation, producing pathological
     # pead_surprise_z (~4e12). Mirror the ic_analysis.py R5-2 tolerance.
     if sd < 1e-12 or pd.isna(sd):

@@ -108080,7 +108080,7 @@
       "TRUE PIT requires new TWSE OpenAPI scraper for historical issued_shares snapshots (P1 backlog, not in current plan scope).",
       "Universe extended 2020-01 ~ 2025-11 (n=59 -> 71)"
     ],
-    "plan": "C:/Users/chongweihuang/.claude/plans/codex-pro-codex-precious-reef.md",
+    "plan": "(internal plan reference)",
     "r28_followup_date": "2026-05-10",
     "r28_followup_finding": "Form-correct but no substance change; margin_short IC = +0.0388 still uses latest issued_shares as denominator (static-snapshot approximation)."
   },

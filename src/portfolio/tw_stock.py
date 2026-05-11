@@ -72,7 +72,7 @@ DEFAULT_PORTFOLIO_CONFIG = {
         "risk_off": 0.35,
     },
     "score_weights": {
-        # 2026-05-11 R30-6 fix (Codex R30): institutional_flow 0.10 → 0.0
+        # 2026-05-11 R30-6 fix (R30): institutional_flow 0.10 → 0.0
         # 對齊 active config/settings.yaml（legacy 因子，profile 切換時不該被
         # 意外帶回；外資 v1 IC=-0.053 已被 R26-R29 確認 fail，v2 R28 DROP）.
         # 舊 default 0.45/0.25/0.20/0.10 重分配為 0.55/0.20/0.25/0.00.
@@ -143,7 +143,7 @@ PORTFOLIO_PROFILES = {
             "risk_off": 0.35,
         },
         "score_weights": {
-            # 2026-05-11 R30-6 fix (Codex R30): institutional_flow 0.10 → 0.0
+            # 2026-05-11 R30-6 fix (R30): institutional_flow 0.10 → 0.0
             # 同主 profile（legacy 因子已 R26-R29 確認 fail；redistribute 至
             # price_momentum + revenue_momentum 保持 sum=1）.
             "price_momentum": 0.50,
@@ -997,7 +997,7 @@ def _rank_analyses(
 def _safe_fetch(fetch_func, symbol: str, *extra_args, **kwargs):
     """Per-symbol fetch with exception isolation for universe-batch factor precompute.
 
-    CRITICAL (Codex Round 14 P1-1): must NOT catch _BacktestCacheMissError —
+    CRITICAL (external audit Round 14 P1-1): must NOT catch _BacktestCacheMissError —
     that exception signals backtest cache-miss that must propagate so the user
     seeds cache first; catching would produce silent-wrong results.
     Other exceptions (network / transient API errors) are logged and return
@@ -1025,7 +1025,7 @@ def _bulk_fetch_latest_market_value(
 ) -> dict[str, float]:
     """Bulk fetch market_value (PIT-aware after R30 architecture cleanup).
 
-    2026-05-11 R30 cleanup (Codex R29 finding 2): aligned with IC pipeline +
+    2026-05-11 R30 cleanup (R29 finding 2): aligned with IC pipeline +
     portfolio path issued_capital helper to use single source-of-truth PIT
     helpers from ``src.data.pit_helpers``. Adds ``as_of`` keyword (default
     None = today/live mode).
@@ -1037,7 +1037,7 @@ def _bulk_fetch_latest_market_value(
           ``_market_value_asof()`` for PIT-correct lookup. Caller (backtest
           replay) needs cache populated for the target date.
 
-    Codex Round 14 P0-1 FIX context: ``fetch_market_value(days=10)`` takes
+    external audit Round 14 P0-1 FIX context: ``fetch_market_value(days=10)`` takes
     ``days`` (int) — does NOT accept a symbol argument. Returns full-market
     DataFrame (stock_id, date, market_value).
     """
@@ -1076,14 +1076,14 @@ def _load_issued_capital_dict(
     universe_symbols: list[str],
     as_of: pd.Timestamp | None = None,
 ) -> dict[str, float]:
-    """Load issued_shares for universe symbols (Codex R28-2 PIT-aligned).
+    """Load issued_shares for universe symbols (R28-2 PIT-aligned).
 
-    2026-05-10 Codex R28-2 修法: was reading global latest snapshot (one-shot
+    2026-05-10 R28-2 修法: was reading global latest snapshot (one-shot
     dict). Now imports the same panel + asof helper as IC pipeline
     (`scripts._factor_ic_helpers`), so portfolio/backtest path gets the same
     PIT discipline (or fallback static-snapshot warning when cache lacks date).
 
-    Codex Round 14 P0-2 history: explicit dtype cast (stock_id->str,
+    external audit Round 14 P0-2 history: explicit dtype cast (stock_id->str,
     issued_shares->float) + coverage warning when universe symbols missing
     from cache (e.g. ETFs like 0050/0056, or newly listed stocks).
 
@@ -1161,7 +1161,7 @@ def _compute_universe_batch_factors(
 
     if float(sw.get("margin_short_ratio", 0)) > 0:
         margin_by_sym = {s: _safe_fetch(source.fetch_margin_short, s) for s in universe_symbols}
-        # 2026-05-10 Codex R28-2: pass as_of so issued_shares is PIT-aligned with
+        # 2026-05-10 R28-2: pass as_of so issued_shares is PIT-aligned with
         # IC pipeline (still falls back to static snapshot when cache lacks date
         # column — same approximation as IC pipeline, consistent across paths).
         issued_by_sym = _load_issued_capital_dict(universe_symbols, as_of=as_of_ts)
@@ -1176,11 +1176,11 @@ def _compute_universe_batch_factors(
         out["revenue_momentum_v2"] = series.to_dict()
 
     if float(sw.get("foreign_investor_v2", 0)) > 0:
-        # 2026-05-10 P1-3 (Codex R27): foreign_investor_v2 v2 API requires
+        # 2026-05-10 P1-3 (R27): foreign_investor_v2 v2 API requires
         # close_by_symbol for dollar-denominated cum_ratio + rank_stability
         # (P0-B 修法). Without it both sub-signals are skipped and
         # covered_weight drops below 0.5 threshold → universe goes empty.
-        # 2026-05-11 R30 4-path PIT cleanup (Codex R29 finding 2):
+        # 2026-05-11 R30 4-path PIT cleanup (R29 finding 2):
         # _bulk_fetch_latest_market_value now PIT-aware with as_of kwarg.
         # Live mode (as_of=today): fast source.fetch_market_value path.
         # Backtest mode (as_of=historical): disk cache panel + asof lookup.
@@ -1218,7 +1218,7 @@ def _batch_precompute_and_analyze(
     Phase A2 Step 2: Universe-batch factor precompute runs BEFORE the symbol
     loop; batch scores are injected as ``<factor>_raw`` onto each per-symbol
     analysis dict. Both live and backtest paths pick this up automatically
-    (Codex Round 14 P0-1 fix).
+    (external audit Round 14 P0-1 fix).
 
     Error handling: per-symbol Exception is caught and logged; the offending
     symbol gets a 5-key stub dict (symbol/name/eligible/filters/industry) with

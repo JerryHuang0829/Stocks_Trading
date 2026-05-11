@@ -1,7 +1,7 @@
 """Mutation tests for P0-B (cum_ratio dollar-denominated) + P1-C (stale guard) +
 P1-D (consistency weight=0) + P1-E (covered-weight rescale).
 
-Codex R26 audit established:
+R26 audit established:
   - foreign_net unit = shares (TWSE T86 + FinMind 同款)
   - market_value unit = NTD (= TWSE shares × close per finmind.py:1033)
   - shares ÷ NTD = 1/price → cross-section price/scale bias
@@ -166,7 +166,7 @@ def test_p1d_weight_sum_unchanged():
 
 
 def test_subsignal_weights_yaml_in_sync_with_constant():
-    """2026-05-11 Codex R31 finding 4: the module now reads weights from
+    """2026-05-11 R31 finding 4: the module now reads weights from
     `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2.weights`
     via `_subsignal_weights()`. Guard that the yaml and the module fallback
     constant stay in sync (so editing one without the other surfaces here).
@@ -182,7 +182,7 @@ def test_subsignal_weights_yaml_in_sync_with_constant():
 
 
 def test_last20_span_and_top_pct_yaml_resolved():
-    """2026-05-11 Codex R31 finding 4: last20 stale-guard span + rank_stability
+    """2026-05-11 R31 finding 4: last20 stale-guard span + rank_stability
     top-pct are yaml-driven; verify they resolve to the expected values."""
     from src.features.foreign_investor_v2 import (
         _last20_max_calendar_span_days,
@@ -201,7 +201,7 @@ def test_p1e_missing_subsignal_drops_below_50pct_coverage():
     """2026-05-10 P1-E: symbol with covered_weight < 0.5 must be DROPPED
     from output (not silently scored).
 
-    Codex R27 found previous version of this test only checked finite/no
+    R27 found previous version of this test only checked finite/no
     crash — too weak. This rewrite explicitly creates a symbol whose
     covered_weight = persistence (0.25) + consistency (0.0 weight) only,
     by withholding its close panel entry. cum_ratio + rank_stability both

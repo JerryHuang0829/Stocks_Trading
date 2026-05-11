@@ -9,7 +9,7 @@ import pytest
 def portfolio_config():
     """Production-equivalent portfolio config (matches settings.yaml).
 
-    R19 audit Codex P1 fix (2026-05-02): slippage_bps 從 5 (drift) 改 10
+    R19 audit external audit P1 fix (2026-05-02): slippage_bps 從 5 (drift) 改 10
     對齊 config/settings.yaml:72. 之前 fixture / production drift 會讓
     成本敏感 tests silently 低估成本 → backtest assertion 假通過.
     """
@@ -22,7 +22,7 @@ def portfolio_config():
         "max_same_industry": 3,
         "turnover_score_threshold": 6.0,
         "turnover_cost": 0.0047,
-        "slippage_bps": 10,  # 對齊 config/settings.yaml:72 (R19 Codex fix)
+        "slippage_bps": 10,  # 對齊 config/settings.yaml:72 (R19 external audit fix)
         "weight_mode": "score_weighted",
         "min_factor_coverage_per_symbol": 0.6,  # R19 audit A.1 (settings.yaml)
         "exposure": {

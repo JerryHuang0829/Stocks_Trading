@@ -9,7 +9,7 @@ Adds (from saved period_factor_scores + OHLCV cache):
   - pit_violation: {violated: false, fresh_rerun_date: "2026-05-10"} (overwrites
     the contaminated flag if present from pre-rerun JSON)
 
-Plan reference: codex-pro-codex-precious-reef.md Phase 3.
+Plan reference: (internal plan) Phase 3.
 
 Usage:
     python scripts/_enrich_factor_ic_diagnostics.py reports/factor_ic/foreign_investor_v2_ic.json
@@ -187,11 +187,11 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
                 "max": float(np.max(valid)),
                 "n_periods": len(valid),
             }
-    # 2026-05-10 Codex R28-5 fix: per-factor differentiated fixes_applied (was
+    # 2026-05-10 R28-5 fix: per-factor differentiated fixes_applied (was
     # hardcoded foreign_broker-specific list which was provenance-bug for the
     # 4 non-foreign factors that don't use cum_ratio / last20 / consistency /
     # covered-weight composite).
-    # 2026-05-11 Codex R31 finding 1 fix: Phase D 3 factors (quality_v3 /
+    # 2026-05-11 R31 finding 1 fix: Phase D 3 factors (quality_v3 /
     # industry_momentum / idio_vol_max) were enriched by this same script so
     # their JSON has schema parity with the Phase A1 5; the fixes_applied list
     # for them describes the 2026-05-11 single-IC 補測 (not a fresh-rerun fix).
@@ -203,7 +203,7 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
             "P0-B: dollar-denominated cum_ratio + rank_stability (was shares/NTD = 1/price量綱錯)",
             "P0-C: pit_violation flag (this field) re-applied post fresh rerun overwrite",
             "P1-C: last20 stale span guard 35d",
-            "P1-D: consistency sub-signal weight 0.20 -> 0 (Codex R26 sparsity)",
+            "P1-D: consistency sub-signal weight 0.20 -> 0 (R26 sparsity)",
             "P1-E: covered-weight composite rescale + 0.5 threshold",
         ]
         violated = False
@@ -211,7 +211,7 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
         fixes_applied = [
             "P1-A: as-of issued_capital lookup (was latest via keep='last')",
             "P0-2 R27: issued_capital fallback Timestamp.min for missing date column "
-            "(static-snapshot PIT approximation; cache lacks date history per Codex R28-1)",
+            "(static-snapshot PIT approximation; cache lacks date history per R28-1)",
             "Universe extended 2020-01 ~ 2025-11 (n=59 -> 71)",
         ]
         violated = False
@@ -226,7 +226,7 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
             "Universe = per-factor natural universe (NOT intersection with Phase A1 5 panels) "
             "— cross-factor comparison universe-asymmetric (see known_biases)",
             "Enriched 2026-05-11 with decile / monotonicity / peak-in-middle / price-score-corr "
-            "diagnostics for schema parity with Phase A1 5 factor JSONs (Codex R31 finding 1 fix)",
+            "diagnostics for schema parity with Phase A1 5 factor JSONs (R31 finding 1 fix)",
         ]
         violated = False
     else:
@@ -241,7 +241,7 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
 
     pit_violation: dict = {
         "violated": violated,
-        "plan": "C:/Users/chongweihuang/.claude/plans/codex-pro-codex-precious-reef.md",
+        "plan": "(internal plan reference)",
         "fixes_applied": fixes_applied,
     }
     if factor_name in PHASE_D_FACTORS:

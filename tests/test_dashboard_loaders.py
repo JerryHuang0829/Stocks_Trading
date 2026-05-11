@@ -72,7 +72,7 @@ def test_load_factor_ic_5factors():
 def test_load_factor_ic_phase_d_3factors():
     """2026-05-11 補測：Phase D 3 因子 single IC schema 對齊 Phase A1（含 enrichment）。
 
-    Codex R31 finding 1 fix: 早期版本只檢查 overall/by_regime/by_bucket，
+    R31 finding 1 fix: 早期版本只檢查 overall/by_regime/by_bucket，
     沒驗 enrichment diagnostics 是否齊全；現補檢查 decile / monotonicity /
     peak / price_score / pit_violation 等與 Phase A1 5 因子 JSON 一致。
     """
@@ -89,7 +89,7 @@ def test_load_factor_ic_phase_d_3factors():
         overall = ic["overall"]
         for k in ("mean_ic", "ic_ir", "t_stat", "p_value", "n", "bootstrap_ci_95"):
             assert k in overall, f"{factor} overall 缺 {k}"
-        # Enrichment diagnostics parity (Codex R31 finding 1)
+        # Enrichment diagnostics parity (R31 finding 1)
         for k in (
             "decile_returns_per_period",
             "decile_avg_returns_across_periods",

@@ -153,7 +153,7 @@ def test_foreign_and_trust_alignment_consistency_deprecated():
     Pre-P1-D: BOTH (foreign + trust 同正) > ONEF (only foreign 正) > NONE
     via consistency sub-signal contribution.
 
-    Post-P1-D (Codex R26 deprecation): consistency 78% sparsity / low SNR →
+    Post-P1-D (R26 deprecation): consistency 78% sparsity / low SNR →
     weight 0. BOTH and ONEF have identical foreign_net and identical
     foreign_cum_ratio + persistence + rank_stability sub-signals; only
     consistency differs. With weight 0 they should be ≈ equal.
@@ -347,16 +347,16 @@ def test_rank_stability_responds_to_mv_normalisation():
     assert out["S0"] > out["S2"]
 
 
-# Codex R8-1 mutation-proof test ----------------------------------------------
+# R8-1 mutation-proof test ----------------------------------------------
 
 
 def test_zscore_with_tolerance_fires_on_sub_tolerance_std():
-    """R8-1 (rewrite after Codex Round 7 showed R7-2 wasn't mutation-proof):
+    """R8-1 (rewrite after external audit Round 7 showed R7-2 wasn't mutation-proof):
     directly verify that `_zscore_with_tolerance` fires on std that is
     **greater than zero but below 1e-12** — the exact failure mode the
     R6-3 fix was supposed to catch.
 
-    Codex's R7 mutation showed the previous R7-2 test's input collapsed
+    external audit's R7 mutation showed the previous R7-2 test's input collapsed
     to *exactly identical* values (`1e-15` step is below float epsilon of
     `1.0`, `1e-17` step is below epsilon of `10000.0`), so std was 0 and
     even the old `std == 0` exact-compare guard fired — the test passed

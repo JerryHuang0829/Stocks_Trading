@@ -1,10 +1,10 @@
 # Pre-Implementation Review — Phase D v7 接手執行
 
 **Review date**: 2026-05-04
-**Reviewer**: Claude Opus 4.7（接手 session）
+**Reviewer**: self-audit Opus 4.7（接手 session）
 **Anchor**: HEAD `e7faa9a` / `phase-d-v7-baseline = d55d4ea` / `phase-d-v6-baseline = 54b952a`
-**Mode**: 方案 (C) — In-house Skill chain (multi-perspective + self-audit + forensic-sweep) 替代 Codex pre-audit
-**Codex round**: R24 已收 GO-WITH-CAVEATS verdict; R25-mid pending @ Phase 2 S4 完
+**Mode**: 方案 (C) — In-house Skill chain (multi-perspective + self-audit + forensic-sweep) 替代 external audit pre-audit
+**external audit round**: R24 已收 GO-WITH-CAVEATS verdict; R25-mid pending @ Phase 2 S4 完
 **Verdict**: **GO-WITH-CAVEATS** for Step 4 開工 V1.1
 
 ---
@@ -21,7 +21,7 @@ Plan v7 hypothesis lock + 13 pre-commit + 3 code-level assertions 整體**設計
 
 | Skill | 狀態 | 結果 |
 |-------|------|------|
-| `multi-perspective` | ✅ 已跑 | 7+1 角色（量化主管 / 策略研究員 / CRO / 面試官 / 資料工程師 / 台灣 Retail / Codex adversary）共 22 attack；產 22 patch |
+| `multi-perspective` | ✅ 已跑 | 7+1 角色（量化主管 / 策略研究員 / CRO / 面試官 / 資料工程師 / 台灣 Retail / external audit adversary）共 22 attack；產 22 patch |
 | `self-audit` | ✅ 已跑 | 19 hard checks 4 大類；7 ✅ / 5 ⚠️ / 7 ❌；FAIL 8 件全 cross-validate multi-perspective P0/P1（無新 sibling）|
 | `forensic-sweep` | ✅ 已跑 | 8 sweep / 27 hits；confirm 5 件 + refute 1 件 P0（bootstrap method）+ 🆕 新發現 3 件 P0/P1 sibling |
 | `audit_doc_drift.py` | ✅ exit 0 | drift 0 / 4 warnings / R24 / PASS |
@@ -223,6 +223,6 @@ Plan v7 hypothesis lock + 13 pre-commit + 3 code-level assertions 整體**設計
 
 **Verdict**: GO-WITH-CAVEATS for Step 4 V1.1 開工。
 **Next action**: User 核可 → 進 Step 4 V1.1（H_d_v6 補 L1 0.20 / L2 0.005 numerical justification + 4 P0 spec lock 同 commit）。
-**Codex round**: R25-mid pending @ Phase 2 S4 完；R25-final pending @ Phase 2 S8 完。
-**Reviewer**: Claude Opus 4.7（接手 session）
+**external audit round**: R25-mid pending @ Phase 2 S4 完；R25-final pending @ Phase 2 S8 完。
+**Reviewer**: self-audit Opus 4.7（接手 session）
 **Plan v7 unchanged**: 13 pre-commit + 6 candidates + 6 hard gates + D-A pre-disqualification 全保。

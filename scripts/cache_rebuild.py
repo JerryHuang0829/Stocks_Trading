@@ -553,7 +553,7 @@ class TokenRotator:
         self.get_loader()
 
     def start_with_proxy(self) -> bool:
-        """S6.1 Path B (R25-mid Codex audit, 2026-05-05): patch Slot 0 to
+        """S6.1 Path B (R25-mid 獨立 audit, 2026-05-05): patch Slot 0 to
         start with fresh Proxifly SOCKS5 proxy instead of Direct.
 
         Per user 提醒 + memory `FinMind Tokens & Quota`: 3 tokens all bound

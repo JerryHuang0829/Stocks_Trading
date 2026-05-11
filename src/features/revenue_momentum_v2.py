@@ -36,7 +36,7 @@ DEFAULT_MIN_MONTHS = 15  # need ≥ 13 for YoY + 6 for accel; 15 is a safe floor
 DEFAULT_PERCENTILE_LOOKBACK_MONTHS = 24
 DEFAULT_SEASONAL_LOOKBACK_MONTHS = 24
 
-# 2026-05-11 Codex R32 finding fix: SUBSIGNAL_WEIGHTS is now a FALLBACK DEFAULT.
+# 2026-05-11 R32 finding fix: SUBSIGNAL_WEIGHTS is now a FALLBACK DEFAULT.
 # The live source of truth is `config/factor_thresholds.yaml ::
 # factor_specific.revenue_momentum_v2.weights`, read at call time via
 # `_subsignal_weights()` (same pattern as foreign_investor_v2 R31-4 fix).
@@ -54,7 +54,7 @@ SUBSIGNAL_WEIGHTS = {
 def _subsignal_weights() -> dict[str, float]:
     """Resolve sub-signal weights from yaml (fallback to SUBSIGNAL_WEIGHTS).
 
-    2026-05-11 Codex R32 finding fix: was hardcoded SUBSIGNAL_WEIGHTS only and
+    2026-05-11 R32 finding fix: was hardcoded SUBSIGNAL_WEIGHTS only and
     `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2.weights`
     used mismatched keys (accel_3m3m / pct_24m vs module accel / percentile). The
     yaml keys are now renamed to match; this helper reads them with the module
@@ -201,7 +201,7 @@ def _seasonal_zscore(frame: pd.DataFrame, lookback_months: int) -> float | None:
             return None
         mu = float(peers["revenue"].mean())
         sd = float(peers["revenue"].std(ddof=1))
-        # Codex R6-3: mirror ic_analysis.py R5-2 — `sd == 0` exact compare is
+        # R6-3: mirror ic_analysis.py R5-2 — `sd == 0` exact compare is
         # brittle against float noise; near-constant revenue series can yield
         # sd ~ 1e-14 and produce seasonal_z values like 7e13. Use tolerance.
         if sd < 1e-12 or pd.isna(sd):
@@ -216,7 +216,7 @@ def _seasonal_zscore(frame: pd.DataFrame, lookback_months: int) -> float | None:
 def _composite_score(subsignals: dict[str, float | None]) -> float | None:
     """Weighted average over non-None sub-signals. Weights renormalized.
 
-    2026-05-11 Codex R32 finding fix: weights now resolved from yaml via
+    2026-05-11 R32 finding fix: weights now resolved from yaml via
     `_subsignal_weights()` (was `SUBSIGNAL_WEIGHTS[name]` hardcoded).
     """
     weights = _subsignal_weights()

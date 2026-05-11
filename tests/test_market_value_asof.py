@@ -1,7 +1,7 @@
 """Mutation tests for `_load_market_value_panel` + `_market_value_asof` (P0-A 2026-05-10).
 
 Verifies the PIT-correct as-of lookup replaces the legacy `_load_market_value()`
-which returned latest mv across all rebalance dates (PIT violation per Codex R26).
+which returned latest mv across all rebalance dates (PIT violation per R26).
 """
 
 from __future__ import annotations

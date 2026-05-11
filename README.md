@@ -13,7 +13,7 @@
 - **0 / 18 cells 通過全部 6 條** → `Outcome-2 Partial`
 
 獨立驗證鏈：
-- Codex R25-final audit verdict：**CONFIRM-NO-GO**
+- R25-final audit verdict：**CONFIRM-NO-GO**
 - 直接 read evaluator JSON 自我驗證：**CONFIRM-NO-GO**（0 mismatch / DSR=0 by design / V0.26 NetIncome→IncomeAfterTaxes period 推到 2026-Q1）
 
 → 結案，pivot 回**被動 100% 0050 DCA**（per 歷史決策路徑）。
@@ -43,10 +43,10 @@
 - **13 條 pre-commit constraints** + **3 條 code-level enforcement assertions**
 - D-A 預先 disqualify（per Phase A2 D6 OOS IR 0.0058 / 99.4% collapse），不在 sweep 範圍
 
-### Multi-round Audit Chain
-- **25 輪 Codex + Claude 雙重交叉驗證**，累積 **50+ 攻擊角度**全部正面回應
+### Multi-round 獨立審計
+- **25+ 輪獨立交叉驗證**（兩條獨立 audit 軌道對賭：一條跑 self-audit，一條跑對抗式攻擊測試），累積 **50+ 攻擊角度**全部正面回應
 - 每輪 verdict 紀錄於 [reports/](reports/)
-- Self-Audit SOP 6 步：mutation test / 數字驗算 / grep 終態 / cross-interference / self-attack / full pytest regression
+- Self-Audit SOP 6 步：mutation test / 數字驗算 / grep 終態 / cross-interference / 對抗式自攻擊 / full pytest regression
 
 ---
 
@@ -204,7 +204,7 @@ python scripts/run_phase_d_factor_ic.py --factor industry_momentum
 | [reports/phase_d/v7_outcome2_summary.md](reports/phase_d/v7_outcome2_summary.md) | **Phase D v7 正式結案**（Outcome-2 / 0 cell 過 6/6 / no paper trade）|
 | [reports/phase_d/cell_sweep_v7_2026_05_06/cell_summary.json](reports/phase_d/cell_sweep_v7_2026_05_06/cell_summary.json) | **18-cell canonical 結果**（CONFIRM-NO-GO 證據）|
 | [reports/phase_d/R24_resolution.md](reports/phase_d/R24_resolution.md) | 5 P0 + 7 設計修法逐條 |
-| [reports/sprint_pro_validation/J_multi_perspective_audit.md](reports/sprint_pro_validation/J_multi_perspective_audit.md) | 7 角色 + Codex 21 attack 全答 |
+| [reports/sprint_pro_validation/J_multi_perspective_audit.md](reports/sprint_pro_validation/J_multi_perspective_audit.md) | 7 角色 + external audit 21 attack 全答 |
 | [reports/sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md](reports/sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md) | Pro Validation Sprint canonical evidence |
 | [reports/factor_ic/phase_a1_summary.md](reports/factor_ic/phase_a1_summary.md) | Phase A1 5 因子綜合結論 |
 | [reports/diagnosis/2026-04-16_edge_diagnosis.md](reports/diagnosis/2026-04-16_edge_diagnosis.md) | 揭穿過去三因子 alpha 為 overfit（timezone bug + universe pre-filter bug）|

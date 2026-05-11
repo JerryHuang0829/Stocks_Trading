@@ -92,7 +92,7 @@ Do not start v8 until these are true:
 
 ## ⚠️ 2026-05-10 R28-1 Follow-up Caveat — issued_capital Cache Schema Change
 
-**Background**：Phase A1 Codex R26+R27+R28 audit chain 完成 5 因子 IC 修法。R28-1 follow-up 跑 `scripts/cache_fill_new_factors.py --seed-issued-capital` 把 `data/cache/issued_capital/_global.pkl` 從 2-column snapshot (stock_id, issued_shares) 變更為 3-column panel (stock_id, **date**, issued_shares)，新增 157374 rows。
+**Background**：Phase A1 R26+R27+R28 audit chain 完成 5 因子 IC 修法。R28-1 follow-up 跑 `scripts/cache_fill_new_factors.py --seed-issued-capital` 把 `data/cache/issued_capital/_global.pkl` 從 2-column snapshot (stock_id, issued_shares) 變更為 3-column panel (stock_id, **date**, issued_shares)，新增 157374 rows。
 
 **Side effect on v7 sweep**：
 

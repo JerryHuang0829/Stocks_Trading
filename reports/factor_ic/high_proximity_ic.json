@@ -117325,8 +117325,8 @@
       "No PIT-violated aux_panel (factor uses None aux); baseline rerun for cross-factor consistency",
       "Universe extended 2020-01 ~ 2025-11 (n=59 -> 71)"
     ],
-    "plan": "C:/Users/chongweihuang/.claude/plans/codex-pro-codex-precious-reef.md",
-    "codex_r28_metadata_fix": "Per-factor fixes_applied (replaced hardcoded foreign-specific list per Codex R28-5)"
+    "plan": "(internal plan reference)",
+    "r28_metadata_fix": "Per-factor fixes_applied (replaced hardcoded foreign-specific list per R28-5)"
   },
   "decile_returns_per_period": [
     {

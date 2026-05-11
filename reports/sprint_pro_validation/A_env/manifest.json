@@ -32,8 +32,8 @@
     "conda_invocation": "Direct path to envs/quant/python.exe (avoids conda run wrapper crash on cp950)"
   },
   "audit_table_correction": {
-    "prior_claim": "Codex said 459 tests, my Explore agent found 453 — codex was wrong",
-    "corrected_claim": "Codex was correct (459 actual). My agent used `grep \"def test_\"` which misses parameterized tests + class methods. CLAUDE.md/HANDOFF 451 was stale (pre P5 Session 1 commit 9df25d5).",
+    "prior_claim": "external audit said 459 tests, my Explore agent found 453 — the external audit was wrong",
+    "corrected_claim": "external audit was correct (459 actual). My agent used `grep \"def test_\"` which misses parameterized tests + class methods. the dev guide/HANDOFF 451 was stale (pre P5 Session 1 commit 9df25d5).",
     "applies_to": "audit table claim #5 (test count)"
   },
   "notes": [

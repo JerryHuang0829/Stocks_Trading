@@ -114,7 +114,7 @@ class CellSweepContext:
         # Lazy-loaded cross-cell shared resources
         self._eps_by_symbol: dict[str, pd.DataFrame] | None = None
         self._margin_by_symbol: dict[str, pd.DataFrame] | None = None
-        # 2026-05-11 R30 4-path PIT cleanup (Codex R29 finding 1):
+        # 2026-05-11 R30 4-path PIT cleanup (R29 finding 1):
         # was `_issued_by_symbol: dict | None`, replaced by panel cache for
         # PIT-asof lookup per rebalance date via `issued_by_symbol_at()`.
         self._issued_capital_panel: pd.DataFrame | None = None
@@ -146,14 +146,14 @@ class CellSweepContext:
     def issued_capital_panel(self) -> pd.DataFrame:
         """PIT-able issued_capital panel via single source-of-truth helper.
 
-        2026-05-11 R30 4-path PIT cleanup (Codex R29 finding 1): replaces
+        2026-05-11 R30 4-path PIT cleanup (R29 finding 1): replaces
         the old ``issued_by_symbol`` dict property which used latest snapshot
         for all rebalance dates (PIT violation). Uses
         ``src.data.pit_helpers._load_issued_capital_panel`` shared with IC
         pipeline + portfolio path.
 
         Caveat: when cache lacks date column, fallback returns static panel
-        dated 1970-01-01 (Codex R28-1 / R29-4 documented limitation; same
+        dated 1970-01-01 (R28-1 / R29-4 documented limitation; same
         fallback behavior as IC pipeline for cross-path consistency).
         """
         if self._issued_capital_panel is None:
@@ -278,7 +278,7 @@ def _build_financial_history(cache_dir: pathlib.Path) -> pd.DataFrame:
             # V0.26 (2026-05-06) bugfix: NetIncome column exists in q_fin pivoted
             # output but FinMind cache for many stocks (e.g. TSMC 2330 from 2020+)
             # has NaN in NetIncome — true value lives in IncomeAfterTaxes instead.
-            # Codex re-audit 2026-05-06 confirmed: V0.25 fix made financial_history
+            # re-audit 2026-05-06 confirmed: V0.25 fix made financial_history
             # non-empty, but all rows had period_end ≤ 2019-12-31 because
             # net_income_ttm = rolling(4).sum() of NetIncome → NaN for any window
             # touching 2020+ → roe_ttm NaN → row dropped silently. Fix: fillna
@@ -302,7 +302,7 @@ def _build_financial_history(cache_dir: pathlib.Path) -> pd.DataFrame:
             # V0.25 (2026-05-06) bugfix: q_fin & bs both contain
             # EquityAttributableToOwnersOfParent + NoncontrollingInterests
             # → pd.DataFrame.join() raised ValueError "columns overlap" silently
-            # caught in outer try/except → entire financial_history empty (Codex
+            # caught in outer try/except → entire financial_history empty (external audit
             # pre-run audit P0 found D-E quality_v3 完全死). Fix: use rsuffix to
             # disambiguate; we access only computed columns (revenue_ttm /
             # equity_avg / etc.) which don't overlap.
@@ -478,7 +478,7 @@ def _compute_factor_panel(
         return compute_pead_eps_universe(ctx.eps_by_symbol, as_of=as_of)
     if factor_name == "margin_short_ratio":
         # 2026-05-11 R30: per-rebalance PIT-asof lookup (was using latest dict
-        # across all rebalance dates — Codex R29 finding 1 PIT violation).
+        # across all rebalance dates — R29 finding 1 PIT violation).
         return compute_margin_short_ratio_universe(
             ctx.margin_by_symbol, ctx.issued_by_symbol_at(as_of), as_of=as_of
         )

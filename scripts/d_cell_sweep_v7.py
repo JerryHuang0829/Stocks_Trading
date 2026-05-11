@@ -60,7 +60,7 @@ assert "D-A" not in CANDIDATE_FACTOR_SETS, (
 
 
 # ---------------------------------------------------------------------------
-# V0.14 Assertion 2 強化 (R25-mid Codex audit P0-1 fix, 2026-05-05):
+# V0.14 Assertion 2 強化 (R25-mid 獨立 audit P0-1 fix, 2026-05-05):
 # D-A pre-disqualification 不僅 string-level (CANDIDATE_FACTOR_SETS check)，
 # 更要 composition-level — 防 candidate id 換名字但 factor weights 仍等價 D-A。
 # ---------------------------------------------------------------------------
@@ -307,14 +307,14 @@ def load_candidate_config(candidate_id: str) -> dict[str, Any]:
             f"yaml {candidate_id} top_n_values {cfg['top_n_values']} ≠ "
             f"{list(TOP_N_VALUES)} (pre-commit #7 frozen)"
         )
-    # V0.14 Assertion 2 強化 (R25-mid Codex audit P0-1): composition-level
+    # V0.14 Assertion 2 強化 (R25-mid 獨立 audit P0-1): composition-level
     # D-A pre-disqualification check; catches D-C 50/50 ≡ D-A regression.
     if _composition_equals_forbidden(dict(cfg["factors"])):
         raise ValueError(
             f"V0.14 Assertion 2 FAIL: candidate {candidate_id} composition "
             f"{dict(cfg['factors'])} matches D-A forbidden composition (D1_v2 "
             f"50/50 baseline pre-disqualified per H_d_v6 §D-A pre-disqualification "
-            f"record + D6 OOS evidence). R25-mid Codex audit P0-1 fix — D-C "
+            f"record + D6 OOS evidence). R25-mid 獨立 audit P0-1 fix — D-C "
             f"V0.14 已 redesign 為 0.40/0.60 PEAD-weighted variant."
         )
     return cfg

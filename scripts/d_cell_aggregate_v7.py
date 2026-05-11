@@ -249,7 +249,7 @@ def write_cell_summary(
     output_path: pathlib.Path,
 ) -> None:
     """Write aggregate result to JSON. Used for cell_summary_v6.json output
-    consumed by R25-final Codex audit + Phase 2 S8 sole_survivor lock."""
+    consumed by R25-final 獨立 audit + Phase 2 S8 sole_survivor lock."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(aggregate_result, f, ensure_ascii=False, indent=2, default=str)

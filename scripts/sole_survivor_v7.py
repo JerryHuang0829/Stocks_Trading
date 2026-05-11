@@ -116,7 +116,7 @@ def write_sole_survivor(
     cell_summary_outcome: str,
     output_path: pathlib.Path,
 ) -> None:
-    """Persist sole_survivor lock result to JSON for R25-final Codex audit.
+    """Persist sole_survivor lock result to JSON for R25-final 獨立 audit.
 
     Output schema:
         {
@@ -146,7 +146,7 @@ def emit_phase_d_v7_complete_tag_command(
     """Emit (NOT execute) git tag command for `phase-d-v7-complete`.
 
     Deliberately returns command string for user to run; does NOT auto-tag.
-    User owns commit/tag boundary per CLAUDE.md "git safety protocol".
+    User owns commit/tag boundary per the dev guide "git safety protocol".
 
     Args:
         sole_survivor: validated sole_survivor dict, or None

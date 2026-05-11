@@ -1,12 +1,12 @@
-# Claude 獨立驗證報告 — 2026-04-16
+# self-audit 獨立驗證報告 — 2026-04-16
 
-> 審計員：Claude（獨立審計模式，非前一輪 Claude 助手）
+> 審計員：self-audit（獨立審計模式，非前一輪 self-audit 助手）
 > 執行環境：Docker (Python 3.12.13, pandas 3.0.2, scipy), OHLCV cache 1,968 檔
 > 所有獨立計算腳本與 JSON 輸出存在 `reports/diagnosis/independent_audit/`
 
 ## 整體評價
 
-- 對前一輪 Claude 診斷：**部分同意（核心結論方向對，論證有 P0 偏誤）**
+- 對前一輪 self-audit 診斷：**部分同意（核心結論方向對，論證有 P0 偏誤）**
 - 🔵 量化結論：**三因子無可辨別 edge（IC 全落在噪音範圍，策略 Sharpe 在隨機 8 檔選股分布的第 34 百分位），但「PM IC = -0.05」這個論據是 top-20 truncated 造成的負偏，真實 full-universe IC = -0.027 (p=0.40)，只是雜訊、不是失效證據。**
 - 🟢 投資結論：**前一輪對「月投 2.5 萬不可行」的結論建立在「只模擬整張」的錯誤前提。盤中零股下 25k 的 capital utilization 可達 81%；但即使技術可執行，2025 年淨 alpha 仍為 -17% 至 -19% 的災難，且 100% 0050 在相同 4Y 期間 CAGR +20.19% / Sharpe 0.87 vs 策略 +15.47% / 0.64，0050 全面勝出。**
 - 雙視角共識：**轉被動投資（以 0050 為主，非前一輪推薦的 50/40/10）**。裁決依據：兩視角均支持「無 edge + 被動勝出」，差異只在戰術細節。
@@ -26,7 +26,7 @@
 | 7 | P0 | 🔵 | E | `data/cache/ohlcv/0050.pkl` 原始 close 在 **2025-06-18 單日 -74.78%**（188.65→47.57），是 1:4 split 未調整；engine 透過 `adjust_splits()` 動態處理，但任何 downstream script 直接讀 raw cache 不調整會得錯數 | `rets['2025-06-18'] = -0.7478`；前版 audit_passive.py 跑出 0050 CAGR -1.79% 假象 | `scripts/*.py` 內讀 ohlcv cache 的腳本必須先套 `adjust_splits` |
 | 8 | P1 | 🔵 | E | `scripts/small_capital_friction.py:L188-189` 用 `STRATEGY_GROSS_ALPHA_4Y=3.4` 當「毛 alpha」扣掉新成本；但 `metrics.json` 的 `annualized_alpha=0.03395` 已是**淨值**（engine 已扣 `turnover_cost=0.0047 × turnover + slippage`）→ **雙重扣成本** | 我推算實際 gross alpha 4Y = net 0.034 + engine cost 0.0267 = **+0.0606**；前一輪只看 3.4% 會低估  | 重寫成本計算，或把 3.4% 先加回 engine cost 再扣外部友 |
 | 9 | P1 | 🔵🟢 | B | 2025-12 rolling 12M alpha **+8.43%** 並非 edge 恢復訊號，只是 beta=0.53 + benchmark +34% 大多頭年的數學幻象。對**無槓桿零售投資人**，相關的是絕對 alpha = **-18.44%** | 獨立 OLS：alpha_ann_compound=+8.43%, beta=0.53, bench_ann=+34.17%; -18.44%=15.73-34.17=絕對落後 | 放棄用 rolling CAPM alpha 作為「觀察 3 個月」的等待理由 |
-| 10 | P1 | 🔵 | B/E | 前一輪 Claude 自貶 `scripts/rolling_performance.py:82-92` 為「近似式」，**實為單因子 OLS intercept 閉式解的精確形式**（我的 numpy lstsq 重算 910 windows diff = 0.000000） | audit_rolling_alpha.py `diff_vs_prior` 全 0 | 這條不是 bug，是前一輪的自我貶低；但「近似」說法誤導使用者 |
+| 10 | P1 | 🔵 | B/E | 前一輪 self-audit 自貶 `scripts/rolling_performance.py:82-92` 為「近似式」，**實為單因子 OLS intercept 閉式解的精確形式**（我的 numpy lstsq 重算 910 windows diff = 0.000000） | audit_rolling_alpha.py `diff_vs_prior` 全 0 | 這條不是 bug，是前一輪的自我貶低；但「近似」說法誤導使用者 |
 | 11 | P1 | 🔵 | D | 無 regime 能救 PM：risk_on IC=+0.004 (p=0.95), caution IC=-0.04 (p=0.48), risk_off IC=-0.03 (p=0.51) | audit_regime_permutation.py by_regime | 不能用「risk_on 下有效」救策略 |
 | 12 | P2 | 🔵 | E | 5 個新腳本（analyze_factor_ic / rolling_performance / small_capital_friction / cache_fill / validate_cache）**零單元測試** | `tests/` 內無 test_analyze_factor_ic.py 等 | 依賴它們的結論缺可重現性保障 |
 | 13 | P2 | 🔵 | E | 全 repo timezone 處理**混用 `tz_localize(None)` 與 `tz_convert("UTC")`**：finmind.py L220 (naive) vs L248 (UTC)；twse_scraper.py L221-223 條件分支；engine.py L131 naive | grep 結果見 audit 證據 | 訂統一規則（推薦整條 pipeline 用 UTC），或在 `src/utils/constants.py::to_utc_ts` 基礎上寫 helper 用於 audit |
@@ -198,7 +198,7 @@ Caveat：random 未扣 turnover cost（random turnover ~100% vs 策略 33%），
 
 ---
 
-## 同意前一輪 Claude 的部分
+## 同意前一輪 self-audit 的部分
 
 1. **策略無實質 edge、建議轉被動**：方向正確（雖論證有偏誤）
 2. **月投 2.5 萬 + 策略，經濟上不划算**：結論對（雖「不可行」措辭誤導）
@@ -206,7 +206,7 @@ Caveat：random 未扣 turnover cost（random turnover ~100% vs 策略 33%），
 4. **暫緩實盤、累積對照組數據**：同意（本審計建議建立 0050/0056 實盤紀錄對照）
 5. **2025-12 的 rolling alpha +8.43% 不能當 edge 恢復訊號**：同意（我提出了更清晰的數學解釋）
 
-## 反對前一輪 Claude 的部分
+## 反對前一輪 self-audit 的部分
 
 1. ❌ **「PM IC = -0.0505，因子失效」** → 應改為「truncated top-20 IC = -0.05，full-universe IC = -0.027 (p=0.40)，統計上為雜訊」
 2. ❌ **「100 萬 89% 無法買 1 張 → 不可實盤」** → 零股模擬下 100 萬 utilization 97%，技術可行；2.5 萬 utilization 81% 也可行。不可實盤的真正理由是 **策略本身無 edge**，不是**執行困難**
@@ -214,7 +214,7 @@ Caveat：random 未扣 turnover cost（random turnover ~100% vs 策略 33%），
 4. ❌ **`scripts/rolling_performance.py` 用「近似式」** → 其實是 OLS intercept 精確閉式解，前一輪自我貶低
 5. ❌ **`scripts/small_capital_friction.py` 用 3.4% 當 gross alpha** → 該值已是 engine 淨值，**雙重扣成本**，算出的 net_alpha 被低估
 
-## 前一輪 Claude 漏掉的事
+## 前一輪 self-audit 漏掉的事
 
 1. **Truncated IC 本身的 selection bias**：選 top-20 by PM 後再測 PM-forward-return 相關性，本就會把 IC 壓低 — 這不是因子失效，是測量工具選錯
 2. **零股模型缺失**：2024 盤中零股活絡後台股小資金可行性大幅改善，應納入友擬
@@ -259,7 +259,7 @@ Caveat：random 未扣 turnover cost（random turnover ~100% vs 策略 33%），
    - 10,000 NTD 0056 （零股）
 3. **每 6 個月**：檢查比例是否 drift > 10%，若是則再平衡（手動轉倉一次）
 4. **記錄**：建議保留現有 `scripts/paper_trade.py` 結構，把每月 paper trade 改成同步記錄「策略模擬 vs 0050/0056 60/40 實盤」，12 個月後對比結果
-5. **停止**：不要跑 `main.py` live loop、不要擴充 FinMind 配額、不要投 CTSwithPython 券商對接（Claude-Prompt.md / CLAUDE.md「不急」清單）
+5. **停止**：不要跑 `main.py` live loop、不要擴充 FinMind 配額、不要投 CTSwithPython 券商對接（review-prompt.md / the dev guide「不急」清單）
 
 ### 可觀察退路
 

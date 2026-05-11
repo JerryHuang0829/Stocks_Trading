@@ -1,6 +1,6 @@
 """quality_v3 history aggregator — TTM rolling + Δassets YoY (Path B S6.1).
 
-R25-mid Codex audit P-B fix (2026-05-05): D-E quality_v3 needs full income
+R25-mid 獨立 audit P-B fix (2026-05-05): D-E quality_v3 needs full income
 statement + balance sheet history (NOT EPS-only existing cache + NOT
 single-snapshot fetch_financial_quality). This module aggregates raw FinMind
 quarterly data into the schema expected by `src.features.quality_v3.compute_quality_v3_panel`:

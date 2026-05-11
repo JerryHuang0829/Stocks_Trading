@@ -1,6 +1,6 @@
 """Point-in-time (PIT) data helpers — single source of truth across 4 data paths.
 
-2026-05-11 R30 architecture cleanup（Codex R29 抓的 4-path PIT 違規 root cause）：
+2026-05-11 R30 architecture cleanup（R29 抓的 4-path PIT 違規 root cause）：
     Stock-Trading 專案有 4 條獨立 data loading path：
       1. IC pipeline       (`scripts/run_factor_ic.py` + `scripts/_factor_ic_helpers.py`)
       2. Portfolio         (`src/portfolio/tw_stock.py`)
@@ -20,7 +20,7 @@ Functions exported:
     _load_issued_capital_panel    — load issued_shares panel (with cache fallback)
     _issued_capital_asof          — as-of issued_shares lookup at target_date
 
-Static-snapshot caveat（Codex R28-1 / R29 finding 4）：
+Static-snapshot caveat（R28-1 / R29 finding 4）：
     `data/cache/issued_capital/_global.pkl` 缺 date column 時，fallback 用
     `pd.Timestamp("1970-01-01")` 讓所有歷史 query 都 hit latest snapshot。
     這是 form-correct 但 substance-equivalent（仍是 latest_shares 對所有 date）。
@@ -97,7 +97,7 @@ def _load_issued_capital_panel(cache_dir: Path) -> pd.DataFrame:
     lacks the ``issued_shares`` column. Returns empty DataFrame if neither
     cache populated (caller should detect via ``.empty``).
 
-    ⚠️ Static-snapshot caveat (Codex R28-1 / R29-4):
+    ⚠️ Static-snapshot caveat (R28-1 / R29-4):
         當 ``issued_capital/_global.pkl`` 缺 ``date`` column 時，fallback 用
         ``pd.Timestamp("1970-01-01")`` 讓所有歷史 query 都 hit。這只是
         form-correct（cache 結構帶 date column），實質仍是 latest snapshot。
@@ -134,7 +134,7 @@ def _load_issued_capital_panel(cache_dir: Path) -> pd.DataFrame:
             if "date" not in cap.columns:
                 # 2026-05-10 R27 P0-2 fallback：cache lacks date column → treat
                 # as static snapshot valid for ALL dates (Timestamp.min equivalent).
-                # Form-correct but substance-equivalent to latest (Codex R28-1).
+                # Form-correct but substance-equivalent to latest (R28-1).
                 warnings.warn(
                     f"issued_capital cache {capital_path} lacks 'date' column. "
                     "Treating as static snapshot (PIT approximation). To get "

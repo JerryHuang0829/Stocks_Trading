@@ -94901,12 +94901,12 @@
       "P0-B: dollar-denominated cum_ratio + rank_stability (was shares/NTD = 1/price量綱錯)",
       "P0-C: pit_violation flag (this field) re-applied post fresh rerun overwrite",
       "P1-C: last20 stale span guard 35d",
-      "P1-D: consistency sub-signal weight 0.20 -> 0 (Codex R26 sparsity)",
+      "P1-D: consistency sub-signal weight 0.20 -> 0 (R26 sparsity)",
       "P1-E: covered-weight composite rescale + 0.5 threshold",
       "R30 misnomer rename (2026-05-11): foreign_broker_v2 → foreign_investor_v2. 舊名 broker 字面對應 Foreign_Dealer_Self（外資自營商），但因子實際讀 Foreign_Investor（外國法人 / QFII）。Archive JSON 保留舊 factor_name 為歷史 evidence; this canonical JSON now uses foreign_investor_v2."
     ],
-    "plan": "C:/Users/chongweihuang/.claude/plans/codex-pro-codex-precious-reef.md",
-    "codex_r28_metadata_fix": "Per-factor fixes_applied (replaced hardcoded foreign-specific list per Codex R28-5)"
+    "plan": "(internal plan reference)",
+    "r28_metadata_fix": "Per-factor fixes_applied (replaced hardcoded foreign-specific list per R28-5)"
   },
   "decile_returns_per_period": [
     {

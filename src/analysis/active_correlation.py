@@ -18,7 +18,7 @@ table.
 Definition: Pearson correlation between monthly active returns
 (portfolio_monthly - benchmark_monthly) and benchmark_monthly_returns.
 
-V0.14 (R25-mid Codex audit P0-4 fix): index alignment check enforced; same
+V0.14 (R25-mid 獨立 audit P0-4 fix): index alignment check enforced; same
 length but different date indexes → raises ValueError. Caller MUST align by
 date index before calling.
 """
@@ -65,7 +65,7 @@ def active_corr(
             f"benchmark={len(benchmark_monthly_returns)}. Caller must align "
             f"monthly periods before calling active_corr."
         )
-    # V0.14 fix per R25-mid Codex audit P0-4: docstring promised non-aligned
+    # V0.14 fix per R25-mid 獨立 audit P0-4: docstring promised non-aligned
     # index check but original code only verified length. Same length ≠ same
     # dates; pandas Series subtract auto-aligns by index which silently produces
     # wrong result if dates differ. Caller MUST align by date index first.
@@ -74,7 +74,7 @@ def active_corr(
             f"Index misalignment: portfolio[0]={portfolio_monthly_returns.index[0]} "
             f"vs benchmark[0]={benchmark_monthly_returns.index[0]}; lengths match "
             f"but date indexes differ. Caller must align by date index before "
-            f"calling active_corr (V0.14 P0-4 fix per R25-mid Codex audit)."
+            f"calling active_corr (V0.14 P0-4 fix per R25-mid 獨立 audit)."
         )
     active = portfolio_monthly_returns - benchmark_monthly_returns
     return float(active.corr(benchmark_monthly_returns))

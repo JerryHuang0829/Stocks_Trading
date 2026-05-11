@@ -1,6 +1,6 @@
 """Foreign investor factor v2 (外資法人 aggregate; 三大法人 no 分點).
 
-2026-05-11 rename (Codex R30 misnomer fix): 舊名 foreign_broker_v2 → 改為
+2026-05-11 rename (R30 misnomer fix): 舊名 foreign_broker_v2 → 改為
 foreign_investor_v2. 舊名 "broker" 字面對應 FinMind ``Foreign_Dealer_Self``
 （外資自營商），但因子實際讀 ``Foreign_Investor``（外國法人 / QFII），所以
 "investor" 更精準。Function / filename / config key / JSON factor_name 全
@@ -20,7 +20,7 @@ Sub-signals (all higher = more bullish):
     1. foreign_cum_ratio (weight 0.50)
        20D cumulative foreign dollar net / market_value (percent of mcap
        bought). 2026-05-10 P0-B: changed from shares/NTD (= 1/price; bad
-       cross-section bias) to dollar/NTD (dimensionless ratio) per Codex
+       cross-section bias) to dollar/NTD (dimensionless ratio) per external audit
        R26 audit. Weight 0.40 → 0.50 after consistency drop (P1-D).
 
     2. persistence (weight 0.25, was 0.20)
@@ -35,7 +35,7 @@ Sub-signals (all higher = more bullish):
     4. consistency (weight 0.0, was 0.20)
        Fraction of last 20 days where BOTH Foreign_Investor AND
        Investment_Trust were on the same side (net positive). 2026-05-10
-       P1-D 修法: deprecated weight to 0 per Codex R26 (78% symbols have
+       P1-D 修法: deprecated weight to 0 per R26 (78% symbols have
        consistency=0, std 0.094 vs persistence 0.171; low SNR).
 
 Composite = z-score(each sub-signal cross-sectionally) × weight, summed,
@@ -44,7 +44,7 @@ effective weight covered are dropped.
 
 PIT: rows with date > as_of - INSTITUTIONAL_LAG_DAYS dropped. Stale-data
 guard (P1-C): symbols whose last 20 trading rows span > 35 calendar days
-are dropped (Codex R26 reported max stale span 1475 days under old code).
+are dropped (R26 reported max stale span 1475 days under old code).
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ DEFAULT_MIN_HISTORY = 60  # need at least 60 days for rank_stability
 # change behaviour without code changes.
 MIN_UNIVERSE_FOR_RANK_STABILITY = 50
 
-# 2026-05-11 Codex R31 finding 4 fix: these module-level constants are now
+# 2026-05-11 R31 finding 4 fix: these module-level constants are now
 # FALLBACK DEFAULTS only. The live source of truth is
 # `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2`,
 # read at call time via `_subsignal_weights()` / `_last20_max_calendar_span_days()`
@@ -75,12 +75,12 @@ SUBSIGNAL_WEIGHTS = {
     "foreign_cum_ratio": 0.50,   # 0.40 → 0.50 (P1-D 2026-05-10: redistribute consistency weight)
     "persistence": 0.25,         # 0.20 → 0.25
     "rank_stability": 0.25,      # 0.20 → 0.25
-    "consistency": 0.0,          # 0.20 → 0.0 (P1-D 2026-05-10: deprecated; Codex R26 78% zero, low SNR)
+    "consistency": 0.0,          # 0.20 → 0.0 (P1-D 2026-05-10: deprecated; R26 78% zero, low SNR)
 }
 
 # 2026-05-10 P1-C: stale-data guard. 20 trading days ≈ 28 calendar days
 # normally; allow 25% slack at 35d. Symbols whose last20 calendar span
-# exceeds this are dropped (Codex R26 reported max span 1475 days under
+# exceeds this are dropped (R26 reported max span 1475 days under
 # old code, indicating delisted / very stale series).
 LAST20_MAX_CALENDAR_SPAN_DAYS = 35
 
@@ -91,7 +91,7 @@ RANK_STABILITY_TOP_PCT = 0.20
 def _zscore_with_tolerance(col: pd.Series, tolerance: float = 1e-12) -> pd.Series:
     """Cross-sectional z-score with float-noise tolerance guard.
 
-    Codex R8-1 fix: previously a closure inside
+    R8-1 fix: previously a closure inside
     `compute_foreign_investor_v2_universe`, which blocked direct unit testing
     of the guard logic. Extracted to module level so a mutation-proof test
     can import it and verify that `std` below `tolerance` (e.g. 1e-13 from
@@ -128,7 +128,7 @@ def _rank_stability_min_universe() -> int:
 def _subsignal_weights() -> dict[str, float]:
     """Resolve sub-signal weights from yaml (fallback to SUBSIGNAL_WEIGHTS).
 
-    2026-05-11 Codex R31 finding 4 fix: was hardcoded SUBSIGNAL_WEIGHTS only;
+    2026-05-11 R31 finding 4 fix: was hardcoded SUBSIGNAL_WEIGHTS only;
     now reads `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2.weights`
     so the H_a1 amendment (and any future re-weighting) lives in one place.
 
@@ -328,7 +328,7 @@ def _compute_rank_stability(
 
     `top_pct=None` (default) resolves from `config/factor_thresholds.yaml ::
     factor_specific.foreign_investor_v2.rank_stability_top_pct` (2026-05-11
-    Codex R31 finding 4 fix). Pass a float explicitly to pin for tests.
+    R31 finding 4 fix). Pass a float explicitly to pin for tests.
     """
     if min_universe_size is None:
         min_universe_size = _rank_stability_min_universe()

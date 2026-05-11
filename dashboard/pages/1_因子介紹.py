@@ -422,7 +422,7 @@ st.markdown(
 **為什麼月營收與外資沒進策略候選**：
 - **月營收動能**：個別 IC ≈ +0.0145（p=0.113，未過 0.05）/ DSR=0 fail（與 PEAD 重疊度高，corr ≈ 0.38，PEAD 已涵蓋基本面意涵）
 - **外資法人因子 v1** (legacy `institutional.py`)：IC = -0.053 fail（單一 net-flow snapshot，已棄用）
-- **外資法人因子 v2** (`foreign_investor_v2`)：⚠️ 2026-05-10 Codex R26 audit 發現 PIT contamination（latest market value + 量綱錯誤）；2026-05-10 R28 fresh rerun 完成（PIT-asof market_value + dollar 制 cum_ratio + last20 stale guard + consistency=0 + covered-weight rescale）：**新 mean IC = -0.0077, p=0.5007, Bootstrap CI [-0.0276, +0.0116] 跨 0 不顯著**（vs 舊 -0.0195 p=0.082 CI 全<0），verdict **DROP**（PIT 修法後實證 alpha 微弱）。詳見 `reports/factor_ic/foreign_investor_v2_ic.json::pit_violation`（violated=false 已標 fresh rerun）+ `reports/factor_ic/_closeout/old_vs_new_comparison_2026-05-10.md`
+- **外資法人因子 v2** (`foreign_investor_v2`)：⚠️ 2026-05-10 R26 audit 發現 PIT contamination（latest market value + 量綱錯誤）；2026-05-10 R28 fresh rerun 完成（PIT-asof market_value + dollar 制 cum_ratio + last20 stale guard + consistency=0 + covered-weight rescale）：**新 mean IC = -0.0077, p=0.5007, Bootstrap CI [-0.0276, +0.0116] 跨 0 不顯著**（vs 舊 -0.0195 p=0.082 CI 全<0），verdict **DROP**（PIT 修法後實證 alpha 微弱）。詳見 `reports/factor_ic/foreign_investor_v2_ic.json::pit_violation`（violated=false 已標 fresh rerun）+ `reports/factor_ic/_closeout/old_vs_new_comparison_2026-05-10.md`
 
 → 6 個策略候選把因子篩成「兩個共用 + 一個變體」結構，避免 high-dimensional overfit。
 """

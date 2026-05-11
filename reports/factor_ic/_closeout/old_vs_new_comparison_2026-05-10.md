@@ -1,7 +1,7 @@
 # 5 因子 IC 舊 vs 新 對照分析 — 2026-05-10
 
-**Plan reference**: `C:/Users/chongweihuang/.claude/plans/codex-pro-codex-precious-reef.md`
-**修法 audit chain**: Codex R26 (8 patterns) + Claude R26 (B9 補抓 _load_issued_capital) + Codex R27 (4 P0/P1 verdict NEEDS-FIX) + Claude R27 (P0-2 / 新 P0 / P1-1 / P1-3 修)
+**Plan reference**: (internal plan reference)
+**修法 audit chain**: R26 (8 patterns) + R26 (B9 補抓 _load_issued_capital) + R27 (4 P0/P1 verdict NEEDS-FIX) + R27 (P0-2 / 新 P0 / P1-1 / P1-3 修)
 **Fresh rerun timestamps**:
   - foreign_investor_v2: 2026-05-10 04:22:38
   - margin_short_ratio: 2026-05-10 05:04:29
@@ -43,7 +43,7 @@
 
 ---
 
-## 2. 新增診斷指標（Codex R26 推薦）
+## 2. 新增診斷指標（R26 推薦）
 
 ### 2.1 Decile 分桶平均報酬（across periods, 月報酬）
 
@@ -64,7 +64,7 @@
 
 | 因子 | ρ | 解讀 |
 |---|---:|---|
-| **foreign_investor_v2** | **+0.818** | **單調正向**（從舊 +0.103 反轉，Codex R26 倒 U-shape 是 PIT+量綱 artifact） |
+| **foreign_investor_v2** | **+0.818** | **單調正向**（從舊 +0.103 反轉，R26 倒 U-shape 是 PIT+量綱 artifact） |
 | margin_short_ratio | **-0.818** | 強反向（D0 最高、D9 最低）— **與 IC=+0.0387 矛盾**，需 audit |
 | high_proximity | +0.867 | 強單調，top decile 2.46%/月 vs bottom 0.87% |
 | revenue_momentum_v2 | +0.952 | 最強單調 |
@@ -173,7 +173,7 @@
 
 ---
 
-## 8. ⚠️ 修法降級標註（Codex R28 audit 發現）
+## 8. ⚠️ 修法降級標註（R28 audit 發現）
 
 ### 8.1 issued_capital 不是真 PIT — 是 static-snapshot approximation
 
@@ -225,9 +225,9 @@
 
 ### 8.2 已知未修 P1/P2 backlog
 
-1. **margin_short_ratio IC vs decile sign 解讀（不是 sign bug）**（Codex R28-4 釐清）— IC=+0.0387 跟 decile ρ=-0.818 看似矛盾，但 Codex R28 重算 per-period IC vs per-period D9-D0 spread 的 Spearman = 0.946（period-level 一致）。差異來自跨期平均後 IC mean 跟 spread mean 數學上不必相等。**修法**：(a) `src/features/margin_short_ratio.py:7` docstring 「higher factor score = lower expected return」是反的，應為「higher score = lower margin ratio = higher expected return（reverse-coded）」；(b) 對照分析應補 statistical 解讀。
+1. **margin_short_ratio IC vs decile sign 解讀（不是 sign bug）**（R28-4 釐清）— IC=+0.0387 跟 decile ρ=-0.818 看似矛盾，但 R28 重算 per-period IC vs per-period D9-D0 spread 的 Spearman = 0.946（period-level 一致）。差異來自跨期平均後 IC mean 跟 spread mean 數學上不必相等。**修法**：(a) `src/features/margin_short_ratio.py:7` docstring 「higher factor score = lower expected return」是反的，應為「higher score = lower margin ratio = higher expected return（reverse-coded）」；(b) 對照分析應補 statistical 解讀。
 
-2. **`src/portfolio/tw_stock.py:1117`** 仍用 `_bulk_fetch_latest_market_value`（非 PIT-asof）。Codex R28 P1-3 已加 close_by_symbol 但 mv 仍 latest。Live 模式 (as_of=today) 不受影響；Backtest 模式需切 PIT mv panel。
+2. **`src/portfolio/tw_stock.py:1117`** 仍用 `_bulk_fetch_latest_market_value`（非 PIT-asof）。R28 P1-3 已加 close_by_symbol 但 mv 仍 latest。Live 模式 (as_of=today) 不受影響；Backtest 模式需切 PIT mv panel。
 
 3. ✅ **`src/portfolio/tw_stock.py:1039`** `_load_issued_capital_dict` ~~portfolio 層 dormant function 也用 latest~~ → **R28-2 已修**：改用 `_load_issued_capital_panel` + `_issued_capital_asof` helper（IC pipeline 同套），signature 加 `as_of` keyword default None；caller line 1131 傳 `as_of=as_of_ts`。**Caveat**：實際 fallback 仍是 static snapshot（同 8.1 issued_capital cache 缺 date column 限制），但程式邏輯與 IC pipeline 對齊。
 
@@ -237,7 +237,7 @@
 
 ---
 
-## 9. ⚠️ R30 額外架構 caveat（Codex R30 抓的）
+## 9. ⚠️ R30 額外架構 caveat（R30 抓的）
 
 ### 9.1 Permutation null vs time-series IC verdict aggregation
 
@@ -245,7 +245,7 @@
 - **time-series IC**: mean=-0.0077, p=0.5007, Bootstrap CI 跨 0 → **不顯著**
 - **permutation null**: `significant_negative` p_emp=0.0199 → 看似顯著
 
-**Codex R30 finding 1 解釋**：`ic_analysis.py:501-513 permutation_baseline` 是 per-period shuffle factor scores keep returns。null std 很小（只在 cross-section 重排），對極小 mean IC 容易判定「顯著」。但**正式因子 verdict 應以 time-series IC + block bootstrap CI 為主**（樣本期 71 期的真實統計不確定性）。
+**R30 finding 1 解釋**：`ic_analysis.py:501-513 permutation_baseline` 是 per-period shuffle factor scores keep returns。null std 很小（只在 cross-section 重排），對極小 mean IC 容易判定「顯著」。但**正式因子 verdict 應以 time-series IC + block bootstrap CI 為主**（樣本期 71 期的真實統計不確定性）。
 
 **讀者請以 time-series IC 為 primary verdict**。Permutation 是 secondary check（驗證 cross-section ranking 對 return 有非平凡關係），不能單獨判定因子顯著。
 
@@ -268,30 +268,30 @@ foreign_investor_v2 真實結論：**mean IC=-0.0077 p=0.50 等同噪音；permu
 
 ### 9.3 thresholds.py default 跟 yaml/module 之前 silent drift（R30-3 已修）
 
-R26-R28 修法只改 `config/factor_thresholds.yaml` + `src/features/foreign_investor_v2.py::SUBSIGNAL_WEIGHTS`，**漏改 `src/utils/thresholds.py:76` default fallback**（仍是舊權重 0.40/0.20/0.20/0.20）。Codex R30-3 抓到。已修為 0.50/0.25/0.25/0.0 對齊。
+R26-R28 修法只改 `config/factor_thresholds.yaml` + `src/features/foreign_investor_v2.py::SUBSIGNAL_WEIGHTS`，**漏改 `src/utils/thresholds.py:76` default fallback**（仍是舊權重 0.40/0.20/0.20/0.20）。R30-3 抓到。已修為 0.50/0.25/0.25/0.0 對齊。
 
 ### 9.4 default profile institutional_flow=0.10 silent legacy（R30-6 已修）
 
 `src/portfolio/tw_stock.py:74-84` `tw_3m_stable` profile + line 145-156 `tw_6m_defensive` profile 之前 default 仍含 `institutional_flow: 0.10`（legacy 因子，IC=-0.053 已 fail）。切換 profile 可能 silent 帶回。已改為 0.00 對齊當前 active settings.yaml。
 
-6. **`reports/factor_ic/_audit/fresh_rerun_foreign_investor_v2_2026-05-10.log`** 缺**（Codex R28-3）— foreign_investor_v2 fresh rerun 是直接 background task 跑（沒走 wrapper script），原始 log 留在 task output 但沒拷到 `_audit/` dir。已從 background task output 補回。
+6. **`reports/factor_ic/_audit/fresh_rerun_foreign_investor_v2_2026-05-10.log`** 缺**（R28-3）— foreign_investor_v2 fresh rerun 是直接 background task 跑（沒走 wrapper script），原始 log 留在 task output 但沒拷到 `_audit/` dir。已從 background task output 補回。
 
-7. **Codex R28-5 metadata provenance**: 4 個非 foreign_broker 因子 JSON 的 `pit_violation.fixes_applied` 之前被 enrich script 寫成 foreign_broker 專用 fixes（P0-B / P1-C / P1-D / P1-E 對它們不適用）。已修 `_enrich_factor_ic_diagnostics.py` 加 per-factor differentiation + re-patch 5 因子 JSON。
+7. **R28-5 metadata provenance**: 4 個非 foreign_broker 因子 JSON 的 `pit_violation.fixes_applied` 之前被 enrich script 寫成 foreign_broker 專用 fixes（P0-B / P1-C / P1-D / P1-E 對它們不適用）。已修 `_enrich_factor_ic_diagnostics.py` 加 per-factor differentiation + re-patch 5 因子 JSON。
 
 ---
 
-## 9.5 Codex R31 audit 後續修法（2026-05-11）+ Phase D 3 因子 single IC
+## 9.5 R31 audit 後續修法（2026-05-11）+ Phase D 3 因子 single IC
 
-### 9.5.1 R31 Codex 6 finding 處理
+### 9.5.1 R31 external audit 6 finding 處理
 
 | # | R31 Finding | 修法 | 嚴重度 |
 |---|---|---|---|
 | **R31-1** | Phase D 3 因子 IC JSON 缺 enrichment diagnostics（`run_phase_d_factor_ic.py` 只寫 `result.to_dict()`，沒補 decile / monotonicity / peak / price_score_corr / pit_violation；test 名稱說 schema parity 但只檢查 overall/by_regime/by_bucket） | **真 P1 已修**：(a) `_enrich_factor_ic_diagnostics.py` 加 Phase D 分支 + run 在 3 個 JSON 上 (b) `run_phase_d_factor_ic.py` 結尾自動 call enrich（`--no-enrich` 可跳） (c) `test_load_factor_ic_phase_d_3factors` 強化為驗 8 個 enrichment 欄位 + top-level key parity vs high_proximity | **P1 真 bug** |
 | **R31-2** | `config/settings_D1.yaml:95` + `settings_D1_v2.yaml:95` + `settings_D2.yaml:94` + `settings_D3.yaml:94` 仍留 `foreign_broker_v2: 0.0`（值 0.0 不是即時交易錯，但若日後用 D profile 調權重會被新程式忽略） | **真 P2 已修**：4 檔全改 `foreign_investor_v2: 0.0` + R31 comment | **P2 真 bug** |
 | **R31-3** | `dashboard/pages/2_因子IC測試.py` 主表已擴 8 因子，但後面 ref_table（line 347-349）+ caption（line 354-360）仍寫 quality_v3 / industry_momentum / idio_vol_max「不單獨測 IC」+ "本頁主表只列 5 個 Phase A1 因子" — **同頁自相矛盾**，誤導讀者 | **真 P1 已修**：ref_table 9 行改為 8 走 single IC（標 2026-05-11 補測 + per-factor universe + 同時嵌入 D-X composite）+ 1 走 spike；caption 改為「Phase D 3 因子的 single-factor IC（2026-05-11 補測）」並保留「single IC ≠ portfolio robust」+ FDR m=5 邊界 caveat | **P1 真 bug** |
-| **R31-4** | `src/features/foreign_investor_v2.py` 硬編 `SUBSIGNAL_WEIGHTS` / `LAST20_MAX_CALENDAR_SPAN_DAYS=35` / `top_pct=0.20` default；整個檔案只有 rank_stability min universe 讀 `get_threshold()` → `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2` 的 weights/last20/top_pct 其實沒被讀（違反 CLAUDE.md「禁止 hardcode yaml 值到 src/features/」） | **真 P2 架構債已修**：加 `_subsignal_weights()` / `_last20_max_calendar_span_days()` / `_rank_stability_top_pct()` 3 個 helper（同 `_rank_stability_min_universe()` pattern，yaml 為 live source + 模組常數為 fallback）；`_subsignal_weights()` 額外驗 key 集合 + active weight sum≈1.0（malformed yaml fall back to constant）；replace 3 個 usage site；加 2 個 test（`test_subsignal_weights_yaml_in_sync_with_constant` + `test_last20_span_and_top_pct_yaml_resolved`） | **P2 架構債** |
+| **R31-4** | `src/features/foreign_investor_v2.py` 硬編 `SUBSIGNAL_WEIGHTS` / `LAST20_MAX_CALENDAR_SPAN_DAYS=35` / `top_pct=0.20` default；整個檔案只有 rank_stability min universe 讀 `get_threshold()` → `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2` 的 weights/last20/top_pct 其實沒被讀（違反 the dev guide「禁止 hardcode yaml 值到 src/features/」） | **真 P2 架構債已修**：加 `_subsignal_weights()` / `_last20_max_calendar_span_days()` / `_rank_stability_top_pct()` 3 個 helper（同 `_rank_stability_min_universe()` pattern，yaml 為 live source + 模組常數為 fallback）；`_subsignal_weights()` 額外驗 key 集合 + active weight sum≈1.0（malformed yaml fall back to constant）；replace 3 個 usage site；加 2 個 test（`test_subsignal_weights_yaml_in_sync_with_constant` + `test_last20_span_and_top_pct_yaml_resolved`） | **P2 架構債** |
 | R31-5 | `src/data/finmind.py:1039/1096` market_value = latest_shares × historical_close 不是 fully PIT | 已知 caveat（section 9.2 已 documented），無需新修 | (acknowledged) |
-| R31-6 | foreign_investor_v2 IC=-0.0077 / p=0.5007 / 65 期正 33 負 32 → 不穩定，「沒 alpha」非「應反向用」；Codex 手算 2024 三期 IC 0.0784/-0.0108/-0.0121 也支持 | 確認 Claude 結論一致（DROP，不是 invert） | (confirms conclusion) |
+| R31-6 | foreign_investor_v2 IC=-0.0077 / p=0.5007 / 65 期正 33 負 32 → 不穩定，「沒 alpha」非「應反向用」；external audit 手算 2024 三期 IC 0.0784/-0.0108/-0.0121 也支持 | 確認 self-audit 結論一致（DROP，不是 invert） | (confirms conclusion) |
 
 ### 9.5.2 Phase D 3 因子 single IC 結果（2026-05-11 補測，per-factor 自然 universe）
 
@@ -306,7 +306,7 @@ R26-R28 修法只改 `config/factor_thresholds.yaml` + `src/features/foreign_inv
 **重要 caveat**：
 - Phase D 3 因子用 per-factor 自然 universe（**沒做 Phase A1 5 panel 的 intersection**），跟 Phase A1 5 因子 universe 不完全可比
 - DSR=0 across all 3：IC IR < BLdP expected max SR (≈1.65 for n_trials=5) → 同 foreign_investor_v2 的 DSR=0 情況
-- single IC 顯著 ≠ portfolio robust：v7 cell sweep（D-G 給 idio_vol_max 20%）仍 CONFIRM-NO-GO；idio 升權測試走 Plan v8（pre-reg DRAFT，等 Codex audit + lock）
+- single IC 顯著 ≠ portfolio robust：v7 cell sweep（D-G 給 idio_vol_max 20%）仍 CONFIRM-NO-GO；idio 升權測試走 Plan v8（pre-reg DRAFT，等 獨立 audit + lock）
 
 ### 9.5.3 idio_vol_max / margin_short_ratio：rank IC 正 vs decile arithmetic mean 反向
 
@@ -325,19 +325,19 @@ R26-R28 修法只改 `config/factor_thresholds.yaml` + `src/features/foreign_inv
 
 ---
 
-## 9.6 Codex R32 audit 後續修法（2026-05-11）
+## 9.6 R32 audit 後續修法（2026-05-11）
 
-### 9.6.1 R32 Codex 3 finding 處理
+### 9.6.1 R32 external audit 3 finding 處理
 
 | # | R32 Finding | 修法 | 嚴重度 |
 |---|---|---|---|
 | **R32-1** | `src/features/revenue_momentum_v2.py:39 SUBSIGNAL_WEIGHTS` 硬編、yaml `factor_specific.revenue_momentum_v2.weights` 從沒被讀，且 key 不符（yaml `accel_3m3m`/`pct_24m` vs module `accel`/`percentile`）；`thresholds.py:11` docstring 還寫「revenue module reads weights」但其實沒讀 — 同 R31-4 foreign 同型 | **真 P2 架構債已修**：(a) yaml + `thresholds.py` `_DEFAULTS` key 改 `accel_3m3m→accel` / `pct_24m→percentile` 對齊 module (b) `revenue_momentum_v2.py` 加 `_subsignal_weights()` helper（yaml live source + 常數 fallback + 驗 key 集合 + sum≈1.0）(c) `_composite_score` 改用 `_subsignal_weights()` (d) `thresholds.py:8-16` docstring 改為**準確**列出誰真的讀 yaml（只 foreign + revenue）+ 標 high_prox/pead/margin 為 SPEC MIRROR (e) yaml 對應 3 section 加 `# SPEC MIRROR` 註解 (f) 加 test `test_subsignal_weights_yaml_in_sync_with_constant` | **P2 架構債** |
-| **R32-2** | `reports/phase_d_v8/H_v8_idio_led_preregistration_draft.md:181` pre-rerun checklist 寫 「pytest baseline 687 passed」但實際 689（R31-fix 後） | **真 P3 已修**：改為「685 → 689 後含 Phase D IC schema parity + foreign/revenue yaml-sync tests；Codex R32 實測 689」 | **P3 stale doc** |
-| **R32-3** | `reports/factor_ic/phase_a1_summary.md:56` 寫「issued_capital cache 沒有 date column」但 Codex 實讀 cache：`(157374, 3)` = `stock_id,date,issued_shares`，2013-01-31 ~ 2026-04-30（R28-1 follow-up 補的）| **真 P3 已修**：phase_a1_summary.md 改為「現有 date column 但 substance-static（derive 用 mv/close，mv=latest_shares×close → derived_shares=latest_shares 常數，Δ IC +0.0001 證實 form-correct 但 substance-equivalent）」+ 市值 caveat 仍在。**margin IC 不用重跑**（已是用 date-bearing cache 跑的）。closeout §8.1 本來就講了完整 history（was missing → seeded → 現有 date column）所以不用改 | **P3 stale doc** |
+| **R32-2** | `reports/phase_d_v8/H_v8_idio_led_preregistration_draft.md:181` pre-rerun checklist 寫 「pytest baseline 687 passed」但實際 689（R31-fix 後） | **真 P3 已修**：改為「685 → 689 後含 Phase D IC schema parity + foreign/revenue yaml-sync tests；R32 實測 689」 | **P3 stale doc** |
+| **R32-3** | `reports/factor_ic/phase_a1_summary.md:56` 寫「issued_capital cache 沒有 date column」但 external audit 實讀 cache：`(157374, 3)` = `stock_id,date,issued_shares`，2013-01-31 ~ 2026-04-30（R28-1 follow-up 補的）| **真 P3 已修**：phase_a1_summary.md 改為「現有 date column 但 substance-static（derive 用 mv/close，mv=latest_shares×close → derived_shares=latest_shares 常數，Δ IC +0.0001 證實 form-correct 但 substance-equivalent）」+ 市值 caveat 仍在。**margin IC 不用重跑**（已是用 date-bearing cache 跑的）。closeout §8.1 本來就講了完整 history（was missing → seeded → 現有 date column）所以不用改 | **P3 stale doc** |
 
 ### 9.6.2 R32 完整 sweep — 其他 config-drift sibling
 
-R32 修完 revenue 後，Claude 自己 sweep 全部 5 個 `factor_specific.*` section + module：
+R32 修完 revenue 後，本人 sweep 全部 5 個 `factor_specific.*` section + module：
 
 | Factor | yaml 有 section? | module 讀 yaml? | 狀態 |
 |---|:---:|:---:|---|
@@ -347,36 +347,36 @@ R32 修完 revenue 後，Claude 自己 sweep 全部 5 個 `factor_specific.*` se
 | pead_eps | ✓ | ✗（硬編；lag 在 `src/utils/constants.py`） | **SPEC MIRROR**（lag_days_q4=90 是法定 deadline，hypothesis-locked；同上）|
 | margin_short_ratio | ✓ | ✗（硬編 -0.5/-0.5/iloc[-21]） | **SPEC MIRROR**（reverse-factor 權重；yaml `use_trading_day_offset: true` 描述 module 用 row-offset 不是 calendar offset；同上）|
 
-**結論**：foreign + revenue 已 yaml-driven；high_prox / pead / margin 的 yaml section 是 SPEC MIRROR（module 硬編、yaml mirror 供文件用，改要改兩邊）—— 已在 yaml + `thresholds.py` docstring 明確標示。這 3 個的參數是 hypothesis-locked 結構常數（52W window / 法定 lag / reverse-factor 權重），spec-mirror 可接受。Codex R33 可決定要不要也 wire 起來（或正式 document 為 spec-mirror）。
+**結論**：foreign + revenue 已 yaml-driven；high_prox / pead / margin 的 yaml section 是 SPEC MIRROR（module 硬編、yaml mirror 供文件用，改要改兩邊）—— 已在 yaml + `thresholds.py` docstring 明確標示。這 3 個的參數是 hypothesis-locked 結構常數（52W window / 法定 lag / reverse-factor 權重），spec-mirror 可接受。R33 可決定要不要也 wire 起來（或正式 document 為 spec-mirror）。
 
 ### 9.6.3 驗收結果
 
 - **690 full pytest passed**（689 + 1 新 test `test_subsignal_weights_yaml_in_sync_with_constant`）；0 regression
 - SOP 6 步（revenue logic change）：mutation test PASS（mutate yaml weights → module behavior 變；malformed sum → fallback；**mismatched keys accel_3m3m/pct_24m → fallback**，這正是 pre-R32 的 silent-noop 情境，現在被 caught）/ 3 numbers PASS / grep terminal PASS / cross-interference（無其他讀 accel_3m3m/pct_24m）/ self-attack done / full pytest 690
 
-## 9.7 Codex R33 audit 後續修法（2026-05-11）
+## 9.7 R33 audit 後續修法（2026-05-11）
 
 R33 verdict O1=NEEDS-FIX（非 test fail，是 2 個小缺口）：
 
 | # | R33 Finding | 修法 |
 |---|---|---|
 | **R33-B2** | `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2` 是 **partial-live section**：`weights` 已 yaml-driven（R32 修），但同 section 的 `yoy_strict_month_matching` + `seasonal_window_months` 沒被 module 讀也沒標 SPEC MIRROR → 嚴格標準下仍是 future silent-drift 風險 | (a) `yoy_strict_month_matching` **刪除**：P1-新6 移除了 ±45 天容忍路徑 → module 永遠 strict matching，沒有 config knob，這 key 是 dead；yaml + `thresholds.py` `_DEFAULTS` 都刪 + 留 tombstone 註解 (b) `seasonal_window_months: 24` **標 SPEC MIRROR**：module 硬編 `DEFAULT_SEASONAL_LOOKBACK_MONTHS=24`；yaml 加 section-level「⚠️ PARTIAL-LIVE：只 weights yaml-driven，seasonal_window_months 是 SPEC MIRROR」+ inline `# SPEC MIRROR` 註解；`thresholds.py` `_DEFAULTS` comment 同步 |
-| **R33-A2/C** | `reports/phase_d_v8/H_v8_idio_led_preregistration_draft.md` round reference 全 stale（寫 awaiting Codex R31 / R31 Block K / R32 實測 689）；R33 實測 690 | 全文 R31 reference 改為 round-agnostic（「latest Codex audit (currently R33)」）+ pre-rerun checklist baseline 改 690 + Codex R33 |
+| **R33-A2/C** | `reports/phase_d_v8/H_v8_idio_led_preregistration_draft.md` round reference 全 stale（寫 awaiting R31 / R31 Block K / R32 實測 689）；R33 實測 690 | 全文 R31 reference 改為 round-agnostic（「latest 獨立 audit (currently R33)」）+ pre-rerun checklist baseline 改 690 + R33 |
 
 **驗收**：690 full pytest passed（無新 test；R33 修法皆 doc/yaml-comment + 刪 dead key，無 logic change）；0 regression。
 
-**v8 pre-reg lock 狀態**：R33 後 baseline + round reference 不 stale；C1-C7 R32 已 PASS。lock 還缺：(1) Codex R34 final confirm（驗 R33 修法）(2) user 簽 lock signature (3) lock 後寫 v8 scripts/configs（by-design post-lock）。
+**v8 pre-reg lock 狀態**：R33 後 baseline + round reference 不 stale；C1-C7 R32 已 PASS。lock 還缺：(1) R34 final confirm（驗 R33 修法）(2) user 簽 lock signature (3) lock 後寫 v8 scripts/configs（by-design post-lock）。
 
 ---
 
-## 9. Codex R26 vs R27 vs Claude 修法對照
+## 9. R26 vs R27 vs 本輪修法對照
 
-| 修法 | Codex R26 提 | Claude R26 修 | Codex R27 抓問題 | Claude R27 修 |
+| 修法 | R26 提 | R26 修 | R27 抓問題 | R27 修 |
 |---|:---:|:---:|:---:|:---:|
 | P0-A PIT mv | ✓ | ✓ | (passed) | n/a |
 | P0-B 量綱 | ✓ | ✓ | (passed) | n/a |
 | P0-C contaminated 旗標 | ✓ | ✓ | **silent overwrite by fresh rerun** | ✓ patch + JSON byte recovery |
-| P1-A issued_capital PIT | n/a | ✓ (Codex 漏抓 B9) | **fallback today() bug** | ✓ Timestamp.min |
+| P1-A issued_capital PIT | n/a | ✓ (audit 漏抓 B9) | **fallback today() bug** | ✓ Timestamp.min |
 | P1-B stale narrative | ✓ | partial | foreign_v2 改但其他 4 因子 stale | ✓ (本對照報告 + 待 update phase_a1_summary) |
 | P1-C last20 stale guard | ✓ | ✓ | (passed) | n/a |
 | P1-D consistency drop | ✓ | ✓ | test 改寫驗證 PASS | n/a |
@@ -388,7 +388,7 @@ R33 verdict O1=NEEDS-FIX（非 test fail，是 2 個小缺口）：
 
 ## 10. Verdict
 
-**Fresh rerun 5 因子 + Codex R27 修法後**：
+**Fresh rerun 5 因子 + R27 修法後**：
 - Foreign_broker_v2 結論完全反轉（負向因子 → 不顯著但 monotonic）
 - margin_short_ratio 露出 IC vs decile sign 矛盾（新 silent bug）
 - 其他 3 因子（high_proximity / pead_eps / revenue_momentum_v2）數字穩定但延伸到 2025
@@ -399,9 +399,9 @@ R33 verdict O1=NEEDS-FIX（非 test fail，是 2 個小缺口）：
 - DEFER: revenue_momentum_v2（marginal + mega-cap bias）
 - DROP: foreign_investor_v2（PIT 修後實證 alpha 微弱）
 
-**Commit-readiness**：經 28 mutation tests + 685 full pytest baseline 全綠 + 5 因子 fresh rerun 完成 + 對照分析完整。建議 commit 進 git，等 Codex R28 驗證再進 v8 spec 階段。
+**Commit-readiness**：經 28 mutation tests + 685 full pytest baseline 全綠 + 5 因子 fresh rerun 完成 + 對照分析完整。建議 commit 進 git，等 R28 驗證再進 v8 spec 階段。
 
-下個 Codex audit (R28) 應驗證：
+下個 獨立 audit (R28) 應驗證：
 1. 對照分析的 monotonicity rho / peak t-stats 數字是否獨立可重現
 2. margin_short_ratio IC vs decile 矛盾的 root cause
 3. P0-2 fallback Timestamp.min 對未來新增 issued_capital cache（含 date column）的回歸測試

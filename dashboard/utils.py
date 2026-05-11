@@ -306,7 +306,7 @@ def get_monthly_active_return_dates() -> list[str] | None:
 
 
 # ===============================================================
-# Display helpers（Codex Q4 修法）
+# Display helpers（external audit Q4 修法）
 # ===============================================================
 def format_sole_survivor(value: object) -> str:
     """sole_survivor 顯示。None → 中文「(無 survivor / CONFIRM-NO-GO)」。"""

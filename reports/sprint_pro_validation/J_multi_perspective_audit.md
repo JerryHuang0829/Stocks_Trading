@@ -1,7 +1,7 @@
-# Multi-Perspective + Codex Pre-Audit — Sprint Phase J
+# Multi-Perspective + external audit Pre-Audit — Sprint Phase J
 
 **Target**: `CANONICAL_MANIFEST_2026-05-04.md` 的 Pro 級可信度
-**Method**: 7 quant personas + Codex adversary，每 persona 提 ≥3 攻擊問題並自答（給 file:line 證據或誠實 acknowledge gap）
+**Method**: 7 quant personas + external audit adversary，每 persona 提 ≥3 攻擊問題並自答（給 file:line 證據或誠實 acknowledge gap）
 
 ---
 
@@ -14,14 +14,14 @@
 - **Answer**: ⚠️ partial。Manifest §2 說「pytest collection variance」但沒實際 diff test names。建議 Sprint J+1 補做 `pytest --collect-only` 對比兩次 commit。本次未做。
 
 **Q1.3**: 寫死「monthly only」是 v5 intentional，但 Plan v5 為何不直接做 weekly sensitivity？這是 governance 怠惰嗎？
-- **Answer**: Codex-Prompt.md:185 v5 pre-commit rule #6「1 frequency monthly 不可改 (v5 縮版)」明寫策略選擇。v6 預留 (Codex-Prompt.md:122 B3)。governance 上是縮版 trade-off，非怠惰，**Manifest 已 cite v5 spec L185**。
+- **Answer**: audit-prompt.md:185 v5 pre-commit rule #6「1 frequency monthly 不可改 (v5 縮版)」明寫策略選擇。v6 預留 (audit-prompt.md:122 B3)。governance 上是縮版 trade-off，非怠惰，**Manifest 已 cite v5 spec L185**。
 
 ---
 
 ## P2 (策略研究員) — FDR / DSR / Bootstrap / PIT / Permutation
 
 **Q2.1**: DSR 全 5 因子 = 0.0 — Pro paper (López de Prado 2014) 說 DSR < 0.95 不算 significant，但 manifest 沒挑戰「factor 全 fail DSR」這個事實對 v5 multi-factor composite 的意涵。
-- **Answer**: ⚠️ **acknowledged gap**。DSR=0 是 well-known phase A1 finding (CLAUDE.md:469 record)，n_trials=5 conservative haircut。Manifest 是 reproducer 文件，不是 strategy decision doc。**v5 Plan 自己已承認 DSR 全 fail 是 single-factor signal weakness，靠 multi-factor composite + bootstrap CI on monthly active returns (L6) 來達 significance**。Manifest 不重複 critique 這已知約束。
+- **Answer**: ⚠️ **acknowledged gap**。DSR=0 是 well-known phase A1 finding (the dev guide:469 record)，n_trials=5 conservative haircut。Manifest 是 reproducer 文件，不是 strategy decision doc。**v5 Plan 自己已承認 DSR 全 fail 是 single-factor signal weakness，靠 multi-factor composite + bootstrap CI on monthly active returns (L6) 來達 significance**。Manifest 不重複 critique 這已知約束。
 
 **Q2.2**: Bootstrap CI block_len=3, n_iter=10000, seed=42 fixed — 沒做 seed sensitivity (e.g. seed ∈ {42, 123, 7777} 跑 3 次比 CI overlap)。
 - **Answer**: ⚠️ **未做**，acknowledged in §10。Sprint 規模限制（plan 內已標 "no seed sweep"）。降級為 P2 follow-up。
@@ -29,7 +29,7 @@
 **Q2.3**: FDR adjusted p 沒 reproduce check — 5 IC JSON 只 verify mean_ic / bootstrap CI，FDR adjustment 跨多因子的 BH (Benjamini-Hochberg) 是否還對齊原值?
 - **Answer**: ⚠️ **gap**。Manifest §3 表格沒列 FDR p。Quick Python check 可加。本次未做。
 
-**Q2.4 (Codex 借)**: 你說 effective_n drift +3-4 是「industry label cache 增量更新」，但**沒實際 grep cache file mtime / row count diff** 證明。
+**Q2.4 (external audit 借)**: 你說 effective_n drift +3-4 是「industry label cache 增量更新」，但**沒實際 grep cache file mtime / row count diff** 證明。
 - **Answer**: ⚠️ **未實證**。當下推論基於 log line `Loaded 3074 industry labels for effective_n clustering`（高機率正確），但沒 diff 舊版 cache 的 industry label count。若 cache 沒變但 effective_n 動，根因錯。**降級為 P2，建議跑 cache mtime 對比**。
 
 ---
@@ -49,7 +49,7 @@
 - **Answer**: ⚠️ valid critique，但**範圍外**。multi-perspective skill SKILL.md:24 早 flag「turnover_cost / slippage 從未 sweep sensitivity」是已知 P3 gap。**Sprint 收尾後可加 slippage_bps ∈ {10, 30, 50, 100} sensitivity sweep（v5 Session 2 候選）**。
 
 **Q4.3**: walk_forward implicit slippage 改變對歷史 reports/walk_forward_*/ 的解讀——CRO 風控視角這要不要追溯所有歷史報告？
-- **Answer**: 是。Manifest §10 「Codex 上輪 audit 我的修正」段已 flag「過往 walk_forward 報告應視為 5bps assumption」。**未來引用任何 walk_forward 報告須加 cost-rate caveat**。降級為文件規範，非數值錯。
+- **Answer**: 是。Manifest §10 「external audit 上輪 audit 我的修正」段已 flag「過往 walk_forward 報告應視為 5bps assumption」。**未來引用任何 walk_forward 報告須加 cost-rate caveat**。降級為文件規範，非數值錯。
 
 ---
 
@@ -89,7 +89,7 @@
 
 ---
 
-## P8 (Codex adversary) — 3 hardest attack questions
+## P8 (external audit adversary) — 3 hardest attack questions
 
 **Q8.1 (核心)**: 你的 Phase B reproducer **用同一 cache @ 2026-04-21**，新舊跑用的是同一 input data。**這不是 reproducibility verification，是「重跑驗算」**。真正 reproducibility 要 cross-machine / cross-cache regenerate；如果 cache 本身是上一輪 IC 的污染源（hidden state），sprint 抓不到。
 - **Answer**: ⚠️ **valid，最強攻擊**。Manifest §10 信任邊界第 1 條已誠實標「FinMind cache @ 2026-04-21 不變」是假設。**Sprint 證的是「現在 code + 同 cache 重跑得同數值」，不是「現在 code 在 fresh cache 上重跑得同數值」**。後者要 wipe cache + 重抓 FinMind，1-2 hr 額外工程，超出 sprint 範圍。**降為 P1 follow-up，列入 Sprint v2 必跑項**。
@@ -105,14 +105,14 @@
 ## Consolidated Patch List
 
 ### P1 (Must-fix before publish)
-1. **diff `pytest --collect-only` output** between 459 / 462 三次 run，找 +3 test source（Codex Q8.3 + 面試官 Q5.3）
-2. **document cache reproducibility caveat** more loudly in §10——Codex Q8.1 attack 必答
+1. **diff `pytest --collect-only` output** between 459 / 462 三次 run，找 +3 test source（external audit Q8.3 + 面試官 Q5.3）
+2. **document cache reproducibility caveat** more loudly in §10——external audit Q8.1 attack 必答
 
 ### P2 (Should-do follow-up)
 3. **PIT mutation tests** 補 quarterly_eps / margin_short / market_value 3 panel（資料工程師 Q6.1）
 4. **effective_n drift root-cause grep** — diff industry label cache mtime + row count（資料工程師 Q6.3 + 策略研究員 Q2.4）
 5. **diff FDR adjusted p** for 5 IC reproducer（策略研究員 Q2.3）
-6. **walk_forward report retroactive tag** with cost-rate caveat（CRO Q4.3 + Codex Q8.2）
+6. **walk_forward report retroactive tag** with cost-rate caveat（CRO Q4.3 + external audit Q8.2）
 7. **rerun /ic-aggregate** to verify 5-factor aggregate report 對齊（面試官 Q5.2）
 
 ### P3 (Nice-to-have)
@@ -124,7 +124,7 @@
 
 ## Sprint J Verdict
 
-**21 attack questions answered**（7 personas × 3 + Codex × 3 = 24，Vol Trader N/A 扣 3 = 21）
+**21 attack questions answered**（7 personas × 3 + external audit × 3 = 24，Vol Trader N/A 扣 3 = 21）
 
 **Honest summary**:
 - 0 P0 unaddressed
