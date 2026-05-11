@@ -1,14 +1,27 @@
-"""Margin / short ratio factor (反向訊號).
+"""Margin / short ratio factor (反向訊號 reverse-coded).
 
 Theory: high margin balance + fast margin-balance increase ≈ retail chasing
 high prices, historically correlated with subsequent underperformance.
 Short-sale balance is a weaker reverse signal (short-covering pressure).
 
-Composite (reversed — higher factor score = lower expected return):
+Composite (reverse-coded inside formula — **higher factor score = lower margin
+ratio = higher expected return**, because the score uses negative weights to
+flip the raw inverse-alpha signal into a positive-alpha score):
 
     margin_ratio      = (MarginPurchaseTodayBalance - ShortSaleTodayBalance) / issued_shares
     margin_change_20d = MarginPurchaseTodayBalance_today / MarginPurchaseTodayBalance_20d_ago - 1
     score             = -0.5 * zscore_cross(margin_ratio) - 0.5 * zscore_cross(margin_change_20d)
+
+So when used in IC pipeline:
+  - mean IC > 0 → expected (the factor predicts return positively as designed)
+  - decile rho > 0 (D9 > D0) → expected long-only behavior
+
+Sign-convention sanity check (Codex R28-4 release):
+  Old docstring "higher factor score = lower expected return" was wrong-sign.
+  Empirical fresh rerun 2026-05-10: mean IC = +0.0387, but per-period IC vs
+  per-period (D9-D0 spread) Spearman = 0.946 (high consistency). Cross-period
+  AVERAGE IC and AVERAGE spread don't have to match in sign — that's a
+  statistical property, not a bug. Factor sign-convention itself is correct.
 
 - PIT: rows with ``date > as_of - MARGIN_LAG_DAYS`` are dropped (T+2 conservative)
 - Edge: zero issued_shares / missing panel / < min_history days all drop the symbol
@@ -16,6 +29,12 @@ Composite (reversed — higher factor score = lower expected return):
   fetched via fetch_twse_issued_capital() is in **shares** (not lots). This
   module re-normalises margin balance from lots → shares before forming the
   ratio so that the denominator is consistent.
+- 2026-05-10 R28-2: portfolio caller `tw_stock._load_issued_capital_dict` now
+  uses panel + asof helper (same as IC pipeline) instead of latest snapshot.
+- ⚠️ Static-snapshot caveat (R28-1): when issued_capital cache lacks date
+  column (current state), both IC and portfolio paths fall back to
+  pd.Timestamp.min, treating issued_shares as constant across all dates.
+  margin_ratio denominator is therefore "PIT approximation", not fully PIT.
 """
 
 from __future__ import annotations

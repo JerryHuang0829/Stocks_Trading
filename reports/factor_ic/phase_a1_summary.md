@@ -1,20 +1,71 @@
-# Phase A1 Summary — 2026-04-20
+# Phase A1 Summary — 2026-05-10（fresh rerun 後）
 
-**狀態**：本報告由 `/ic-aggregate` 於 R13 修法後重跑產出。**DSR 語義修正後**，5 因子正式 Go/No-Go 判定。
+**狀態**：2026-05-10 R26+R27 audit chain 完成。Codex R26 抓到 8 類 silent bug + Claude R26 補抓 1 類 + Codex R27 verdict NEEDS-FIX-FIRST + Claude R27 修 P0+P1 後 fresh rerun 5 因子。本報告反映 fresh rerun 後狀態。
+
+**完整對照分析**：見 `reports/factor_ic/_closeout/old_vs_new_comparison_2026-05-10.md`
 
 ---
 
-## 1. 五因子 IC 主表（Pro methodology，修正版 DSR 語義）
+## 1. 五因子 IC 主表（fresh rerun 2026-05-10，PIT-correct + dollar denomination + new weights）
 
-| 因子 | periods | mean_IC | IR | nominal_p | FDR_adj_p (m=5) | DSR (confidence Ψ) | effective_n | Block BS CI | DSR ≥0.95? | FDR <0.05? | 合併通過? |
-|-----|---------|---------|-----|-----------|-----------------|--------------------|-------------|-------------|-----------|-----------|---------|
-| 52W High Proximity | 59 | 0.0467 | 0.3256 | 0.0152 | **0.0592** | 0.0000 | 266 | [0.0176, 0.0763] | no | no | **no** |
-| Revenue Momentum v2 | 59 | 0.0110 | 0.1384 | 0.2923 | 0.3451 | 0.0000 | 264 | [-0.0068, 0.0282] | no | no | no |
-| Margin/Short Ratio | 59 | 0.0393 | 0.2322 | 0.0797 | 0.1328 | 0.0000 | 261 | [0.0098, 0.0715] | no | no | no |
-| Foreign Broker v2 | 59 (full window 重跑) | -0.0210 | -0.2255 | 0.0886 | 0.1108 | 0.0000 | 266 | [-0.0435, -0.0012] **全<0** | no | no | **long-only 不能用** |
-| PEAD / EPS Surprise | 59 | 0.0236 | 0.3025 | 0.0237 | **0.0592** | 0.0000 | 265 | [0.0065, 0.0410] | no | no | **no** |
+| 因子 | periods | mean_IC | IR | nominal_p | Block BS CI | Permutation | Monotonicity ρ | D9-D0 t |
+|-----|---------|---------|-----|-----------|-------------|-------------|---------------:|--------:|
+| 52W High Proximity | 71 | 0.0413 | 0.2738 | **0.0240** | [0.0130, 0.0709] 全>0 | sig+ p=0.007 | +0.867 | **+3.06** |
+| Revenue Momentum v2 | 71 | 0.0145 | 0.1906 | 0.1128 | [-0.0013, 0.0305] 跨 0 | sig+ p=0.007 | **+0.952** | **+2.51** |
+| Margin/Short Ratio | 71 | 0.0387 | 0.2314 | 0.0552 | [0.0121, 0.0668] 全>0 | sig+ p=0.007 | -0.818 ⚠️ | -1.21 |
+| Foreign Broker v2 | **65** | **-0.0077** | -0.084 | **0.5007** | **[-0.0276, 0.0116] 跨 0** | sig- p=0.020 | +0.818 | +1.86 |
+| PEAD / EPS Surprise | 71 | 0.0219 | 0.2907 | **0.0168** | [0.0075, 0.0369] 全>0 | sig+ p=0.007 | +0.891 | **+3.09** |
 
-**✅ Foreign Broker v2 full window 已重跑**（2026-04-20）：59 periods 2020-01-01 ~ 2024-12-31。結果：IC = -0.0210, CI = [-0.0435, -0.0012] 全小於 0，Permutation significant_negative (p_emp=0.0066)。**factor 為微弱負向 signal，long-only 策略無法使用**（不能倒轉 sign 因為是 post-hoc 調整）。已從 composite 候選中排除。
+### 關鍵變化（vs 舊 2026-04-20 contaminated）
+
+| 因子 | 舊 IC / p | 新 IC / p | 結論變化 |
+|---|---|---|---|
+| **foreign_investor_v2** | -0.0195 / 0.082 (CI 全<0) | **-0.0077 / 0.501 (CI 跨 0)** | **顯著負 → 完全不顯著**；倒 U-shape (D5 peak) **反轉為 monotonic D9 peak** |
+| margin_short_ratio | 0.0393 / 0.080 | 0.0387 / 0.055 | 微改善但 decile sign 矛盾 ⚠️ |
+| high_proximity | 0.0467 / 0.015 | 0.0413 / 0.024 | 仍顯著但量級略降 |
+| revenue_momentum_v2 | 0.0110 / 0.292 | 0.0145 / 0.113 | 仍不顯著但減弱 |
+| pead_eps | 0.0236 / 0.024 | 0.0219 / 0.017 | 仍顯著 |
+
+### v8 Reframe 候選（per fresh rerun + decile / monotonicity / regime 整合判斷）
+
+| 因子 | Verdict | 理由 |
+|---|---|---|
+| high_proximity | **KEEP** | p=0.024, ρ=0.87, D9-D0 spread +1.59% t=3.06 |
+| pead_eps | **KEEP** | p=0.017, ρ=0.89, D9-D0 spread +1.07% t=3.09 |
+| margin_short_ratio | **HOLD / DEFER**（issued_capital caveat 限制） | IC=+0.039 接近顯著但**仍是 static-snapshot approximation**（issued_capital cache 缺 date column，R28-1 follow-up 證實 derive method form-correct 但 substance-equivalent，ΔIC=+0.0001）；decile ρ=-0.818 跟 IC=+0.0387 看似矛盾**不是 sign bug**（per R28-4 釐清：per-period IC vs spread Spearman=0.946 一致）；嚴格 pro 標準下要當 v8 乾淨因子須先補真歷史 issued_shares cache（P1 backlog） |
+| revenue_momentum_v2 | **DEFER**（marginal） | IC p=0.11 不顯著但 ρ=0.95 最單調；trending_down +0.049 顯著；mega-cap bias +0.225 偏強 |
+| **foreign_investor_v2** | **DROP**（PIT 修法後實證 alpha 微弱） | IC=-0.008 不顯著；雖 ρ=0.82 但 D9-D0 spread 僅 +0.68% t=1.86；regime-dependent |
+
+### R28-4 釐清的「看似 silent bug」實為 statistical property（非 bug）
+
+1. **margin_short_ratio IC vs decile sign 看似矛盾**：IC=+0.039 正向 vs decile 全反向 ranking（D0=1.57%、D9=0.88%）。**R28-4 Codex 重算釐清**：per-period IC vs per-period D9-D0 spread Spearman=0.946（period-level 一致），跨期平均後 IC mean 跟 spread mean 不必同號 — 這是 statistical property 不是 sign bug。`src/features/margin_short_ratio.py` 公式正確（line 11 `score = -0.5 × zscore(...)` reverse-coded）；docstring 已修為「higher score = lower margin ratio = higher expected return」。**不需 audit**。
+
+### 修法 chain 摘要（2026-05-10）
+
+| Audit Round | Findings | 修法狀態 |
+|---|---|---|
+| Codex R26 | 8 patterns (PIT / 量綱 / stale / consistency / fillna / narrative drift / FDR / 倒 U) | Claude R26 全修 + 補抓 B9 (_load_issued_capital) |
+| Codex R27 verdict | NEEDS-FIX-FIRST (P0-2 issued_capital fallback / P1-3 tw_stock dormant / P1-1 weak test) | Claude R27 全修 + 補抓 silent overwrite of pit_violation flag |
+| Codex R28 verdict | NEEDS-FIX (5 真 finding) | Claude R28 全修：per-factor metadata / tw_stock issued_capital PIT-align / margin docstring / foreign log 補回 / closeout PIT approximation 降級 |
+| Fresh rerun | 5 因子 rerun | 全部完成 2026-05-10 |
+| Pytest | 28 mutation + 685 full baseline | 全綠 |
+
+### ⚠️ 修法降級標註（必讀）
+
+**`issued_capital` 是 form-correct 但 substance-static 的 PIT approximation**（Codex R28-1 → R28-1 follow-up → R32 update）：
+- `data/cache/issued_capital/_global.pkl` **現有 date column**：`(157374, 3)` = `stock_id, date, issued_shares`，月頻 2013-01-31 ~ 2026-04-30，1952 unique symbols（R28-1 follow-up 跑 `cache_fill_new_factors.py --seed-issued-capital` 補的）。**舊敘述「沒有 date column」已過期**。
+- **但值是 static-per-symbol**：seed 用 `issued_shares = market_value / close` derive，而 `market_value` cache 本身是 `latest_shares × historical_close`（`src/data/finmind.py:1039`）→ `derived_shares = latest_shares × close / close = latest_shares`（常數）。所以雖然有 date column，跨日的 issued_shares 對每個 symbol 幾乎不變（近月可能有少數真實更新）。
+- 對 margin_short_ratio 的影響：分母 (issued_shares) 仍 ≈ cache 當下 latest，不是 2020-01-13 那天的真實值。
+- **量化證實**（R28-1 empirical）：R27 fallback `Timestamp.min` static-snapshot IC = +0.0387；R28 換成 date-bearing panel IC = +0.0388（Δ +0.0001）→ derive method 是 form-correct 但 substance-equivalent to static snapshot。
+- **margin_short_ratio IC = +0.0388 應視為「以 ≈latest issued_shares 算的 approximation」**，不是 ground truth。
+- 完整 PIT 需要新寫 TWSE OpenAPI scraper 抓歷史 issued_shares snapshots 補進 cache（P1 backlog，不在當前 plan scope）。
+- **市值 caveat 仍在**：即使 PIT-asof market_value lookup，`market_value` cache = `latest_shares × historical_close` 仍非 fully PIT（closeout §9.2）。
+
+**`margin_short_ratio` IC vs decile sign 看似矛盾不是 bug**（Codex R28-4）：
+- IC = +0.0387（正）vs decile ρ = -0.818（負）
+- Per-period IC vs per-period D9-D0 spread Spearman = 0.946（period-level 一致）
+- 跨期平均後兩量級不匹配 — 是 statistical property 不是 sign bug
+- 因子 sign convention 正確；docstring 已修（原寫「higher score = lower expected return」是反的）
 
 ### 關鍵說明：DSR 語義（R13 修正）
 
@@ -30,18 +81,20 @@
 
 ---
 
-## 2. 相關性矩陣（Spearman）
+## 2. 相關性矩陣（Spearman，fresh 2026-05-10）
 
-**2026-04-22 canonical fix 完成**。Phase A2 Step 4-prep 擴充 `ic_analysis.py::FactorICResult.period_factor_scores` + `scripts/compute_factor_correlation.py` 後重跑 5 因子 IC，實測結果：
+**2026-05-10 重算**（fresh rerun 後 + Codex R27 修法）：
 
 ```
                52W_High   PEAD_EPS   Margin_S     Rev_v2 Foreign_v2
-52W_High        +1.0000    +0.2126    +0.1599    +0.1607    +0.0982
-PEAD_EPS        +0.2126    +1.0000    -0.0719    +0.3841    +0.1080
-Margin_S        +0.1599    -0.0719    +1.0000    -0.0618    -0.1228
-Rev_v2          +0.1607    +0.3841    -0.0618    +1.0000    +0.0748
-Foreign_v2      +0.0982    +0.1080    -0.1228    +0.0748    +1.0000
+52W_High        +1.0000    +0.2126    +0.1599    +0.1606    +0.0875
+PEAD_EPS        +0.2126    +1.0000    -0.0720    +0.3841    +0.1000
+Margin_S        +0.1599    -0.0720    +1.0000    -0.0618    -0.1634
+Rev_v2          +0.1606    +0.3841    -0.0618    +1.0000    +0.0710
+Foreign_v2      +0.0875    +0.1000    -0.1634    +0.0710    +1.0000
 ```
+
+**vs 舊 (2026-04-22 contaminated) 對照**：大部分 cell 變動 < 0.01；最大變動是 Foreign_v2 跟 Margin_S = -0.1634 (舊 -0.1228 → Δ -0.04，反向相關性加強)。其他 cell 變動 < 0.011。
 
 **方法**：per-period Spearman rank correlation（aligned universe，≥10 common symbols/period），平均跨 71 期。
 

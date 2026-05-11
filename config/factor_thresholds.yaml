@@ -25,42 +25,62 @@ factor_ic:
     fallback_ratio: 0.5          # effective_n = n * fallback_ratio 當 cluster 不可用
   min_universe_size:
     cross_sectional: 30          # 少於此數 period 跳過 IC 計算
-    rank_stability: 50           # foreign_broker_v2 rank_stability 日內 universe 下限（P1-新7）
+    rank_stability: 50           # foreign_investor_v2 rank_stability 日內 universe 下限（P1-新7）
 
 factor_specific:
-  high_proximity:
-    rolling_max_days: 252        # 52 週
+  # ⚠️ SPEC-MIRROR sections (Codex R32 note): high_proximity / pead_eps /
+  # margin_short_ratio below are NOT read by their modules (modules hard-code
+  # these values). They mirror the module constants for documentation; edit
+  # BOTH if changing. foreign_investor_v2 / revenue_momentum_v2 ARE yaml-driven
+  # (read via module _subsignal_weights() etc. — R31-4 / R32 fix).
+  high_proximity:                # SPEC MIRROR — see src/features/high_proximity.py
+    rolling_max_days: 252        # 52 週（hypothesis-locked, George & Hwang 2004）
     shift: 1                     # as_of 當日不入 rolling max
 
   revenue_momentum_v2:
+    # 2026-05-11 Codex R32 finding: keys renamed accel_3m3m→accel, pct_24m→percentile
+    # to match src/features/revenue_momentum_v2.py::SUBSIGNAL_WEIGHTS so the module's
+    # _subsignal_weights() can actually read this section (was a silent config drift —
+    # module hardcoded, yaml never read, and keys mismatched so naive wiring would noop).
+    #
+    # ⚠️ PARTIAL-LIVE SECTION (Codex R33 B2): only `weights` below is yaml-driven
+    # (read via _subsignal_weights()). `seasonal_window_months` is SPEC MIRROR — the
+    # module hard-codes DEFAULT_SEASONAL_LOOKBACK_MONTHS=24; edit the module if changing.
+    # (`yoy_strict_month_matching` removed 2026-05-11: P1-新6 removed the ±45-day
+    # tolerance path so the module is always strict — no config knob exists.)
     weights:
       yoy: 0.50
-      accel_3m3m: 0.20
-      pct_24m: 0.15
+      accel: 0.20
+      percentile: 0.15
       seasonal_z: 0.15
-    yoy_strict_month_matching: true  # P1-新6 修完後；禁止 ±45 天容忍
-    seasonal_window_months: 24
+    seasonal_window_months: 24       # SPEC MIRROR — module: DEFAULT_SEASONAL_LOOKBACK_MONTHS
 
-  margin_short_ratio:
+  margin_short_ratio:            # SPEC MIRROR — see src/features/margin_short_ratio.py (module hard-codes -0.5/-0.5/iloc[-21])
     ratio_weight: -0.5           # 反向因子（融資高 → 低分）
     change_weight: -0.5
-    change_lookback_days: 20     # 融資變化 20 天
-    use_trading_day_offset: true # P2-新2 修完後；取代 iloc[-21]
+    change_lookback_days: 20     # 融資變化 20 天（module: iloc[-21] ≈ 20 trading days）
+    use_trading_day_offset: true # module 用 row-offset iloc[-21]（不是 calendar offset）
 
-  foreign_broker_v2:
+  foreign_investor_v2:
+    # 2026-05-10 P1-D 修法：剔除 consistency（Codex R26 audit: 78% symbols
+    # consistency=0, std 0.094 vs persistence 0.171, 訊雜比差），weight 重分配
     weights:
-      foreign_cum_ratio: 0.40
-      persistence: 0.20
-      rank_stability: 0.20
-      consistency: 0.20
+      foreign_cum_ratio: 0.50    # was 0.40
+      persistence: 0.25          # was 0.20
+      rank_stability: 0.25       # was 0.20
+      consistency: 0.0           # was 0.20 (deprecated)
     foreign_cum_lookback_days: 20
     rank_stability_lookback_days: 60
     rank_stability_top_pct: 0.20
     dedup_method: "last"         # P1-4 修完後；取代 aggfunc='sum'
+    # 2026-05-10 P1-C 修法：last20 stale guard
+    last20_max_calendar_span_days: 35   # 20 trading days ≈ 28d + 25% slack
+    # 2026-05-10 P0-B 修法：cum_ratio 改金額制 (foreign_net × close ÷ market_value)
+    cum_ratio_denomination: "dollar"    # was "shares" (= 1/price 量綱錯)
 
-  pead_eps:
+  pead_eps:                      # SPEC MIRROR — module hard-codes (constants in src/utils/constants.py: QUARTERLY_EPS_LAG_DAYS*)
     baseline_quarters: 8         # 過去 8 季 baseline
-    lag_days_q4: 90              # P1-1：Q4 年報法定 90 天
+    lag_days_q4: 90              # P1-1：Q4 年報法定 90 天（hypothesis-locked）
     lag_days_other: 45           # Q1-Q3 45 天（季報）
 
   # Phase B0-Lite (2026-05-03) — spike-only factors per H_lite_preregistration

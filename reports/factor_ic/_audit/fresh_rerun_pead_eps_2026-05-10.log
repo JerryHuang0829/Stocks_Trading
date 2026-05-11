@@ -1,0 +1,37 @@
+2026-05-10 05:25:41,399 run_factor_ic INFO Cache dir: E:\Data\chongweihuang\Desktop\project\Stock-Trading\data\cache
+2026-05-10 05:25:41,399 run_factor_ic INFO Factor: pead_eps  panel=quarterly_eps  aux=None  min_history=12
+2026-05-10 05:25:41,399 run_factor_ic INFO Loading universe OHLCV from cache...
+2026-05-10 05:25:53,697 run_factor_ic INFO Loaded 1968 OHLCV symbols
+2026-05-10 05:25:53,697 run_factor_ic INFO Loading universe quarterly_eps from cache...
+2026-05-10 05:26:01,948 run_factor_ic INFO Loaded 2393 quarterly_eps symbols
+2026-05-10 05:26:09,049 run_factor_ic INFO intersection-universe: ohlcv contributes 1929 symbols (threshold 250)
+2026-05-10 05:26:15,402 run_factor_ic INFO intersection-universe: revenue contributes 1822 symbols (threshold 24)
+2026-05-10 05:26:23,213 run_factor_ic INFO intersection-universe: margin_short contributes 1789 symbols (threshold 250)
+2026-05-10 05:26:34,370 run_factor_ic INFO intersection-universe: institutional_v2 contributes 2025 symbols (threshold 250)
+2026-05-10 05:26:43,704 run_factor_ic INFO intersection-universe: quarterly_eps contributes 2107 symbols (threshold 12)
+2026-05-10 05:26:43,706 run_factor_ic INFO Intersection universe: 1696 symbols
+2026-05-10 05:26:48,160 run_factor_ic INFO Generated 72 rebalance dates
+2026-05-10 05:26:50,749 run_factor_ic INFO Regime distribution: {'ranging': 35, 'trending_up': 23, 'trending_down': 14}
+2026-05-10 05:34:57,823 run_factor_ic INFO forward-return gap filter: 766 / 115002 (0.7%) dropped (max_gap_days=5)
+2026-05-10 05:34:57,824 run_factor_ic INFO Running factor_ic_report on 71 periods
+2026-05-10 05:34:57,839 run_factor_ic INFO Loaded 3074 industry labels for effective_n clustering
+2026-05-10 05:35:28,518 run_factor_ic INFO Wrote e:\Data\chongweihuang\Desktop\project\Stock-Trading\reports\factor_ic\pead_eps_ic.json
+============================================================
+  Factor IC: pead_eps
+============================================================
+  periods               : 71
+  n_symbols_avg         : 1609.0
+  mean_ic               : 0.0219
+  ic_ir                 : 0.2907
+  t_stat                : 2.449
+  p_value               : 0.0168
+  bootstrap 95%% (block): [0.0075, 0.0369]
+  bootstrap 95%% (iid)  : [0.0037, 0.0404]
+  DSR (confidence)      : 0.0  (n_trials=5; BLdP 2014: >=0.95 significant, NOT a p-value)
+  effective_n           : 269
+  permutation           : significant_positive (p_emp=0.0066)
+  regime ICs            :
+    ranging         mean=0.0248 n=34
+    trending_down   mean=0.0523 n=14
+    trending_up     mean=-0.0009 n=23
+============================================================

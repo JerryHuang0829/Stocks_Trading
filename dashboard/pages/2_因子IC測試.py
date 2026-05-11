@@ -1,4 +1,8 @@
-"""頁 3（user 編號）/ pages/2_因子IC測試.py — 5 個 Phase A1 因子 single-factor IC 實證。"""
+"""頁 3（user 編號）/ pages/2_因子IC測試.py — 8 個因子 single-factor IC 實證。
+
+2026-05-11：擴 5 → 8 因子（Phase A1 5 + Phase D 3 quality_v3 / industry_momentum / idio_vol_max）
+FDR 仍 m=5（Phase A1 pre-registered），Phase D 3 因子 single IC 標 N/A 並註明。
+"""
 
 from __future__ import annotations
 
@@ -12,11 +16,20 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils import (
+    ALL_FACTORS,
     FACTOR_DISPLAY_NAMES,
     FIVE_FACTORS,
-    load_all_factor_ics,
+    PHASE_D_FACTORS,
+    load_all_eight_factor_ics,
     load_factor_correlation,
 )
+
+# 2026-05-10 P1-F 修法：dashboard 動態重算 5 因子 BH FDR
+# (was reading stored fdr_adjusted_p which is None in current canonical JSONs).
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+from src.analysis.ic_analysis import fdr_correct  # noqa: E402
 
 st.set_page_config(
     page_title="因子 IC 測試",
@@ -35,7 +48,7 @@ st.divider()
 # ===============================================================
 # 評估指標說明 — 看主表前先懂指標
 # ===============================================================
-with st.expander("📖 5 個評估指標說明（先看再對照下方表）", expanded=True):
+with st.expander("📖 評估指標說明（先看再對照下方表）", expanded=True):
     st.markdown(
         """
 | 指標 | 中文 | 意思 |
@@ -43,7 +56,7 @@ with st.expander("📖 5 個評估指標說明（先看再對照下方表）", e
 | **mean IC** | 平均資訊係數 | 每個月「**因子排名**」與「**下個月報酬排名**」的 Spearman 相關係數，再對所有月份取平均。> 0 = 排名強 → 報酬高；越大越好。經驗法則：≥ 0.04 算 strong，0.02-0.04 算中道，< 0.02 弱。|
 | **IC IR** | 資訊比率 | mean IC / std(IC）。等於 IC 的「夏普比率」——signal-to-noise。越大越穩。≥ 0.5 強，0.3-0.5 中道。|
 | **t-stat / p-value** | t 檢定 | 檢定 mean IC ≠ 0 的統計顯著性。p < 0.05 = 95% 信心因子真的有 signal。|
-| **FDR-adj p** | 多重檢定校正 p | 同時測 5 個因子，**Benjamini-Hochberg 校正**避免「testing fishing」假陽性。比 p-value 嚴格。|
+| **FDR-adj p** | 多重檢定校正 p | 同時測 **Phase A1 5 個因子**（pre-registered m=5），**Benjamini-Hochberg 校正**避免「testing fishing」假陽性。Phase D 3 因子（quality_v3 / industry_momentum / idio_vol_max）2026-05-11 補測，**不在 m=5 pre-reg 內**，FDR 標 N/A。|
 | **DSR (Deflated Sharpe Ratio)** | 折減夏普比率 | Bailey & Lopez de Prado (2014）。把「同時測多個 trial 的選擇偏誤」+「IC 分佈非常態」校正後的信心度。**Ψ ≥ 0.95 = 強信心；≈ 0.5 = 不分上下；≤ 0.05 = 連 null 都贏不了**（注意：DSR 是 confidence 不是 p-value，方向相反！）|
 | **Bootstrap CI 95%** | 重抽樣 95% 信心區間 | Politis-Romano stationary block bootstrap（block_len=3）保留時序自相關，估 mean IC 的 95% CI。下界 > 0 = robust。|
 | **effective n** | 有效樣本數 | 產業 cluster 校正後的有效樣本數（不是 raw months）。會比實際月數小，避免高度相關 cluster 過度膨脹顯著性。|
@@ -60,23 +73,48 @@ with st.expander("📖 5 個評估指標說明（先看再對照下方表）", e
 st.divider()
 
 # ===============================================================
-# 5 因子 IC 主表
+# 8 因子 IC 主表（Phase A1 5 + Phase D 3）
 # ===============================================================
-st.subheader("📋 5 因子 IC 主表")
+st.subheader("📋 8 因子 IC 主表")
 
-ics = load_all_factor_ics()
+ics = load_all_eight_factor_ics()
 if not ics:
-    st.error("讀不到 reports/factor_ic/ 內 5 因子 IC JSON")
+    st.error("讀不到 reports/factor_ic/ 內因子 IC JSON")
     st.stop()
 
+# 2026-05-10 P1-F + 2026-05-11 8-factor extension:
+# Dynamic BH FDR across Phase A1 5 factors ONLY (pre-registered m=5);
+# Phase D 3 factors (quality_v3 / industry_momentum / idio_vol_max) were
+# added 2026-05-11 post hoc → FDR N/A 標明非 pre-reg。
+_nominal_pvals = []
+for _f in FIVE_FACTORS:
+    _ic = ics.get(_f)
+    _nominal_pvals.append(
+        _ic.get("overall", {}).get("p_value") if _ic else None
+    )
+_fdr_adjusted = fdr_correct(_nominal_pvals)
+_fdr_by_factor = dict(zip(FIVE_FACTORS, _fdr_adjusted))
+
+# Show contamination warnings (across all 8 factors)
+for _f in ALL_FACTORS:
+    _ic = ics.get(_f)
+    if _ic and _ic.get("pit_violation", {}).get("violated"):
+        st.warning(
+            f"⚠️ **{FACTOR_DISPLAY_NAMES.get(_f, _f)} contaminated**："
+            f"{_ic['pit_violation'].get('reason', 'PIT violation')}（"
+            f"detected {_ic['pit_violation'].get('detected_date', 'n/a')}, "
+            f"fresh rerun pending）"
+        )
+
 table_rows = []
-for factor in FIVE_FACTORS:
+for factor in ALL_FACTORS:
     ic = ics.get(factor)
     if ic is None:
         continue
     overall = ic.get("overall", {})
     ci = overall.get("bootstrap_ci_95", [None, None])
-    fdr = ic.get("fdr_adjusted_p", None)
+    is_phase_d = factor in PHASE_D_FACTORS
+    fdr = _fdr_by_factor.get(factor)  # Phase D 不在 dict → None
     dsr = ic.get("deflated_sharpe_ratio", None)
     eff_n = ic.get("effective_n", None)
 
@@ -90,13 +128,16 @@ for factor in FIVE_FACTORS:
     else:
         verdict = "🔴 Fail"
 
+    # 標出 Phase A1 vs Phase D 分組
+    phase_tag = "Phase D" if is_phase_d else "Phase A1"
     table_rows.append({
-        "因子": FACTOR_DISPLAY_NAMES.get(factor, factor),
+        "因子": f"{FACTOR_DISPLAY_NAMES.get(factor, factor)} ({factor})",
+        "分組": phase_tag,
         "mean IC": f"{mean_ic:.4f}",
         "IC IR": f"{overall.get('ic_ir', 0):.3f}",
         "t-stat": f"{overall.get('t_stat', 0):.3f}",
         "p-value": f"{p_val:.4f}",
-        "FDR-adj p": f"{fdr:.4f}" if fdr is not None else "N/A",
+        "FDR-adj p": "N/A (非 m=5 pre-reg)" if is_phase_d else (f"{fdr:.4f}" if fdr is not None else "N/A"),
         "DSR": f"{dsr:.4f}" if dsr is not None else "N/A",
         "Bootstrap CI 95%": f"[{ci[0]:.4f}, {ci[1]:.4f}]" if ci and ci[0] is not None else "N/A",
         "effective n": f"{eff_n:.0f}" if eff_n else "N/A",
@@ -107,6 +148,12 @@ for factor in FIVE_FACTORS:
 df_ic = pd.DataFrame(table_rows)
 st.dataframe(df_ic, use_container_width=True, hide_index=True)
 
+st.caption(
+    "📌 **Phase A1 vs Phase D**：Phase A1 5 因子於 2026-04-17 pre-registered，FDR m=5 校正；"
+    "Phase D 3 因子（品質 / 產業動量 / 特質波動）2026-05-11 補測 single IC，FDR 標 N/A 並註明非 pre-reg。"
+    "Phase D 3 因子原本只在 v7 cell sweep aggregate 內出現，本次補測為 transparency / 對 user 揭露 stand-alone IC。"
+)
+
 st.warning(
     "⚠️ **IC IR ≠ 策略 Sharpe**。高 IC IR 因子也可能無 strategy edge——"
     "「雙因子回測」頁可看到 D1_v2 IS IR 0.92 → OOS IR 0.0058 collapse 99.4%。"
@@ -116,13 +163,15 @@ st.warning(
 st.divider()
 
 # ===============================================================
-# 5×5 Spearman Correlation Heatmap
+# 5×5 Spearman Correlation Heatmap (Phase A1 only — pre-registered)
 # ===============================================================
 st.subheader("🔗 5 因子 Spearman 相關性 heatmap")
 
 st.caption(
     "因子之間相關性高 → 加在一起組合會 redundant（沒互補）。"
     "理想：找相關性低（|ρ| < 0.3）的因子組合，互補才有 diversification benefit。"
+    "**範圍**：僅 Phase A1 5 因子；Phase D 3 因子（quality_v3 / industry_momentum / idio_vol_max）"
+    "未在此 heatmap（需 `/ic-aggregate` 重跑 8×8 才能擴）。"
 )
 
 corr_data = load_factor_correlation()
@@ -182,7 +231,7 @@ with st.expander("📊 選因子看 by_regime / by_bucket / 月度 IC 時序", e
 
     selected_factor = st.selectbox(
         "選一個因子：",
-        options=FIVE_FACTORS,
+        options=ALL_FACTORS,
         format_func=lambda f: f"{FACTOR_DISPLAY_NAMES.get(f, f)} ({f})",
         index=0,
     )
@@ -283,31 +332,37 @@ st.divider()
 st.subheader("📌 9 個因子完整評估方式對照（reference）")
 
 st.caption(
-    "本頁主表只列 5 個 Phase A1 因子。下方 reference 列出 repo 內全部 9 個 active 因子的評估管道，"
-    "讓你看到「哪些走 single-factor IC、哪些走 spike pipeline、哪些直接走 portfolio sweep」。"
+    "本頁主表列 **8 個因子**（Phase A1 5 + Phase D 3）的 single-factor IC。"
+    "下方 reference 列出 repo 內全部 9 個 active 因子的評估管道："
+    "8 個走 single-factor IC（含本頁主表），第 9 個 low_vol_v2 走 spike pipeline。"
 )
 
 ref_table = pd.DataFrame(
     [
-        {"因子": "52W 高接近度（high_proximity）", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
-        {"因子": "PEAD / EPS 驚喜（pead_eps）", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
-        {"因子": "月營收動能 v2（revenue_momentum_v2）", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
-        {"因子": "融資 / 融券反向（margin_short_ratio）", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
-        {"因子": "外資 4 子訊號（foreign_broker_v2）", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
-        {"因子": "低波動（low_vol_v2）", "評估方式": "Spike pipeline（IC + DSR + turnover）", "結果在哪看": "reports/phase_b0_lite/spike_results.json"},
-        {"因子": "QMJ profitability（quality_v3）", "評估方式": "Portfolio sweep（嵌入 D-E 三因子 composite，不單獨測 IC）", "結果在哪看": "「18 種策略最終 sweep」頁"},
-        {"因子": "產業動能（industry_momentum）", "評估方式": "Portfolio sweep（嵌入 D-F 三因子 composite，不單獨測 IC）", "結果在哪看": "「18 種策略最終 sweep」頁"},
-        {"因子": "特異波動（idio_vol_max）", "評估方式": "Portfolio sweep（嵌入 D-G 三因子 composite，不單獨測 IC）", "結果在哪看": "「18 種策略最終 sweep」頁"},
+        {"因子": "52W 高接近度（high_proximity）", "分組": "Phase A1", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
+        {"因子": "PEAD / EPS 驚喜（pead_eps）", "分組": "Phase A1", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
+        {"因子": "月營收動能 v2（revenue_momentum_v2）", "分組": "Phase A1", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
+        {"因子": "融資 / 融券反向（margin_short_ratio）", "分組": "Phase A1", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
+        {"因子": "外資法人因子 v2（foreign_investor_v2）", "分組": "Phase A1", "評估方式": "Single-factor IC pipeline（DSR + FDR + Bootstrap）", "結果在哪看": "本頁主表 + reports/factor_ic/"},
+        {"因子": "品質（quality_v3）", "分組": "Phase D", "評估方式": "Single-factor IC pipeline（2026-05-11 補測；per-factor universe）+ 同時嵌入 D-E 三因子 composite", "結果在哪看": "本頁主表 + reports/factor_ic/ + 「18 種策略最終 sweep」頁"},
+        {"因子": "產業動量（industry_momentum）", "分組": "Phase D", "評估方式": "Single-factor IC pipeline（2026-05-11 補測；per-factor universe）+ 同時嵌入 D-F 三因子 composite", "結果在哪看": "本頁主表 + reports/factor_ic/ + 「18 種策略最終 sweep」頁"},
+        {"因子": "特質波動+樂透（idio_vol_max）", "分組": "Phase D", "評估方式": "Single-factor IC pipeline（2026-05-11 補測；per-factor universe）+ 同時嵌入 D-G 三因子 composite", "結果在哪看": "本頁主表 + reports/factor_ic/ + 「18 種策略最終 sweep」頁"},
+        {"因子": "低波動（low_vol_v2）", "分組": "spike", "評估方式": "Spike pipeline（IC + DSR + turnover；未晉升 production）", "結果在哪看": "reports/phase_b0_lite/spike_results.json"},
     ]
 )
 st.dataframe(ref_table, use_container_width=True, hide_index=True)
 
 st.caption(
-    "**為什麼 quality_v3 / industry_momentum / idio_vol_max 沒跑 single-factor IC**："
-    "這 3 個因子設計上是「為 52W + PEAD anchor 加互補訊號」，**不打算單獨用**——"
-    "個別 IC 即使顯著，也不代表組合進 portfolio 後仍 robust（D1_v2 案例已示範 IS IR 0.92 → OOS 0.0058 collapse）。"
-    "因此跳過 single-factor IC，直接走 portfolio-level cell sweep（即「18 種策略最終 sweep」頁），"
-    "更貼近實戰。"
+    "**Phase D 3 因子的 single-factor IC（2026-05-11 補測）**："
+    "原本 quality_v3 / industry_momentum / idio_vol_max 只在 v7 cell sweep aggregate 裡作為 composite "
+    "子訊號出現，沒跑 stand-alone IC。2026-05-11 透過 `scripts/run_phase_d_factor_ic.py` 補測"
+    "（用 per-factor 自然 universe，**沒做 Phase A1 5 panel 的 intersection**，所以與 Phase A1 5 因子的 "
+    "universe 不完全可比）。**重要 caveat**：single-factor IC 顯著 ≠ 組合進 portfolio 仍 robust"
+    "（D1_v2 案例已示範 IS IR 0.92 → OOS 0.0058 collapse 99.4%）。Phase D 3 因子的 portfolio-level "
+    "驗證仍以「18 種策略最終 sweep」頁的 cell sweep 為準（CONFIRM-NO-GO）。"
+    "\n\n"
+    "**FDR 邊界**：本頁主表的 FDR-adj p 只跑 Phase A1 5 因子（m=5 pre-registered）；"
+    "Phase D 3 因子 2026-05-11 補測，**不在 m=5 pre-reg 內**，FDR 標 N/A。"
     "\n\n"
     "**為什麼 low_vol_v2 走 spike 而不是 production**："
     "spike = 1-2 天快速驗假設（IC + DSR + turnover 基本）；production = Pro methodology 完整 layer。"

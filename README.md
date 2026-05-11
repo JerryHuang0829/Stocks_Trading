@@ -33,7 +33,7 @@
 ### Pro 統計驗證
 - **Spearman rank IC** + **Stationary block bootstrap**（Politis-Romano 1994，block_len=3，n=10000，seed=42）
 - **Deflated Sharpe Ratio**（Bailey-Lopez de Prado 2014），含 empirical skew-kurt + n_trials 校正
-- **FDR Benjamini-Hochberg** multiple-testing 校正（5 因子同時測 → m=5）
+- **FDR Benjamini-Hochberg** multiple-testing 校正（Phase A1 5 因子 pre-registered → m=5；Phase D 3 因子 2026-05-11 補測 single IC，不在 m=5 內）
 - **Per-seed permutation** + **effective_n** cross-sectional cluster 校正
 
 實作：[src/analysis/ic_analysis.py](src/analysis/ic_analysis.py)（867 LOC，~50 個對應測試）
@@ -70,7 +70,7 @@ src/
 │   ├── high_proximity.py        52W High Proximity（George-Hwang 2004）
 │   ├── revenue_momentum_v2.py   月營收 YoY + 3M accel + 24M percentile
 │   ├── margin_short_ratio.py    融資/融券反向
-│   ├── foreign_broker_v2.py     外資 4 子訊號
+│   ├── foreign_investor_v2.py     外資法人因子 v2（4 sub-signal composite；R28 後 consistency deprecated）
 │   ├── pead_eps.py              PEAD / EPS Surprise（Bernard-Thomas 1989）
 │   ├── low_vol_v2.py            低波動因子（B0-Lite spike，未進策略）
 │   ├── quality_v3.py            QMJ profitability sub-component（D-E 用）
@@ -84,13 +84,15 @@ scripts/                       執行 CLI
 ├── walk_forward_d_v7.py          L6 80% bootstrap CI（Politis-Romano）
 ├── d_cell_aggregate_v7.py        18-cell aggregate + Outcome 1/2/4 classification
 ├── sole_survivor_v7.py           tie-break + D-A guard + tag emit
-├── run_factor_ic.py              5 因子 IC CLI（/factor-ic skill 底層）
+├── run_factor_ic.py              Phase A1 5 因子 IC CLI（/factor-ic skill 底層）
+├── run_phase_d_factor_ic.py      Phase D 3 因子 IC CLI（quality_v3 / industry_momentum / idio_vol_max；2026-05-11 補測）
+├── _enrich_factor_ic_diagnostics.py  IC JSON 補診斷（decile / monotonicity / peak / price-score-corr / pit_violation）
 ├── run_backtest.py               回測 CLI（preflight + multi-token fallback）
 ├── walk_forward.py               Rolling OOS 滾動驗證
 ├── cache_rebuild.py              Cache 全新重建
-└── cache_fill_new_factors.py     Phase D 新因子 cache fill
+└── cache_fill_new_factors.py     Phase D 新因子 cache fill（含 --seed-issued-capital）
 
-tests/                         671 tests（含 4 PIT mutation tests）
+tests/                         690 tests（含 4 PIT mutation tests + 14 R26-R28 mutation tests + 8-factor IC schema parity + foreign/revenue yaml-sync tests）
 reports/                       研究 evidence
 config/                        settings.yaml + factor_thresholds.yaml
 docs/                          研究文件
@@ -140,7 +142,7 @@ TELEGRAM_CHAT_ID=<optional>
 
 ```bash
 conda run -n quant python -m pytest tests/ -q
-# 期望: 671 passed
+# 期望: 690 passed
 ```
 
 ### 4. 跑互動式研究展示 Dashboard ⭐
@@ -153,8 +155,8 @@ streamlit run dashboard/專案背景.py
 6 頁互動視覺化（含主頁）：
 
 - **主頁（專案背景）** — 專案 elevator pitch + 規格 + 技術棧 + 研究路徑時間軸
-- **頁 1 因子介紹** — 8 個因子的學術依據 / 計算方式 / 資料源 / PIT 防護
-- **頁 2 因子 IC 測試** — 5 因子單獨 IC 主表 + 5×5 Spearman correlation + 進階分析
+- **頁 1 因子介紹** — 8 個因子的學術依據 / 計算方式 / 資料源 / PIT 防護 + single-IC verdict
+- **頁 2 因子 IC 測試** — 8 因子單獨 IC 主表（Phase A1 5 + Phase D 3，2026-05-11 補測；FDR m=5 只跑 Phase A1）+ 5×5 Spearman correlation（Phase A1 only）+ 進階分析
 - **頁 3 雙因子回測** — D1_v2（52W 50% + PEAD 50%）IS+OOS 累積報酬 + 12 metrics 對照（IR 0.92 → 0.006 collapse）
 - **頁 4 18 種策略最終 sweep** — Phase D v7 6×3 cells heatmap + L1-L6 詳表 + 月超額時序
 - **頁 5 為什麼相信這個 NO-GO** — 雙重否定 triangulation：揭穿 Overfit + Bootstrap CI 數學
@@ -177,11 +179,17 @@ python scripts/d_cell_aggregate_v7.py --input reports/phase_d/cell_sweep_<date>/
 python scripts/sole_survivor_v7.py --cell-summary reports/phase_d/cell_sweep_<date>/cell_summary.json
 ```
 
-### 6. 跑 5 因子 IC（Phase A1）
+### 6. 跑因子 IC（8 個因子）
 
 ```bash
-python scripts/run_factor_ic.py high_proximity
-python scripts/run_factor_ic.py pead_eps --start 2020-01-01 --end 2025-12-31
+# Phase A1 5 因子
+python scripts/run_factor_ic.py --factor high_proximity
+python scripts/run_factor_ic.py --factor pead_eps --start 2020-01-01 --end 2025-12-31
+
+# Phase D 3 因子（2026-05-11 補測；用 CellSweepContext 資料源 + 自動補 enrichment 診斷）
+python scripts/run_phase_d_factor_ic.py --factor idio_vol_max
+python scripts/run_phase_d_factor_ic.py --factor quality_v3
+python scripts/run_phase_d_factor_ic.py --factor industry_momentum
 ```
 
 ---

@@ -31,7 +31,7 @@ FACTORS = [
     "pead_eps",
     "margin_short_ratio",
     "revenue_momentum_v2",
-    "foreign_broker_v2",
+    "foreign_investor_v2",
 ]
 
 
@@ -165,7 +165,7 @@ def render_markdown(result: dict) -> str:
         "pead_eps": "PEAD_EPS",
         "margin_short_ratio": "Margin_Short",
         "revenue_momentum_v2": "Rev_v2",
-        "foreign_broker_v2": "Foreign_v2",
+        "foreign_investor_v2": "Foreign_v2",
     }
 
     # Header
@@ -232,7 +232,7 @@ def main() -> None:
         "pead_eps": "PEAD_EPS",
         "margin_short_ratio": "Margin_S",
         "revenue_momentum_v2": "Rev_v2",
-        "foreign_broker_v2": "Foreign_v2",
+        "foreign_investor_v2": "Foreign_v2",
     }
     header = f"{'':<12s} " + " ".join(f"{short_names[f]:>10s}" for f in factors)
     print(header)

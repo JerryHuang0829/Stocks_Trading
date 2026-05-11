@@ -386,11 +386,28 @@ def seed_issued_capital(cache_dir: pathlib.Path) -> pathlib.Path:
 
     Writes ``issued_capital/_global.pkl`` with columns (stock_id, date,
     issued_shares). Consumed by ``run_factor_ic.py::_load_issued_capital``.
-    The ratio is computed pair-wise per (stock_id, date), taking the OHLCV
-    close at or immediately before the market_value snapshot date. Missing
-    or non-positive closes are skipped. This is a best-effort seed — it does
-    not distinguish split-adjusted vs raw shares, which is tolerable because
-    downstream use (margin_short_ratio) only needs the order of magnitude.
+
+    ⚠️ **NOT TRUE PIT HISTORICAL ISSUED_SHARES** (Codex R29 finding 4)：
+    market_value cache 本身是 ``latest_shares × historical_close`` (per
+    ``src/data/finmind.py:_compute_market_value_from_twse``). 故 derive shares
+    = ``market_value / close`` = ``latest × historical_close / historical_close``
+    = **latest_shares 對所有 date 不變**. 這個 seed 只是 form-correct（cache
+    結構帶 date column），不是真 PIT historical issued_shares.
+
+    Empirical verification (R28-1 follow-up 2026-05-10): margin_short_ratio
+    fresh rerun 跟 fallback ``Timestamp.min`` 比對 ΔIC = +0.0001（noise
+    level）→ 證實 form-correct 但 substance-equivalent.
+
+    要拿真正 PIT historical issued_shares 需另寫 TWSE OpenAPI scraper（如
+    ``t187ap03_L`` 或同款 monthly issued_capital snapshot endpoint），抓 5+
+    年歷史 + 取代當前 derive method (P1 backlog 4-8 hr).
+
+    Original docstring: The ratio is computed pair-wise per (stock_id, date),
+    taking the OHLCV close at or immediately before the market_value snapshot
+    date. Missing or non-positive closes are skipped. This is a best-effort
+    seed — it does not distinguish split-adjusted vs raw shares, which is
+    tolerable because downstream use (margin_short_ratio) only needs the
+    order of magnitude.
     """
     mv_path = cache_dir / "market_value" / "_global.pkl"
     if not mv_path.exists():

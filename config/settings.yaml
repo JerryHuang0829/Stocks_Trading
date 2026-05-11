@@ -93,7 +93,7 @@ portfolio:
     pead_eps: 0.0
     margin_short_ratio: 0.0
     revenue_momentum_v2: 0.0
-    foreign_broker_v2: 0.0
+    foreign_investor_v2: 0.0
 
 symbols:
   - name: 台積電

@@ -43,25 +43,27 @@ st.divider()
 with st.expander("📖 為什麼挑「52W + PEAD」這兩個組合？（先看再看下方回測）", expanded=True):
     st.markdown(
         """
-**先看 5 因子個別 IC 排名**（Phase A1 個別檢驗結果）：
+**先看 5 因子個別 IC 排名**（Phase A1 pre-registered 個別檢驗，2026-04；這是設計 D1_v2 雙因子策略時用的因子池）：
 
 | 排名 | 因子 | mean IC | IC IR | p-value | verdict |
 |---|---|---|---|---|---|
-| 1 | **52W 高接近度** | **0.0413** | 0.274 | 0.024 | 🟢 Good |
-| 2 | **PEAD/EPS 驚喜** | 0.0218 | **0.290** | **0.017** | 🟡 Normal |
-| 3 | 融資/融券反向 | 0.0387 | 0.231 | 0.055 | 🟡 Normal（**邊界**）|
-| 4 | 月營收動能 v2 | 0.0145 | 0.191 | 0.113 | 🔴 Fail |
-| 5 | 外資 4 子訊號 | -0.0195 | -0.210 | 0.082 | 🔴 Fail（**負方向**）|
+| 1 | **52W 高接近度 (high_proximity)** | **0.0413** | 0.274 | 0.024 | 🟢 Good |
+| 2 | **PEAD/EPS 驚喜 (pead_eps)** | 0.0219 | **0.291** | **0.017** | 🟡 Normal |
+| 3 | 融資/融券反向 (margin_short_ratio) | 0.0388 | 0.232 | 0.055 | 🟡 Normal（**邊界**）|
+| 4 | 月營收動能 v2 (revenue_momentum_v2) | 0.0145 | 0.191 | 0.113 | 🔴 Fail |
+| 5 | 外資法人因子 v2 (foreign_investor_v2) | **-0.0077** | -0.084 | **0.501** | 🔴 Fail（**不顯著**，2026-05-10 R28 PIT 修法後重跑：舊 -0.0195 含 PIT contamination + 量綱錯誤 artifact）|
+
+> 📌 **補充（2026-05-11）**：另把 Phase D 3 個因子（quality_v3 / industry_momentum / idio_vol_max）也跑了 single-factor IC（之前只在 18-cell sweep 裡作 composite 子訊號）。結果 **idio_vol_max mean IC = +0.0588（p=0.0077）是 8 個因子裡最強的 single IC**（比 52W +0.0413 還高）；quality_v3 / industry_momentum 弱負（-0.0093 / -0.0120）。完整 8 因子主表見「因子IC測試」頁。**注意**：D1_v2 是 2026-04 用上面 5 因子池設計的，當時 idio_vol_max 還沒測 stand-alone IC；single IC 強 ≠ 組合進 portfolio 仍 robust（D1_v2 本身就是反例：IS IR 0.92 → OOS 0.0058）。
 
 **選 52W + PEAD 的 4 個理由**（不只看 mean IC）：
 
-1. **IC IR 最高的兩個**：PEAD 0.290 / 52W 0.274（signal-to-noise 最好）
+1. **IC IR 最高的兩個**（5 因子池內）：PEAD 0.291 / 52W 0.274（signal-to-noise 最好）
 2. **p-value 最低的兩個**：PEAD 0.017 / 52W 0.024（統計證據最強）
 3. **學術文獻分量重**：George-Hwang (2004) + Bernard-Thomas (1989），皆是 40 年驗證的經典 anomaly
 4. **因子互補性**：價格動量（52W）+ 基本面驚喜（PEAD）來源不同 → 組合有 diversification
 
 **為什麼沒選 mean IC 第 3 名的「融資反向」**？
-- IC IR 0.231 比 PEAD 0.290 弱
+- IC IR 0.232 比 PEAD 0.291 弱
 - p=0.055 **剛剛沒過 0.05**（過嚴格門檻）
 - 融資反向跟 52W 都偏「短期 retail 行為」 → 可能高度相關 → 組合 redundancy 高
 

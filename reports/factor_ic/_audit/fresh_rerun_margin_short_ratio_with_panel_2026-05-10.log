@@ -1,0 +1,39 @@
+2026-05-10 21:06:41,873 run_factor_ic INFO Cache dir: E:\Data\chongweihuang\Desktop\project\Stock-Trading\data\cache
+2026-05-10 21:06:41,873 run_factor_ic INFO Factor: margin_short_ratio  panel=margin_short  aux=issued_capital  min_history=40
+2026-05-10 21:06:41,873 run_factor_ic INFO Loading universe OHLCV from cache...
+2026-05-10 21:06:53,242 run_factor_ic INFO Loaded 1968 OHLCV symbols
+2026-05-10 21:06:53,242 run_factor_ic INFO Loading universe margin_short from cache...
+2026-05-10 21:07:05,801 run_factor_ic INFO Loaded 1918 margin_short symbols
+2026-05-10 21:07:05,801 run_factor_ic INFO Loading issued_capital PIT panel...
+2026-05-10 21:07:05,885 run_factor_ic INFO Loaded issued_capital panel: 157374 rows, 1952 unique symbols
+2026-05-10 21:07:08,528 run_factor_ic INFO intersection-universe: ohlcv contributes 1929 symbols (threshold 250)
+2026-05-10 21:07:17,117 run_factor_ic INFO intersection-universe: revenue contributes 1822 symbols (threshold 24)
+2026-05-10 21:07:27,075 run_factor_ic INFO intersection-universe: margin_short contributes 1789 symbols (threshold 250)
+2026-05-10 21:07:44,420 run_factor_ic INFO intersection-universe: institutional_v2 contributes 2025 symbols (threshold 250)
+2026-05-10 21:07:53,387 run_factor_ic INFO intersection-universe: quarterly_eps contributes 2107 symbols (threshold 12)
+2026-05-10 21:07:53,388 run_factor_ic INFO Intersection universe: 1696 symbols
+2026-05-10 21:07:56,614 run_factor_ic INFO Generated 72 rebalance dates
+2026-05-10 21:07:58,731 run_factor_ic INFO Regime distribution: {'ranging': 35, 'trending_up': 23, 'trending_down': 14}
+2026-05-10 21:22:11,914 run_factor_ic INFO forward-return gap filter: 106 / 105572 (0.1%) dropped (max_gap_days=5)
+2026-05-10 21:22:11,915 run_factor_ic INFO Running factor_ic_report on 71 periods
+2026-05-10 21:22:11,954 run_factor_ic INFO Loaded 3074 industry labels for effective_n clustering
+2026-05-10 21:22:54,423 run_factor_ic INFO Wrote e:\Data\chongweihuang\Desktop\project\Stock-Trading\reports\factor_ic\margin_short_ratio_ic.json
+============================================================
+  Factor IC: margin_short_ratio
+============================================================
+  periods               : 71
+  n_symbols_avg         : 1485.4
+  mean_ic               : 0.0388
+  ic_ir                 : 0.2319
+  t_stat                : 1.954
+  p_value               : 0.0547
+  bootstrap 95%% (block): [0.0122, 0.0668]
+  bootstrap 95%% (iid)  : [0.0021, 0.0769]
+  DSR (confidence)      : 0.0  (n_trials=5; BLdP 2014: >=0.95 significant, NOT a p-value)
+  effective_n           : 266
+  permutation           : significant_positive (p_emp=0.0066)
+  regime ICs            :
+    ranging         mean=0.0358 n=34
+    trending_down   mean=-0.0249 n=14
+    trending_up     mean=0.0821 n=23
+============================================================

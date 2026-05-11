@@ -35,7 +35,7 @@ from dotenv import load_dotenv
 
 from src.analysis.ic_analysis import factor_ic_report
 from src.backtest.engine import BacktestEngine
-from src.features.foreign_broker_v2 import compute_foreign_broker_v2_universe
+from src.features.foreign_investor_v2 import compute_foreign_investor_v2_universe
 from src.features.high_proximity import compute_high_proximity_universe
 from src.features.margin_short_ratio import compute_margin_short_ratio_universe
 from src.features.pead_eps import compute_pead_eps_universe
@@ -60,9 +60,13 @@ from scripts._factor_ic_helpers import (  # noqa: F401
     _load_universe_ohlcv,
     _load_universe_revenue,
     _load_universe_timeseries,
-    _load_issued_capital,
+    _load_issued_capital,            # DEPRECATED — see _load_issued_capital_panel
+    _load_issued_capital_panel,      # 2026-05-10 P1-A: PIT panel loader
+    _issued_capital_asof,            # 2026-05-10 P1-A: as-of lookup
     _load_industry_labels,
-    _load_market_value,
+    _load_market_value,              # DEPRECATED — see _load_market_value_panel
+    _load_market_value_panel,        # 2026-05-10 P0-A: PIT panel loader
+    _market_value_asof,              # 2026-05-10 P0-A: as-of lookup
     _resolve_price_asof,
     _forward_return,
     _compute_intersection_universe,
@@ -95,8 +99,8 @@ FACTOR_REGISTRY: dict[str, dict] = {
         "aux_panel": "issued_capital",
         "default_min_history": 40,    # trading days
     },
-    "foreign_broker_v2": {
-        "fn": compute_foreign_broker_v2_universe,
+    "foreign_investor_v2": {
+        "fn": compute_foreign_investor_v2_universe,
         "panel_type": "institutional_v2",
         "aux_panel": "market_value",
         "default_min_history": 60,    # trading days
@@ -236,16 +240,39 @@ def main() -> None:
         )
         sys.exit(1)
 
-    # Optional aux panel (scalar-per-symbol lookup dict)
-    aux_panel: dict | None = None
+    # Optional aux panel — 2026-05-10 P0-A / P1-A: load PIT panel, build
+    # as-of dict per rebalance date inside the loop instead of taking latest
+    # once outside (which violated PIT discipline; see Codex R26 audit).
+    aux_mv_panel: pd.DataFrame | None = None
+    aux_issued_panel: pd.DataFrame | None = None
     if aux_panel_kind == "issued_capital":
-        log.info("Loading issued_capital aux panel...")
-        aux_panel = _load_issued_capital(cache_dir)
-        log.info("Loaded %d issued_capital entries", len(aux_panel))
+        log.info("Loading issued_capital PIT panel...")
+        aux_issued_panel = _load_issued_capital_panel(cache_dir)
+        log.info(
+            "Loaded issued_capital panel: %d rows, %d unique symbols",
+            len(aux_issued_panel),
+            aux_issued_panel["stock_id"].nunique() if not aux_issued_panel.empty else 0,
+        )
+        if aux_issued_panel.empty:
+            raise RuntimeError(
+                "issued_capital panel empty — run cache_fill_new_factors.py "
+                "with --seed-issued-capital first."
+            )
     elif aux_panel_kind == "market_value":
-        log.info("Loading market_value aux panel...")
-        aux_panel = _load_market_value(cache_dir)
-        log.info("Loaded %d market_value entries", len(aux_panel))
+        log.info("Loading market_value PIT panel...")
+        aux_mv_panel = _load_market_value_panel(cache_dir)
+        log.info(
+            "Loaded market_value panel: %d rows, %d unique symbols, range %s ~ %s",
+            len(aux_mv_panel),
+            aux_mv_panel["stock_id"].nunique() if not aux_mv_panel.empty else 0,
+            aux_mv_panel["date"].min() if not aux_mv_panel.empty else "n/a",
+            aux_mv_panel["date"].max() if not aux_mv_panel.empty else "n/a",
+        )
+        if aux_mv_panel.empty:
+            raise RuntimeError(
+                "market_value panel empty — required for foreign_investor_v2 / "
+                "future market_value-dependent factors."
+            )
 
     benchmark = _load_ohlcv(cache_dir, REGIME_SYMBOL)
     if benchmark is None or benchmark.empty:
@@ -303,8 +330,15 @@ def main() -> None:
             next_ts = next_ts.tz_convert(None)
 
         factor_kwargs: dict = {"as_of": as_of, "min_history": min_history}
-        if aux_panel is not None:
-            factor_kwargs["aux_panel"] = aux_panel
+        # 2026-05-10 P0-A / P1-A: build as-of dict per rebalance date (PIT-correct).
+        # Replaces taking latest once outside the loop.
+        if aux_mv_panel is not None:
+            factor_kwargs["aux_panel"] = _market_value_asof(aux_mv_panel, as_of)
+        elif aux_issued_panel is not None:
+            factor_kwargs["aux_panel"] = _issued_capital_asof(aux_issued_panel, as_of)
+        # P0-B: foreign_investor_v2 cum_foreign 改金額制需要 close panel
+        if args.factor == "foreign_investor_v2":
+            factor_kwargs["close_by_symbol"] = close_by_symbol
         factor_scores = factor_fn(panel_by_symbol, **factor_kwargs)
         if universe_filter is not None:
             factor_scores = factor_scores[factor_scores.index.isin(universe_filter)]

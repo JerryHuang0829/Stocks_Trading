@@ -1,4 +1,4 @@
-"""Unit tests for src.features.foreign_broker_v2."""
+"""Unit tests for src.features.foreign_investor_v2."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.features.foreign_broker_v2 import (
+from src.features.foreign_investor_v2 import (
     _pivot_long_to_wide,
-    compute_foreign_broker_v2_universe,
+    compute_foreign_investor_v2_universe,
 )
 
 
@@ -44,6 +44,24 @@ def _make_inst_frame(
     return pd.DataFrame(rows)
 
 
+def _make_close_panel(
+    stock_ids: list[str],
+    start: str = "2024-01-02",
+    n_days: int = 80,
+    constant_close: float = 100.0,
+) -> dict[str, pd.Series]:
+    """2026-05-10 P0-B: helper for tests requiring close_by_symbol.
+
+    Returns {symbol: close_series} with constant close (100.0 by default)
+    over n_days business days starting from `start`.
+    """
+    dates = pd.bdate_range(start=start, periods=n_days)
+    return {
+        sid: pd.Series([constant_close] * n_days, index=dates, name=sid)
+        for sid in stock_ids
+    }
+
+
 def test_pivot_long_to_wide_correct_net():
     df = _make_inst_frame(n_days=5)
     wide = _pivot_long_to_wide(df)
@@ -53,7 +71,7 @@ def test_pivot_long_to_wide_correct_net():
 
 
 def test_empty_frame_returns_empty_series():
-    out = compute_foreign_broker_v2_universe(
+    out = compute_foreign_investor_v2_universe(
         {"AAA": None}, market_value_by_symbol={"AAA": 1e9},
         as_of=pd.Timestamp("2024-04-01"),
     )
@@ -63,7 +81,7 @@ def test_empty_frame_returns_empty_series():
 def test_insufficient_history_drops_symbol():
     df = _make_inst_frame(n_days=30)  # < min_history=60
     as_of = pd.Timestamp(df["date"].iloc[-1]) + pd.Timedelta(days=3)
-    out = compute_foreign_broker_v2_universe(
+    out = compute_foreign_investor_v2_universe(
         {"SHORT": df}, market_value_by_symbol={"SHORT": 1e9},
         as_of=as_of,
     )
@@ -82,20 +100,24 @@ def test_pit_respects_lag_days():
 
     last_date = pd.Timestamp(df_a["date"].iloc[-1])
 
+    close_panel = _make_close_panel(stock_ids=["A", "B", "C"], n_days=n)
+
     # Case 1: cutoff captures all inflow days (as_of well past end) → A differs from B/C
-    out_visible = compute_foreign_broker_v2_universe(
+    out_visible = compute_foreign_investor_v2_universe(
         {"A": df_a, "B": df_b, "C": df_c},
         market_value_by_symbol={"A": 1e9, "B": 1e9, "C": 1e9},
         as_of=last_date + pd.Timedelta(days=10), lag_days=2,
+        close_by_symbol=close_panel,
     )
     assert out_visible["A"] > out_visible["B"]
 
     # Case 2: cutoff drops the inflow window entirely (lag_days=14 pulls cutoff
     # well before the last 5 inflow days) → A should be equivalent to peers
-    out_hidden = compute_foreign_broker_v2_universe(
+    out_hidden = compute_foreign_investor_v2_universe(
         {"A": df_a, "B": df_b, "C": df_c},
         market_value_by_symbol={"A": 1e9, "B": 1e9, "C": 1e9},
         as_of=last_date, lag_days=14,
+        close_by_symbol=close_panel,
     )
     # All three symbols now see identical zero foreign_net histories →
     # composites should be equal (z-scores over identical values = 0)
@@ -115,17 +137,27 @@ def test_bullish_persistent_foreign_scores_higher():
     df_neu = _make_inst_frame(n_days=n, foreign_pattern=neutral, stock_id="NEU")
 
     as_of = pd.Timestamp(df_bull["date"].iloc[-1]) + pd.Timedelta(days=3)
-    out = compute_foreign_broker_v2_universe(
+    out = compute_foreign_investor_v2_universe(
         {"BULL": df_bull, "BEAR": df_bear, "NEU": df_neu},
         market_value_by_symbol={"BULL": 1e9, "BEAR": 1e9, "NEU": 1e9},
         as_of=as_of,
+        close_by_symbol=_make_close_panel(stock_ids=["BULL", "BEAR", "NEU"], n_days=n),
     )
     assert {"BULL", "BEAR", "NEU"} <= set(out.index)
     assert out["BULL"] > out["NEU"] > out["BEAR"]
 
 
-def test_foreign_and_trust_alignment_boosts_consistency():
-    """Foreign + Trust both bullish → consistency sub-signal should score well."""
+def test_foreign_and_trust_alignment_consistency_deprecated():
+    """2026-05-10 P1-D 修法: consistency weight = 0.
+
+    Pre-P1-D: BOTH (foreign + trust 同正) > ONEF (only foreign 正) > NONE
+    via consistency sub-signal contribution.
+
+    Post-P1-D (Codex R26 deprecation): consistency 78% sparsity / low SNR →
+    weight 0. BOTH and ONEF have identical foreign_net and identical
+    foreign_cum_ratio + persistence + rank_stability sub-signals; only
+    consistency differs. With weight 0 they should be ≈ equal.
+    """
     n = 80
     foreign_both = [0.0] * (n - 20) + [100_000.0] * 20
     trust_both = [0.0] * (n - 20) + [50_000.0] * 20
@@ -138,19 +170,28 @@ def test_foreign_and_trust_alignment_boosts_consistency():
     df_none = _make_inst_frame(n_days=n, foreign_pattern=neither, stock_id="NONE")
 
     as_of = pd.Timestamp(df_both["date"].iloc[-1]) + pd.Timedelta(days=3)
-    out = compute_foreign_broker_v2_universe(
+    out = compute_foreign_investor_v2_universe(
         {"BOTH": df_both, "ONEF": df_onef, "NONE": df_none},
         market_value_by_symbol={"BOTH": 1e9, "ONEF": 1e9, "NONE": 1e9},
         as_of=as_of,
+        close_by_symbol=_make_close_panel(stock_ids=["BOTH", "ONEF", "NONE"], n_days=n),
     )
-    # BOTH should score strictly higher than ONEF (consistency boost)
-    assert out["BOTH"] > out["ONEF"] > out["NONE"]
+    # BOTH and ONEF: foreign net identical + market_value identical →
+    # foreign_cum_ratio + persistence + rank_stability identical. Only
+    # consistency differs (BOTH=1.0 last 20d, ONEF=0.0). With weight 0 →
+    # composite identical.
+    assert {"BOTH", "ONEF", "NONE"} <= set(out.index)
+    assert abs(out["BOTH"] - out["ONEF"]) < 1e-9, (
+        f"P1-D consistency weight=0 expected BOTH≈ONEF, got "
+        f"BOTH={out['BOTH']:.6f} ONEF={out['ONEF']:.6f}"
+    )
+    assert out["BOTH"] > out["NONE"], "BOTH still beats NONE via foreign_cum_ratio + persistence"
 
 
 def test_zero_market_value_drops_symbol():
     df = _make_inst_frame(n_days=80)
     as_of = pd.Timestamp(df["date"].iloc[-1]) + pd.Timedelta(days=3)
-    out = compute_foreign_broker_v2_universe(
+    out = compute_foreign_investor_v2_universe(
         {"ZERO": df}, market_value_by_symbol={"ZERO": 0},
         as_of=as_of,
     )
@@ -163,14 +204,19 @@ def test_aux_panel_accepted_for_market_value():
     dfs = {s: _make_inst_frame(n_days=n, stock_id=s) for s in ("A", "B", "C")}
     as_of = pd.Timestamp(dfs["A"]["date"].iloc[-1]) + pd.Timedelta(days=3)
     mv = {s: 1e9 for s in dfs}
-    out_kw = compute_foreign_broker_v2_universe(dfs, market_value_by_symbol=mv, as_of=as_of)
-    out_aux = compute_foreign_broker_v2_universe(dfs, aux_panel=mv, as_of=as_of)
+    close_panel = _make_close_panel(stock_ids=["A", "B", "C"], n_days=n)
+    out_kw = compute_foreign_investor_v2_universe(
+        dfs, market_value_by_symbol=mv, as_of=as_of, close_by_symbol=close_panel,
+    )
+    out_aux = compute_foreign_investor_v2_universe(
+        dfs, aux_panel=mv, as_of=as_of, close_by_symbol=close_panel,
+    )
     assert set(out_kw.index) == set(out_aux.index)
 
 
 def test_as_of_required_raises():
     with pytest.raises(ValueError):
-        compute_foreign_broker_v2_universe({}, market_value_by_symbol={}, as_of=None)
+        compute_foreign_investor_v2_universe({}, market_value_by_symbol={}, as_of=None)
 
 
 def test_pivot_drops_duplicate_date_name_rows():
@@ -202,7 +248,7 @@ def test_rank_stability_skips_small_universe_days():
     remain unavailable for every symbol instead of giving a noisy 1.0 to the tiny
     positive subset.
     """
-    from src.features.foreign_broker_v2 import _compute_rank_stability
+    from src.features.foreign_investor_v2 import _compute_rank_stability
 
     # Fabricate a wide frame for 10 symbols with 70 days of +1 foreign net each.
     n_days = 70
@@ -216,9 +262,11 @@ def test_rank_stability_skips_small_universe_days():
             "dealer_hedge_net": [0.0] * n_days,
         }, index=dates)
     market_value_by_symbol = {f"S{i}": 1e9 for i in range(10)}
+    close_by_symbol = {f"S{i}": pd.Series([100.0] * n_days, index=dates) for i in range(10)}
     stability = _compute_rank_stability(
         wide_by_symbol,
         market_value_by_symbol,
+        close_by_symbol=close_by_symbol,
         as_of=dates[-1] + pd.Timedelta(days=3),
         lag_days=2,
         min_history=60,
@@ -238,7 +286,7 @@ def test_rank_stability_min_universe_yaml_override(monkeypatch):
     bound into the function signature, so yaml edits had no effect. This
     test stubs the thresholds cache and verifies the helper respects it.
     """
-    from src.features.foreign_broker_v2 import _compute_rank_stability
+    from src.features.foreign_investor_v2 import _compute_rank_stability
     from src.utils import thresholds
 
     fake = {
@@ -260,10 +308,12 @@ def test_rank_stability_min_universe_yaml_override(monkeypatch):
             "dealer_hedge_net": [0.0] * n_days,
         }, index=dates)
     market_value_by_symbol = {f"S{i}": 1e9 for i in range(10)}
+    close_by_symbol = {f"S{i}": pd.Series([100.0] * n_days, index=dates) for i in range(10)}
     # Default (None) now reads yaml → 5, so 10 symbols/day > 5 → no skip.
     stability = _compute_rank_stability(
         wide_by_symbol,
         market_value_by_symbol,
+        close_by_symbol=close_by_symbol,
         as_of=dates[-1] + pd.Timedelta(days=3),
         lag_days=2,
         min_history=60,
@@ -284,11 +334,14 @@ def test_rank_stability_responds_to_mv_normalisation():
     dfs = {f"S{i}": _make_inst_frame(n_days=n, foreign_pattern=foreign, stock_id=f"S{i}")
            for i in range(3)}
     as_of = pd.Timestamp(dfs["S0"]["date"].iloc[-1]) + pd.Timedelta(days=3)
-    out = compute_foreign_broker_v2_universe(
+    # 2026-05-10 P0-B: dollar denominator (foreign_net × close ÷ mv).
+    # Same close (100) for all symbols → dollar amount identical across S0/S1/S2;
+    # only mv differs → S0 ratio largest (smallest cap) → highest rank.
+    out = compute_foreign_investor_v2_universe(
         dfs,
-        # S0 has smallest market cap, so (net/mv) ratio largest → ranks top
         market_value_by_symbol={"S0": 1e8, "S1": 1e9, "S2": 1e10},
         as_of=as_of,
+        close_by_symbol=_make_close_panel(stock_ids=["S0", "S1", "S2"], n_days=n),
     )
     assert "S0" in out and "S2" in out
     assert out["S0"] > out["S2"]
@@ -315,7 +368,7 @@ def test_zscore_with_tolerance_fires_on_sub_tolerance_std():
     would emit pathological z-scores (±1.0 range). The new tolerance
     guard DOES fire → all 0.0.
     """
-    from src.features.foreign_broker_v2 import _zscore_with_tolerance
+    from src.features.foreign_investor_v2 import _zscore_with_tolerance
 
     # Construction: 3 values where std ≈ 1e-13 (verified empirically).
     col = pd.Series([1.0, 1.0 + 1e-13, 1.0 + 2e-13], index=["A", "B", "C"])

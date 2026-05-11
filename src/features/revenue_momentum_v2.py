@@ -36,12 +36,48 @@ DEFAULT_MIN_MONTHS = 15  # need ≥ 13 for YoY + 6 for accel; 15 is a safe floor
 DEFAULT_PERCENTILE_LOOKBACK_MONTHS = 24
 DEFAULT_SEASONAL_LOOKBACK_MONTHS = 24
 
+# 2026-05-11 Codex R32 finding fix: SUBSIGNAL_WEIGHTS is now a FALLBACK DEFAULT.
+# The live source of truth is `config/factor_thresholds.yaml ::
+# factor_specific.revenue_momentum_v2.weights`, read at call time via
+# `_subsignal_weights()` (same pattern as foreign_investor_v2 R31-4 fix).
+# Editing the yaml changes behaviour without touching code. The constant is
+# kept (a) as a fallback if the yaml lookup fails validation, and (b) as a
+# stable import target for tests/test_revenue_momentum_v2.py.
 SUBSIGNAL_WEIGHTS = {
     "yoy": 0.50,
     "accel": 0.20,
     "percentile": 0.15,
     "seasonal_z": 0.15,
 }
+
+
+def _subsignal_weights() -> dict[str, float]:
+    """Resolve sub-signal weights from yaml (fallback to SUBSIGNAL_WEIGHTS).
+
+    2026-05-11 Codex R32 finding fix: was hardcoded SUBSIGNAL_WEIGHTS only and
+    `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2.weights`
+    used mismatched keys (accel_3m3m / pct_24m vs module accel / percentile). The
+    yaml keys are now renamed to match; this helper reads them with the module
+    constant as fallback.
+
+    Falls back to the module constant if the yaml section is missing or fails
+    validation: (a) must be a dict with exactly the 4 known sub-signal keys,
+    (b) total weight must sum to ≈ 1.0 (within float tolerance), (c) all weights
+    non-negative — so a malformed yaml can't silently de-normalise the composite.
+    """
+    try:
+        from src.utils.thresholds import get_threshold
+        weights = get_threshold(
+            "factor_specific", "revenue_momentum_v2", "weights",
+            default=None,
+        )
+        if isinstance(weights, dict) and set(weights) == set(SUBSIGNAL_WEIGHTS):
+            vals = {k: float(v) for k, v in weights.items()}
+            if abs(sum(vals.values()) - 1.0) < 1e-6 and all(v >= 0 for v in vals.values()):
+                return vals
+    except Exception:
+        pass
+    return dict(SUBSIGNAL_WEIGHTS)
 
 
 def _normalise_revenue_frame(
@@ -178,9 +214,14 @@ def _seasonal_zscore(frame: pd.DataFrame, lookback_months: int) -> float | None:
 
 
 def _composite_score(subsignals: dict[str, float | None]) -> float | None:
-    """Weighted average over non-None sub-signals. Weights renormalized."""
+    """Weighted average over non-None sub-signals. Weights renormalized.
+
+    2026-05-11 Codex R32 finding fix: weights now resolved from yaml via
+    `_subsignal_weights()` (was `SUBSIGNAL_WEIGHTS[name]` hardcoded).
+    """
+    weights = _subsignal_weights()
     paired = [
-        (value, SUBSIGNAL_WEIGHTS[name])
+        (value, weights[name])
         for name, value in subsignals.items()
         if value is not None and not pd.isna(value)
     ]

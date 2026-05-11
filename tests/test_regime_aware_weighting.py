@@ -28,7 +28,7 @@ def _make_item(sym, industry, pm, hp):
         "trend_quality_raw": None, "revenue_raw": None,
         "institutional_raw": None, "quality_raw": None,
         "pead_eps_raw": None, "margin_short_ratio_raw": None,
-        "revenue_momentum_v2_raw": None, "foreign_broker_v2_raw": None,
+        "revenue_momentum_v2_raw": None, "foreign_investor_v2_raw": None,
     }
 
 

@@ -1035,6 +1035,21 @@ class FinMindSource(DataSource):
         Reads shares outstanding from TWSE OpenAPI (one API call), then
         multiplies by historical close prices from the OHLCV disk cache to
         produce a full historical market_value DataFrame.
+
+        ⚠️ **NOT FULLY PIT** (Codex R30 finding 2, 2026-05-11)：
+            shares 是 cache build 時 fetch_twse_issued_capital() 的 latest
+            snapshot；historical close 是真歷史。所以每個 (stock_id, date) row：
+              - close: PIT-correct ✅
+              - shares: latest snapshot 對所有 date 一致 ❌
+            market_value = latest_shares × historical_close ≠ fully PIT mv.
+
+            台股 shares 變動少（除權息 / 減增資）→ ratio approximation 仍可用，
+            但嚴格 pro 標準 (factor 用 market_value 當分母) 仍是 substance-level
+            caveat。完整修法（P1 backlog）：寫新 TWSE OpenAPI scraper 抓歷史
+            shares snapshots 取代 latest fetch_twse_issued_capital().
+
+            詳見 `reports/factor_ic/_closeout/old_vs_new_comparison_2026-05-10.md`
+            section 9.2.
         """
         from .twse_scraper import fetch_twse_issued_capital
 
