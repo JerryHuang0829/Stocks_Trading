@@ -209,7 +209,7 @@ fig.update_layout(
     hovermode="x unified",
     margin=dict(t=50, b=20),
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 st.divider()
 
@@ -334,7 +334,7 @@ def _highlight_ir(row):
 
 
 styled = df_cmp.style.apply(_highlight_ir, axis=1)
-st.dataframe(styled, use_container_width=True, hide_index=True)
+st.dataframe(styled, width="stretch", hide_index=True)
 
 ir_is = metrics_is.get("information_ratio", 0)
 ir_oos = metrics_oos.get("information_ratio", 0)
@@ -368,4 +368,4 @@ for snap in snapshots_is:
     })
 
 df_snap = pd.DataFrame(snap_rows)
-st.dataframe(df_snap, use_container_width=True, hide_index=True, height=400)
+st.dataframe(df_snap, width="stretch", hide_index=True, height=400)

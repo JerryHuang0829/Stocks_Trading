@@ -51,7 +51,7 @@ strategy_table = pd.DataFrame(
         for cid in ["D-B", "D-C", "D-D", "D-E", "D-F", "D-G"]
     ]
 )
-st.dataframe(strategy_table, use_container_width=True, hide_index=True)
+st.dataframe(strategy_table, width="stretch", hide_index=True)
 
 st.caption(
     "📌 三個共用因子：**52W 高接近度（價格動量）** + **PEAD/EPS 驚喜（基本面）** "
@@ -141,7 +141,7 @@ fig_heat.update_layout(
     yaxis_title="策略候選",
     margin=dict(t=20, b=20, l=180, r=20),   # 加大左 margin 給中文 label
 )
-st.plotly_chart(fig_heat, use_container_width=True)
+st.plotly_chart(fig_heat, width="stretch")
 
 st.warning(
     "⚠️ **過 4 關 ≠ 接近 alpha**。L6 是 80% Stationary Block Bootstrap CI lower，"
@@ -186,7 +186,7 @@ for c in cells:
 
 df_cells = pd.DataFrame(table_rows)
 df_cells_sorted = df_cells.sort_values("過幾關", ascending=False).reset_index(drop=True)
-st.dataframe(df_cells_sorted, use_container_width=True, hide_index=True)
+st.dataframe(df_cells_sorted, width="stretch", hide_index=True)
 
 st.caption(
     "**單位**：IR / 月α / TE / ΔMaxDD / DSR / L6 CI lower 都是 decimal（非 %）。"
@@ -238,7 +238,7 @@ fig_dd.update_layout(
     yaxis_title="策略 | 持股數",
     margin=dict(t=20, b=20, l=240, r=80),
 )
-st.plotly_chart(fig_dd, use_container_width=True)
+st.plotly_chart(fig_dd, width="stretch")
 
 st.divider()
 
@@ -305,7 +305,7 @@ else:
         yaxis_tickformat=".1%",
         margin=dict(t=50, b=20),
     )
-    st.plotly_chart(fig_ts, use_container_width=True)
+    st.plotly_chart(fig_ts, width="stretch")
 
     # 累積報酬
     cum = (1 + pd.Series(returns)).cumprod() - 1
@@ -333,7 +333,7 @@ else:
         yaxis_tickformat=".0%",
         margin=dict(t=50, b=20),
     )
-    st.plotly_chart(fig_cum, use_container_width=True)
+    st.plotly_chart(fig_cum, width="stretch")
 
     # 該 cell 的 metrics summary
     selected_cell = next((c for c in cells if f"{c.get('candidate_id')}|{c.get('top_n')}" == selected), None)
