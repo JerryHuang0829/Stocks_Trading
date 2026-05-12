@@ -9,13 +9,13 @@
 
 ---
 
-## TL;DR（30 秒版）
+## 一分鐘看懂（先讀這段）
 
 - **這是什麼**：用機構等級的統計流程，嚴格檢驗一個問題——「在台股、月頻、long-only、零售 NT$ 100 萬規模下，組合幾個學術因子（價格動量 / 獲利驚喜 / 品質 / 產業動量 等）能不能**穩定贏過 0050**？」
 - **結論**：6 個候選因子組合 × 3 種持股數 = 18 種策略，每種都跑 6 道**事前鎖定**的 hard gate → **0/18 全部沒過** → 誠實記 NO-GO，pivot 回被動 100% 0050 定期定額。過程中還抓出 2 個讓過去 4 年回測「全是幻覺」的 silent bug（timezone + universe pre-filter）。
 - **為什麼值得看**：嚴格驗證下的負面結果 + 一條「不降標、不 cherry-pick、敢揭穿自己舊結果」的研究紀律——比鬆散方法論下的漂亮 PASS 更有科學價值。**想看白話互動版** → `streamlit run dashboard/專案背景.py`（6 頁圖表展示）。
 
-> **只有 5 分鐘？** 讀上面 TL;DR → 跑 `streamlit run dashboard/專案背景.py` 看主頁 → 翻 [src/analysis/ic_analysis.py](src/analysis/ic_analysis.py)（Pro 統計核心）。看到不懂的代號（D1_v2 / V0.x / R0x …）→ 拉到下面「[名詞速查](#名詞速查看到代號不迷路)」。完整研究路徑 → [docs/research-findings.md](docs/research-findings.md)。
+> **只有 5 分鐘？** 讀完上面這段 → 跑 `streamlit run dashboard/專案背景.py` 看主頁 → 翻 [src/analysis/ic_analysis.py](src/analysis/ic_analysis.py)（Pro 統計核心）。看到不懂的代號（D1_v2 / V0.x / R0x …）→ 拉到下面「[名詞速查](#名詞速查看到代號不迷路)」。完整研究路徑 → [docs/research-findings.md](docs/research-findings.md)。
 
 ---
 
