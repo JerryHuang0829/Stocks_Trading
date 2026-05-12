@@ -146,7 +146,7 @@ for factor in ALL_FACTORS:
     })
 
 df_ic = pd.DataFrame(table_rows)
-st.dataframe(df_ic, use_container_width=True, hide_index=True)
+st.dataframe(df_ic, width="stretch", hide_index=True)
 
 st.caption(
     "📌 **Phase A1 vs Phase D**：Phase A1 5 因子於 2026-04-17 pre-registered，FDR m=5 校正；"
@@ -206,7 +206,7 @@ else:
         height=500,
         margin=dict(t=40, b=40, l=120, r=80),
     )
-    st.plotly_chart(fig_corr, use_container_width=True)
+    st.plotly_chart(fig_corr, width="stretch")
 
     n_periods = corr_data.get("period_counts", {})
     n_periods_avg = next(iter(n_periods.values()), 71) if isinstance(n_periods, dict) else 71
@@ -254,7 +254,7 @@ with st.expander("📊 選因子看 by_regime / by_bucket / 月度 IC 時序", e
                     "p-value": f"{m.get('p_value', 1):.4f}",
                     "n": m.get("n", 0),
                 })
-            st.dataframe(pd.DataFrame(regime_rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(regime_rows), width="stretch", hide_index=True)
         else:
             st.info("無 by_regime 資料")
 
@@ -272,7 +272,7 @@ with st.expander("📊 選因子看 by_regime / by_bucket / 月度 IC 時序", e
                     "p-value": f"{m.get('p_value', 1):.4f}",
                     "n": m.get("n", 0),
                 })
-            st.dataframe(pd.DataFrame(bucket_rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(bucket_rows), width="stretch", hide_index=True)
         else:
             st.info("無 by_bucket 資料")
 
@@ -320,7 +320,7 @@ with st.expander("📊 選因子看 by_regime / by_bucket / 月度 IC 時序", e
             yaxis_title="月 IC",
             margin=dict(t=50, b=20),
         )
-        st.plotly_chart(fig_period, use_container_width=True)
+        st.plotly_chart(fig_period, width="stretch")
     else:
         st.info("無 period_ics 資料或 schema 異常")
 
@@ -350,7 +350,7 @@ ref_table = pd.DataFrame(
         {"因子": "低波動（low_vol_v2）", "分組": "spike", "評估方式": "Spike pipeline（IC + DSR + turnover；未晉升 production）", "結果在哪看": "reports/phase_b0_lite/spike_results.json"},
     ]
 )
-st.dataframe(ref_table, use_container_width=True, hide_index=True)
+st.dataframe(ref_table, width="stretch", hide_index=True)
 
 st.caption(
     "**Phase D 3 因子的 single-factor IC（2026-05-11 補測）**："

@@ -111,7 +111,7 @@ with tab1:
         ],
         columns=["期間", "修前 Sharpe", "修後 Sharpe", "修前 α", "修後 α"],
     )
-    st.dataframe(before_after, use_container_width=True, hide_index=True)
+    st.dataframe(before_after, width="stretch", hide_index=True)
 
     st.error(
         "🚨 **過去所有 alpha 為 overfit**。修後 Sharpe 從 1.73 降到 0.64，"
@@ -199,7 +199,7 @@ universe 退化為**全市場 2000 支股票**（無 pre-filter）。
 
     st.dataframe(
         pd.DataFrame(audit_rows, columns=["Audit Script", "用途", "狀態"]),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -237,7 +237,7 @@ universe 退化為**全市場 2000 支股票**（無 pre-filter）。
                     "n_periods": all_periods.get("n", 0),
                 })
         if sample_rows:
-            st.dataframe(pd.DataFrame(sample_rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(sample_rows), width="stretch", hide_index=True)
             st.caption(
                 "**結論**：修 bug 後三因子 mean IC 多在 ±0.04 區間，p-value 多 > 0.05，"
                 "**統計上無顯著 alpha**——支持「過去 4Y Sharpe 1.73 為 overfit」的診斷。"
@@ -276,7 +276,7 @@ universe 退化為**全市場 2000 支股票**（無 pre-filter）。
         })
 
     if repro_rows:
-        st.dataframe(pd.DataFrame(repro_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(repro_rows), width="stretch", hide_index=True)
 
     st.success(
         "✅ **Reproducibility 證據**：所有 5 因子 IC 重現 drift ≤ 1%，"
@@ -363,7 +363,7 @@ with tab2:
         yaxis_title="Cell",
         margin=dict(t=30, b=20, l=80, r=80),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     n_pass_l6 = sum(1 for _, v in sorted_cells if v > 0)
     st.error(

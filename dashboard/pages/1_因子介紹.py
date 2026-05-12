@@ -116,7 +116,7 @@ overview_table = pd.DataFrame(
         },
     ]
 )
-st.dataframe(overview_table, use_container_width=True, hide_index=True)
+st.dataframe(overview_table, width="stretch", hide_index=True)
 
 st.caption(
     "📌 **說明**：6 個策略候選 = D-B/C/D/E/F/G。D-A（52W+PEAD 50/50）已預先 disqualify。"
