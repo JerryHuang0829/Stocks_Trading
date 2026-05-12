@@ -84,7 +84,7 @@ with st.expander("🛠️ 技術棧（點開展開）", expanded=False):
 - **資料源**：FinMind API + TWSE / TPEX 爬蟲
 - **儲存**：pickle cache（OHLCV / 因子 IC 等）+ JSON reports（18-cell sweep / metrics / 等）
 - **回測引擎**：BacktestEngine + `_DataSlicer`（PIT-safe；backtest mode 下 cache miss raise）
-- **Pro 統計方法論**：`src/analysis/ic_analysis.py` (867 LOC)
+- **Pro 統計方法論**：`src/analysis/ic_analysis.py` (~940 LOC)
   - Spearman IC + Stationary Block Bootstrap（Politis-Romano 1994）
   - Deflated Sharpe Ratio（Bailey-Lopez de Prado 2014）
   - FDR Benjamini-Hochberg multi-test correction
