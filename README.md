@@ -113,7 +113,7 @@ scripts/                       執行 CLI
 ├── cache_rebuild.py              Cache 全新重建
 └── cache_fill_new_factors.py     Phase D 新因子 cache fill（含 --seed-issued-capital）
 
-tests/                         694 tests（含 8 PIT mutation tests + 14 R26-R28 mutation tests + 8-factor IC schema parity + foreign/revenue yaml-sync tests）
+tests/                         694 tests（含 8 PIT mutation tests + 14 因子修法 mutation tests + 8-factor IC schema parity + foreign/revenue yaml-sync tests）
 reports/                       研究 evidence
 config/                        settings.yaml + factor_thresholds.yaml
 docs/                          研究文件
