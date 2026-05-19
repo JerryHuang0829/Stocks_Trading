@@ -1,21 +1,28 @@
 # ==================================================================
 # DEV / FULL stack — local development + pytest + 資料抓取 + 回測
 # ------------------------------------------------------------------
-# 用法：本機 conda env 安裝（Python 3.12）：
-#   pip install -r requirements-dev.txt
+# 新機器 clone repo 後：
+#   conda create -n quant python=3.12 -y
+#   conda activate quant
+#   pip install -r requirements-dev.txt    ← 裝這個 = 全套 11 套件
 #
-# 要部署 dashboard 到 Streamlit Cloud 等公網 host，請改用 requirements.txt
-# （slim 版，僅含 dashboard runtime 需要的 4 個套件）。
+# Cascade 設計：第一行 `-r requirements.txt` 自動包進 deploy 用的 4 個
+# 套件（pandas / scipy / streamlit / plotly），下方只列「dev 才需要」的
+# 7 個。避免重複定義版本，base 改了 dev 自動跟著動。
+#
+# 對應 Streamlit Cloud deploy 環境只裝 requirements.txt（4 個 slim），
+# 跳過 pandas-ta / numba / llvmlite 等 JIT 套件以避開 Python 3.14
+# build fail。
 # ==================================================================
 
+-r requirements.txt
+
 # ------------------------------------------------------------------
-# Core data + trading stack
+# Data fetch + config + retry（src/data/*, src/utils/*）
 # ------------------------------------------------------------------
-pandas>=2.0.0
 requests[socks]>=2.31.0
 python-dotenv>=1.0.0
 PyYAML>=6.0
-scipy>=1.11.0
 tenacity>=8.0.0
 FinMind>=1.6.0
 
@@ -37,26 +44,11 @@ FinMind>=1.6.0
 #   so pip (>= 21.x) honours it WITHOUT needing the `--pre` flag
 #   (per PEP 440). Modern uv / poetry / pdm honour the same convention.
 #
-# Install command:
-#   pip install -r requirements-dev.txt
-#
-# If your installer refuses pre-releases, fall back to:
-#   pip install -r requirements-dev.txt --pre
-#
-# Transitive deps pulled in by pandas-ta 0.4.71b0 (auto-resolved):
-#   numba == 0.61.2
-#   numpy >= 2.2.6
-#   pandas >= 2.3.2  (overrides the >=2.0.0 above)
-#   tqdm >= 4.67.1
-#
 # CAVEAT: numba / llvmlite **僅支援 Python 3.10-3.13**（截至 2026-05）。
-# Streamlit Cloud 預設可能 Python 3.14 → numba 裝不上。Dashboard deploy
-# 故另用 requirements.txt（slim，不含 pandas-ta）避免此問題。
+# 故僅安裝在 local dev（pin Python 3.12 via conda），deploy 環境不裝。
 pandas-ta==0.4.71b0
 
 # ------------------------------------------------------------------
-# Test + UI
+# Test
 # ------------------------------------------------------------------
 pytest>=7.0.0
-streamlit>=1.30.0
-plotly>=5.18.0

@@ -160,14 +160,19 @@ docs/                          研究文件
 ### 1. 環境
 
 ```bash
-# 用 conda
+# 用 conda（本機完整開發：跑 pytest / 回測 / 抓 FinMind 都需要）
 conda create -n quant python=3.12 -y
 conda activate quant
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # 或用 Docker
 docker compose build
 ```
+
+> 📌 **`requirements.txt` vs `requirements-dev.txt`**：
+> - `requirements.txt`（slim 4 套件）— Streamlit Cloud deploy dashboard 用，只裝 dashboard runtime 需要的最小集
+> - `requirements-dev.txt`（cascade 全套 11 套件）— 本機完整開發用，含 pandas-ta / numba / pytest / FinMind 等
+> - 新機器 clone 必跑 `-r requirements-dev.txt`，否則 pytest / 回測會 ImportError
 
 ### 2. 環境變數
 
