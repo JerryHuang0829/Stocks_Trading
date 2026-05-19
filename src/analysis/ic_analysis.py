@@ -385,6 +385,27 @@ def deflated_sharpe_ratio(
     Raises ValueError when n_trials is None — silent default removed in V1.1b
     (Plan v7 H_d_v6 V0.13 Assertion 3) to prevent over-claim. Pass n_trials
     explicit (Phase A1 single-factor: 5; v7 cell sweep: 18).
+
+    Formula choice — Gumbel asymp vs BLdP 2014 Eq.(6) quantile-mixture
+    ------------------------------------------------------------------
+    This implementation uses the Gumbel asymptotic form for E[max SR_0]:
+        E[max SR_0] ≈ √(2·ln N) - (γ + ln(ln N)) / (2·√(2·ln N))
+    BLdP 2014 paper Eq.(6) gives the quantile-mixture form:
+        E[max SR_0] ≈ (1-γ)·Φ⁻¹(1-1/N) + γ·Φ⁻¹(1-1/(N·e))
+    For small N (e.g. N=12) Gumbel asymp gives ≈1.8957 vs Eq.(6) ≈1.6648
+    (true Monte-Carlo value ≈1.6297). Gumbel asymp is slightly more
+    conservative; both are valid extreme-value approximations and the
+    gap closes for N → ∞. DSR verdicts (Ψ ≥ 0.95 → skill) are robust to
+    this choice within the parameter ranges relevant to this project
+    (n_obs 50-250, n_trials 5-18). See
+    ``reports/_audit/dsr_low_vol_v2_review_2026-05-19.md`` for the
+    verification trace where all three forms (Gumbel / Eq.(6) / MC)
+    give the same DSR=0 verdict on the low_vol_v2 spike case.
+
+    The ``test_deflated_sharpe_golden_n12_gumbel_asymp`` golden test
+    locks the current Gumbel asymp form — any switch to Eq.(6) must
+    update both the formula AND the golden test together (no silent
+    drift).
     """
     if n_trials is None:
         raise ValueError(

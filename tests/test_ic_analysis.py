@@ -362,6 +362,64 @@ def test_dsr_n_trials_required_explicit_v0_13_v1_1b():
         deflated_sharpe_ratio(0.5, n_obs=60, n_trials=None)  # type: ignore[arg-type]
 
 
+def test_deflated_sharpe_golden_n12_gumbel_asymp():
+    """Golden test: lock Gumbel asymptotic form for E[max SR_0] at N=12.
+
+    Mutation guard against silent form switch (e.g. to BLdP 2014 Eq.(6)
+    quantile-mixture). For N=12:
+        Gumbel asymp (current): E[max SR_0] ≈ 1.8957
+        BLdP Eq.(6) quantile-mix: E[max SR_0] ≈ 1.6648
+
+    Test design: pass observed_sr = 1.8957 (= Gumbel-form E[max]). Under
+    Gumbel form, z = (1.8957 - 1.8957) / σ ≈ 0 → Ψ ≈ 0.5. Under Eq.(6)
+    form, z ≈ +1.09 → Ψ ≈ 0.86 → test fails, alerting reviewer to update
+    both the formula AND this golden value together (no silent drift).
+
+    See ic_analysis.py docstring §"Formula choice" + review report
+    reports/_audit/dsr_low_vol_v2_review_2026-05-19.md.
+    """
+    psi = deflated_sharpe_ratio(
+        observed_sr=1.8957, n_obs=63, n_trials=12,
+        skewness=0.0, kurtosis=3.0,
+    )
+    assert psi is not None
+    assert 0.49 < psi < 0.51, (
+        f"Expected Ψ ≈ 0.5 for Gumbel asymp form (observed = E[max_gumbel]). "
+        f"Got Ψ = {psi}. If you switched to BLdP Eq.(6) quantile-mixture form, "
+        f"update the formula AND this golden value together — Eq.(6) form "
+        f"would give Ψ ≈ 0.86 for this input."
+    )
+
+
+def test_deflated_sharpe_golden_low_vol_v2_robustness():
+    """Golden test: lock DSR ≈ 0 for low_vol_v2 spike case.
+
+    This is the canonical case from B0-Lite spike (reports/phase_b0_lite/
+    spike_results.json): IC IR=0.256, n_obs=62, n_trials=12. The DSR comes
+    out 0.0 under any reasonable BLdP-style form (Gumbel asymp / Eq.(6)
+    quantile-mix / Monte Carlo true) because z ≈ -10.6 to -12.6 → Ψ ≈ 0.
+
+    A 2026-05-19 external review claimed this case "should be DSR ≈ 0.5442
+    with correct sigma scaling". That claim was independently verified as
+    mathematically invalid (see reports/_audit/dsr_low_vol_v2_review_
+    2026-05-19.md). This test asserts the result stays < 0.01 — a mutation
+    guard against re-introducing the rejected fix.
+    """
+    psi = deflated_sharpe_ratio(
+        observed_sr=0.256, n_obs=62, n_trials=12,
+        skewness=0.0, kurtosis=3.0,
+    )
+    assert psi is not None
+    assert psi < 0.01, (
+        f"Expected DSR ≈ 0 for low_vol_v2 case (IC IR=0.256, n=62, n_trials=12). "
+        f"Got DSR = {psi}. A 2026-05-19 external review claimed this should be "
+        f"0.5442 — that claim is mathematically invalid (any reasonable BLdP-form "
+        f"gives ~0). If you got DSR > 0.01, you've likely changed the formula in "
+        f"a way that re-introduces the rejected over-confidence. See review at "
+        f"reports/_audit/dsr_low_vol_v2_review_2026-05-19.md."
+    )
+
+
 def test_effective_n_without_industry_uses_fallback():
     symbols = [f"s{i}" for i in range(100)]
     assert effective_n_cluster(symbols) == 50
