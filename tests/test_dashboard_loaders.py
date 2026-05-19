@@ -167,12 +167,16 @@ def test_load_monthly_active_returns_18cells_each_59():
 
 
 def test_gate_pass_count_logic():
+    # L5 是 aggregate of 3 sub-conditions（dashboard utils.py:319 升級後）
+    # 全部都 True 才算 L5 過。
     full_pass = {
         "L1_ir_ge_0_20": True,
         "L2_mean_alpha_ge_0_005": True,
         "L3_te_in_range": True,
         "L4_max_dd_diff_le_0_05": True,
         "L5_a1_active_corr_le_0_50": True,
+        "L5_a1_te_ge_0_10": True,
+        "L5_a1_beta_adj_t_gt_1_5": True,
         "L6_bootstrap_ci_lower_gt_0": True,
     }
     assert utils.gate_pass_count(full_pass) == 6
@@ -180,6 +184,10 @@ def test_gate_pass_count_logic():
     partial = full_pass.copy()
     partial["L6_bootstrap_ci_lower_gt_0"] = False
     assert utils.gate_pass_count(partial) == 5
+    # L5 aggregate：只要任一 sub-key False 整個 L5 fail
+    partial_l5 = full_pass.copy()
+    partial_l5["L5_a1_te_ge_0_10"] = False
+    assert utils.gate_pass_count(partial_l5) == 5
 
 
 def test_load_bootstrap_ci_lowers_18cells():

@@ -1,0 +1,246 @@
+"""P4 — 結論 + 下一輪 Roadmap。
+
+頁面結構：
+1. 一句話總結 hero
+2. 本輪三件做對的事
+3. 本輪結論：NO-GO 三個失敗點
+4. 本輪學到的事
+5. Path to GO Roadmap（5 items）
+6. 結尾紀律
+"""
+
+from __future__ import annotations
+
+import streamlit as st
+
+st.set_page_config(
+    page_title="結論 + Roadmap",
+    page_icon="🏁",
+    layout="wide",
+)
+
+st.title("🏁 結論 + 下一輪 Roadmap")
+
+# ===============================================================
+# 一句話總結 hero
+# ===============================================================
+st.info(
+    """
+##### 一句話總結
+
+**量化結論的可信度，建立在底層的回測架構**——自做 PIT-safe BacktestEngine 處理台股 per-row event lag、
+預先鎖定 6 道 hard gates、5 輪獨立 audit 校驗。**沒有這層紀律，再漂亮的 Sharpe 都可能是 look-ahead bias 的 artifact**
+（本專案 phase 1 抓到 2 個 silent bug，揭穿過去 4 年 Sharpe 1.73 是 overfit、α +39% → +3.4%）。
+
+在這層紀律下誠實得到結論：**NO-GO（沒有 robust edge）——高信度，不是「跑得不好」**。
+Phase 1 出口、不是終點，phase 2 規劃 5 條改造路線。
+"""
+)
+
+st.divider()
+
+# ===============================================================
+# 本輪三件做對的事
+# ===============================================================
+st.subheader("✅ 本輪三件做對的事")
+
+right_col1, right_col2, right_col3 = st.columns(3)
+
+with right_col1:
+    st.markdown(
+        """
+##### 🔍 抓自己 silent bug 不藏
+
+例行檢查抓到 2 個 silent bug，
+揭穿過去 4 年 **Sharpe 1.73 → 0.64** /
+**α +39% → +3.4%** 全部是 overfit。
+
+不掩蓋、不 caveat，直接重寫整套驗證流程。
+"""
+    )
+
+with right_col2:
+    st.markdown(
+        """
+##### 🔒 預先鎖定 hard gates 不降標
+
+6 道驗收關卡（第 1-6 關）事前定義，跑完不准回頭調。
+
+最佳 cells（D-C\\|12 / D-E\\|12 / D-E\\|16）4 / 6 通過，
+**但卡第 6 關 → 拒絕進 paper trade**。降標就是 silent bug。
+"""
+    )
+
+with right_col3:
+    st.markdown(
+        """
+##### 🔁 6 輪 audit cycle 校驗
+
+每跑完一輪就做 audit pass，
+共抓到 **25+ 項 P0 / P1 finding** 並當下修完。
+
+Round 6 是 codex DSR 公式獨立驗證（reject P0 misread + confirm 2 P1）。
+NO-GO 結論在 6 輪 audit 後仍成立 → **robust 結論**。
+"""
+    )
+
+st.divider()
+
+# ===============================================================
+# 本輪結論：NO-GO
+# ===============================================================
+st.subheader("🔴 本輪結論：NO-GO — 三個關鍵失敗點")
+
+fail_col1, fail_col2, fail_col3 = st.columns(3)
+
+with fail_col1:
+    st.error(
+        """
+##### 第 6 關 Bootstrap CI 全 fail
+
+**18 / 18 cells 第 6 關 80% Bootstrap CI 下界 ≤ 0**
+
+→ 沒有任何 cell 的超額報酬統計顯著
+"""
+    )
+
+with fail_col2:
+    st.error(
+        """
+##### 雙因子策略 IR collapse 99.4%
+
+**IS IR = 0.92 → OOS IR = 0.0058**
+
+→ 典型 in-sample over-fit，OOS 立即 collapse
+"""
+    )
+
+with fail_col3:
+    st.error(
+        """
+##### Effective n 不足
+
+**60 月 × Block bootstrap → effective n ≈ 20**
+
+→ 樣本太短，DSR 統計力嚴重不夠
+"""
+    )
+
+st.divider()
+
+# ===============================================================
+# 本輪學到的事
+# ===============================================================
+st.subheader("📚 本輪學到的事 — 結構問題不是運氣不好")
+
+st.markdown(
+    """
+- **🎯 系統架構正確性比好看的 edge 更重要**——過去 4 年看似 Sharpe 1.73 的成績，根因是兩個 silent bug 造成的 look-ahead bias + universe contamination
+- **📊 long-only 月頻 vs 0050 有結構劣勢**——像 2024 大權值股獨舞的年份，因子怎麼選都追不上，這不是「因子不夠強」，是結構問題（→ Roadmap #3 L / S）
+- **🧮 60 個月對嚴格統計檢定遠遠不夠**——Block bootstrap 把時序相關性扣掉後 effective n 只剩 20，普通 t-test 假定獨立會嚴重高估顯著性（→ Roadmap #1 樣本擴充）
+- **📉 台股學術因子訊號普遍弱**——8 個學術因子個別 IC 只有 2 個過 𝛼 = 0.05 顯著（DSR 校正後也只有 1-2 個），跟美股大樣本研究結果落差大
+- **🔬 IC IR ≠ portfolio Sharpe**——雙因子策略 IS IR 0.92（看似強因子）→ OOS 0.0058，因子層 signal-to-noise 不等於組合後 alpha
+"""
+)
+
+st.divider()
+
+# ===============================================================
+# Path to GO Roadmap（呼應書審題 5 + JD「AI 模型應用」）
+# ===============================================================
+st.subheader("🚀 接下來的優化方向")
+
+st.markdown(
+    """
+基於本輪 18 cells 失敗根因（第 6 關全 fail / 60 月 effective n 不足 / long-only 結構劣勢），
+下一輪規劃 **5 條改造路線**。
+
+> 📌 **本卡為 roadmap placeholder，實作將於下一輪另開 dashboard project**。
+"""
+)
+
+roadmap_items = [
+    {
+        "title": "🗓️ 1. 樣本擴充：60 月 → 2008-2024（17 年）",
+        "pain": "**60 月 effective n ≈ 20**（block bootstrap 扣掉時序相關後），DSR 統計力嚴重不足；2008-2019 完全沒覆蓋",
+        "plan": "拉到 **2008-2024（17 年）**，涵蓋金融海嘯 / 量化寬鬆 / 升息週期 / 疫情多個 regime",
+        "expect": "Block bootstrap CI 寬度縮 ~2x，第 6 關有機會通過 + DSR n_trials 校正後仍 significant",
+    },
+    {
+        "title": "📅 2. 頻率升級：monthly → weekly / daily",
+        "pain": "月頻可用 observations 太少；同樣 5 年 daily 等於 ~1250 個獨立資訊 vs monthly 60 個",
+        "plan": "改 **weekly 或 daily 再平衡**（trade-off：交易成本上升、turnover 約束更嚴）。\n\n"
+                "**附帶機會**：日頻 obs 充足後可評估 **HMM regime detection** (Hamilton 1989 系列) "
+                "作為 ADX+SMA 的 **robustness check**——但需考量 OOS 穩定性 + 解釋性 trade-off，"
+                "**不取代 rule-based ADX，並行用**",
+        "expect": "同樣 5 年樣本 effective n × 4-5，能跑更細的 walk-forward 而不擔心 over-fit；"
+                  "HMM 並行可平滑曝險（state probability 取代 binary regime）",
+    },
+    {
+        "title": "⚖️ 3. 架構升級：long-only → L / S market-neutral",
+        "pain": "**long-only + monthly 結構劣勢 vs 0050**——2024 大權值股獨舞那種年份，因子怎麼選都追不上 0050",
+        "plan": "做多相對強 / 放空相對弱、中性化 β。賺**橫截面 spread**，不依賴市場方向",
+        "expect": "假設「相對排序資訊比絕對方向資訊穩」。L / S 至少解掉「market-driven 報酬蓋過 alpha」這個結構問題",
+    },
+    {
+        "title": "🧠 4. 因子擴充（多元增量來源）",
+        "pain": "目前 8 因子多數訊號弱（DSR 校正後只 1-2 個顯著）；主要資料源也吃光（OHLCV / EPS / 月營收 / 法人 / 融資）",
+        "plan": "**兩條增量來源並行**：\n\n"
+                "**(a) LLM feature engineering**（目標 2-3 個候選）—— 新聞 / 法說會逐字稿 / 產業情緒文本特徵工程。"
+                "**LLM 仍走完整驗證**：PIT-safe（只能吃當天前已公開的文本、防 training data contamination）"
+                "+ single-factor IC + DSR + FDR\n\n"
+                "**(b) 其他資料來源**（目標 1-2 個候選）—— 選擇權 implied vol skew、上下游供應鏈 momentum、"
+                "insider / analyst activity 等跨資料來源新因子",
+        "expect": "候選因子池 8 → 12+；**新增來源多元化降低單一方向風險**——不把希望全壓 LLM 一條，"
+                  "其他因子也不繞 DSR / FDR",
+    },
+    {
+        "title": "🤖 5. ML 模型升級（呼應 AI 模型應用）",
+        "pain": "8 因子目前是 linear weight + 等權，沒利用因子間非線性互動——"
+                "例如低波動因子在多頭 / 震盪 / 空頭 regime 下 IC 方向會反轉，"
+                "線性模型給固定權重表達不出這個",
+        "plan": "**主力 XGBoost (gradient boosted trees)，保留 linear + shrinkage 當 baseline 對照**；"
+                "Optuna / 貝氏優化調超參，搭配 **nested time-series walk-forward CV** 防 OOS 洩漏；"
+                "用 SHAP 看每個因子的邊際貢獻保持可解釋性；OOS 仍只測一次。\n\n"
+                "**LSTM / Transformer 等樣本拉到 weekly / daily 再評估**——"
+                "monthly 60 obs 養不起 deep learning，這跟 Roadmap #2 樣本擴充是 prerequisite chain",
+        "expect": "抓非線性互動 + regime-aware 差別化權重帶來增量 alpha；"
+                  "overfit 風險**三層控制**：nested CV / pre-registered hard gates / OOS-once。"
+                  "**評估標準：vs linear baseline 的 alpha lift——沒打贏 baseline 不上線**",
+    },
+]
+
+for item in roadmap_items:
+    with st.container(border=True):
+        st.markdown(f"#### {item['title']}")
+        col_p, col_l, col_e = st.columns([1, 1.2, 1])
+        with col_p:
+            st.markdown("**🔴 本輪痛點**")
+            st.markdown(item["pain"])
+        with col_l:
+            st.markdown("**🟡 下輪做法**")
+            st.markdown(item["plan"])
+        with col_e:
+            st.markdown("**🟢 預期改善**")
+            st.markdown(item["expect"])
+
+st.divider()
+
+# ===============================================================
+# 結尾紀律
+# ===============================================================
+st.success(
+    """
+##### 🎯 結尾：所有 roadmap items 仍受同一套驗證紀律約束
+
+- **PIT-safe**（per-row event lag）
+- **DSR / FDR** multi-test correction
+- **Stationary Block Bootstrap** CI
+- **Pre-registered hard gates**（事前鎖、跑完不准回去挑）
+- **OOS 只測一次**
+
+**LLM 不是繞 PIT 的捷徑，ML 模型不是繞 DSR 的捷徑。** 結果再漂亮也要過同一套門檻。
+
+→ 這就是本專案「驗證紀律比 edge 重要」的延續，不是下一輪換新工具就丟掉紀律。
+"""
+)

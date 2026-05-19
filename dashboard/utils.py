@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import plotly.graph_objects as go
 import streamlit as st
 
 # ===============================================================
@@ -38,7 +39,7 @@ ALL_FACTORS = FIVE_FACTORS + PHASE_D_FACTORS
 
 FACTOR_DISPLAY_NAMES = {
     "high_proximity": "52W 高接近度",
-    "pead_eps": "PEAD / EPS Surprise",
+    "pead_eps": "PEAD / EPS",
     "revenue_momentum_v2": "月營收動能 v2",
     "margin_short_ratio": "融資/融券反向",
     # 2026-05-11 rename: "外資 4 子訊號" → "外資法人因子 v2"
@@ -58,30 +59,30 @@ FACTOR_DISPLAY_NAMES = {
 # 多個 dashboard page 共用，避免 D-X 代號散落
 # ===============================================================
 STRATEGY_NAMES = {
-    "D-B": "動量+獲利+融資（3 因子）",
-    "D-C": "動量+獲利（2 因子）",
-    "D-D": "動量+獲利+融資（高融資權重）",
-    "D-E": "動量+獲利+品質",
-    "D-F": "動量+獲利+產業動量",
-    "D-G": "動量+獲利+特質波動",
+    "D-B": "52W + PEAD + 融資（3 因子）",
+    "D-C": "52W + PEAD（2 因子）",
+    "D-D": "52W + PEAD + 融資（高融資權重）",
+    "D-E": "52W + PEAD + 品質",
+    "D-F": "52W + PEAD + 產業動量",
+    "D-G": "52W + PEAD + 特質波動",
 }
 
 STRATEGY_FACTORS = {
-    "D-B": "52W 高 39% + 獲利驚喜 41% + 融資反向 20%",
-    "D-C": "52W 高 40% + 獲利驚喜 60%",
-    "D-D": "52W 高 34% + 獲利驚喜 36% + 融資反向 30%",
-    "D-E": "52W 高 40% + 獲利驚喜 40% + 品質（ROE/毛利/Δ總資產）20%",
-    "D-F": "52W 高 40% + 獲利驚喜 40% + 產業動量 20%",
-    "D-G": "52W 高 40% + 獲利驚喜 40% + 特質波動+樂透 20%",
+    "D-B": "52W 高接近度 39% + PEAD/EPS 41% + 融資反向 20%",
+    "D-C": "52W 高接近度 40% + PEAD/EPS 60%",
+    "D-D": "52W 高接近度 34% + PEAD/EPS 36% + 融資反向 30%",
+    "D-E": "52W 高接近度 40% + PEAD/EPS 40% + 品質（ROE/毛利/Δ總資產）20%",
+    "D-F": "52W 高接近度 40% + PEAD/EPS 40% + 產業動量 20%",
+    "D-G": "52W 高接近度 40% + PEAD/EPS 40% + 特質波動+樂透 20%",
 }
 
 STRATEGY_LOGIC = {
-    "D-B": "買逼近 52 週高且 EPS 驚喜大但融資不過熱的股票",
-    "D-C": "純價格動量+基本面驚喜雙因子",
+    "D-B": "買逼近 52 週高且 EPS 強但融資不過熱的股票",
+    "D-C": "純價格動量 (52W) + 基本面 (PEAD) 雙因子",
     "D-D": "同 D-B 但放大融資反向權重看是否更穩",
-    "D-E": "動量股中挑 ROE/毛利強且總資產不過度膨脹的",
-    "D-F": "動量股+EPS 驚喜，但要在當期強勢產業裡",
-    "D-G": "動量股+EPS 驚喜，但避開特質波動高+樂透型",
+    "D-E": "52W 高接近度股中挑 ROE/毛利強且總資產不過度膨脹的",
+    "D-F": "52W 高接近度 + PEAD，但要在當期強勢產業裡",
+    "D-G": "52W 高接近度 + PEAD，但避開特質波動高+樂透型",
 }
 
 
@@ -316,16 +317,40 @@ def format_sole_survivor(value: object) -> str:
 
 
 def gate_pass_count(gates: dict) -> int:
-    """從 gates dict 算過幾關 (0-6)。"""
-    keys = [
+    """從 gates dict 算過幾關 (0-6)。
+
+    第 5 關（A1 gate）是 **aggregate**：必須 3 個 sub-conditions 全過才算過：
+    - L5_a1_active_corr_le_0_50  (active correlation ≤ 0.50)
+    - L5_a1_te_ge_0_10           (tracking error ≥ 0.10)
+    - L5_a1_beta_adj_t_gt_1_5    (beta-adjusted alpha t-stat > 1.5)
+    """
+    l5_subs = [
+        "L5_a1_active_corr_le_0_50",
+        "L5_a1_te_ge_0_10",
+        "L5_a1_beta_adj_t_gt_1_5",
+    ]
+    l5_pass = all(gates.get(k, False) for k in l5_subs)
+
+    other_keys = [
         "L1_ir_ge_0_20",
         "L2_mean_alpha_ge_0_005",
         "L3_te_in_range",
         "L4_max_dd_diff_le_0_05",
-        "L5_a1_active_corr_le_0_50",
         "L6_bootstrap_ci_lower_gt_0",
     ]
-    return sum(1 for k in keys if gates.get(k, False))
+    other_count = sum(1 for k in other_keys if gates.get(k, False))
+    return other_count + (1 if l5_pass else 0)
+
+
+def is_gate_passed(gates: dict, gate_key: str) -> bool:
+    """單一 gate 過關判斷；L5 用 aggregate 邏輯，其他直接看 boolean。"""
+    if gate_key == "L5_a1_active_corr_le_0_50":
+        return all(gates.get(k, False) for k in [
+            "L5_a1_active_corr_le_0_50",
+            "L5_a1_te_ge_0_10",
+            "L5_a1_beta_adj_t_gt_1_5",
+        ])
+    return gates.get(gate_key, False)
 
 
 def gate_color_segment(pass_count: int) -> str:
@@ -337,3 +362,105 @@ def gate_color_segment(pass_count: int) -> str:
     if pass_count >= 3:
         return "orange"
     return "red"
+
+
+# ===============================================================
+# P1 首頁 hero 用 helper（新增）
+# ===============================================================
+def render_hero_kpi_strip(st_module) -> None:
+    """8 個 KPI 用 st.metric + 4×2 columns 排版（取代原 plotly Indicator hack）。
+
+    數字硬編碼來自專案研究現況文件。修改前先比對最新研究數字。
+    """
+    kpis = [
+        ("樣本期", "5 年", "2020-2024 IS"),
+        ("月資料點", "60", "+ 12 OOS"),
+        ("學術因子", "8", "階段一 5 + 階段三 3"),
+        ("策略候選", "18", "6 組合 × 3 持股"),
+        ("自動化測試", "696", "pytest 全綠（含 PIT mutation + DSR golden）"),
+        ("審計輪次", "6", "獨立 audit cycle"),
+        ("Silent bug found", "2", "tz / universe 預篩"),
+        ("下一輪 roadmap", "5", "詳見「結論」頁"),
+    ]
+    # 第 1 排 4 個
+    row1 = st_module.columns(4)
+    for col, (label, value, sub) in zip(row1, kpis[:4]):
+        with col:
+            st_module.metric(label=label, value=value, delta=sub, delta_color="off")
+    # 第 2 排 4 個
+    row2 = st_module.columns(4)
+    for col, (label, value, sub) in zip(row2, kpis[4:]):
+        with col:
+            st_module.metric(label=label, value=value, delta=sub, delta_color="off")
+
+
+def build_timeline_plotly() -> go.Figure:
+    """研究路徑時間軸 — horizontal scatter，標 5 階段轉折節點。
+
+    取代原首頁 markdown table；結尾為「Phase 2 規劃中」開放式收尾。
+    """
+    stages = [
+        ("Phase A1\n5 因子單獨檢驗", "2026-04-16", "2 / 5 顯著", "#3498db"),
+        ("Phase A2\n雙因子回測", "2026-04-19", "IR collapse 99.4%", "#9b59b6"),
+        ("Options pivot\nTXO Iron Condor", "2026-04-23", "5 yr OOS Sharpe -2.1~-2.9", "#e67e22"),
+        ("Phase D\n18-cell sweep", "2026-05-04", "0 / 18 過 6 / 6 gates", "#e74c3c"),
+        ("Phase 2 規劃中\n下一輪改造", "2026-05-18", "5 roadmap items", "#27ae60"),
+    ]
+    fig = go.Figure()
+    for i, (label, date, sub, color) in enumerate(stages):
+        # 主節點圓
+        fig.add_trace(
+            go.Scatter(
+                x=[date],
+                y=[0],
+                mode="markers",
+                marker=dict(size=28, color=color, line=dict(color="white", width=3)),
+                hovertemplate=f"<b>{label}</b><br>{date}<br>{sub}<extra></extra>",
+                showlegend=False,
+            )
+        )
+        # 標題標籤
+        y_offset = 0.5 if i % 2 == 0 else -0.5
+        fig.add_annotation(
+            x=date,
+            y=y_offset,
+            text=f"<b>{label}</b><br><span style='font-size:0.85em;color:#7f8c8d'>{sub}</span>",
+            showarrow=False,
+            font=dict(size=11),
+            align="center",
+            yanchor="bottom" if y_offset > 0 else "top",
+        )
+    # 連線
+    fig.add_trace(
+        go.Scatter(
+            x=[s[1] for s in stages],
+            y=[0] * len(stages),
+            mode="lines",
+            line=dict(color="#bdc3c7", width=2, dash="dot"),
+            showlegend=False,
+            hoverinfo="skip",
+        )
+    )
+    fig.update_layout(
+        height=260,
+        margin=dict(t=20, b=20, l=20, r=20),
+        xaxis=dict(
+            type="date",
+            showgrid=False,
+            zeroline=False,
+            showline=False,
+            tickformat="%Y-%m",
+        ),
+        yaxis=dict(
+            range=[-1.2, 1.2],
+            showgrid=False,
+            zeroline=False,
+            showline=False,
+            showticklabels=False,
+        ),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+    return fig
+
+
