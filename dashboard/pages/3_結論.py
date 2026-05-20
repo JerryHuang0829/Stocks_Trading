@@ -2,9 +2,7 @@
 
 頁面結構：
 1. 本輪結論：NO-GO 三個失敗點
-2. 本輪學到的事
-3. Path to GO Roadmap（5 items）
-4. 結尾紀律
+2. Path to GO Roadmap（5 items）
 """
 
 from __future__ import annotations
@@ -29,50 +27,35 @@ fail_col1, fail_col2, fail_col3 = st.columns(3)
 with fail_col1:
     st.error(
         """
-##### 第 6 關 Bootstrap CI 全 fail
+##### 因子訊號弱（輸入端）
 
-**18 / 18 cells 第 6 關 80% Bootstrap CI 下界 ≤ 0**
+**8 因子最強 IC IR 僅 0.33、DSR 全 = 0**
 
-→ 沒有任何 cell 的超額報酬統計顯著
+→ 訊號搆不到機構門檻，因子本身就弱
 """
     )
 
 with fail_col2:
     st.error(
         """
-##### 雙因子策略 IR collapse 99.4%
+##### long-only 月頻架構吃虧（架構端）
 
-**IS IR = 0.92 → OOS IR = 0.0058**
+**不能放空、只吃得到因子排序的上半截**
 
-→ 典型 in-sample over-fit，OOS 立即 collapse
+→ 月頻 long-only 結構性追不上 0050
 """
     )
 
 with fail_col3:
     st.error(
         """
-##### 8 因子訊號本身就弱
+##### 統計上驗不出顯著（驗證端）
 
-**最強 IC IR 僅 0.33、8 因子 DSR 全 = 0**
+**18 / 18 cells 第 6 關 Bootstrap CI 下界 ≤ 0**
 
-→ 原料就弱，組合再怎麼搭也擠不出 robust alpha
+→ 60 月 / effective n≈20，樣本太薄、證不出 edge
 """
     )
-
-st.divider()
-
-# ===============================================================
-# 本輪學到的事
-# ===============================================================
-st.subheader("📚 本輪學到的事 — 結構問題不是運氣不好")
-
-st.markdown(
-    """
-- **📊 long-only 月頻 vs 0050 有結構劣勢**——像 2024 大權值股獨舞的年份，因子怎麼選都追不上，這不是「因子不夠強」，是結構問題（→ Roadmap #3 L / S）
-- **🧮 60 個月對嚴格統計檢定遠遠不夠**——Block bootstrap 把時序相關性扣掉後 effective n 只剩 20，普通 t-test 假定獨立會嚴重高估顯著性（→ Roadmap #1 樣本擴充）
-- **🔬 IC IR ≠ portfolio Sharpe**——因子層的 signal-to-noise（IC IR）再高，也不代表組合成策略後就有 alpha。中間隔著加權、產業約束、交易成本——factor-level 指標好看 ≠ portfolio-level 有 edge
-"""
-)
 
 st.divider()
 
@@ -114,16 +97,23 @@ roadmap_items = [
         "expect": "假設「相對排序資訊比絕對方向資訊穩」。L / S 至少解掉「market-driven 報酬蓋過 alpha」這個結構問題",
     },
     {
-        "title": "🧠 4. 因子擴充（多元增量來源）",
-        "pain": "目前 8 因子訊號普遍弱（只 3 個過 p<0.05、8 個 DSR 全 0）；主要資料源也吃光（OHLCV / EPS / 月營收 / 法人 / 融資）",
-        "plan": "**兩條增量來源並行**：\n\n"
-                "**(a) LLM feature engineering**（目標 2-3 個候選）—— 新聞 / 法說會逐字稿 / 產業情緒文本特徵工程。"
-                "**LLM 仍走完整驗證**：PIT-safe（只能吃當天前已公開的文本、防 training data contamination）"
-                "+ single-factor IC + DSR + FDR\n\n"
-                "**(b) 其他資料來源**（目標 1-2 個候選）—— 選擇權 implied vol skew、上下游供應鏈 momentum、"
-                "insider / analyst activity 等跨資料來源新因子",
-        "expect": "候選因子池 8 → 12+；**新增來源多元化降低單一方向風險**——不把希望全壓 LLM 一條，"
-                  "其他因子也不繞 DSR / FDR",
+        "title": "🧠 4. 因子升級：教科書因子 → 自建較不擁擠訊號",
+        "pain": "8 因子多數訊號弱（3 個過 p<0.05、DSR 全 0）。**更根本的問題：公開的學術因子"
+                "本來就被市場套利** —— McLean & Pontiff (2016) 實證，因子在論文發表後報酬"
+                "平均衰減約 58%。只抄教科書 / 開源因子，撿的是別人吃過的。",
+        "plan": "從「抄公開因子」轉成「**自建較不擁擠的因子**」，兩條並行：\n\n"
+                "**(a) proprietary feature engineering** —— 用 LLM 把公開但非結構化的資料"
+                "（新聞 / 法說會逐字稿 / 產業情緒）做成文本因子。\n\n"
+                "**(b) 學術 / 他人研究 —— 當起點，不照抄** —— 已發表的訊號（選擇權 implied "
+                "vol skew、上下游供應鏈動量、insider / analyst activity 等）可以用，但原始 "
+                "construction 就是被套利的擁擠版本；要把它當「假設起點」，改算法 / 換 universe "
+                "/ 重新組合成較不擁擠的變體。\n\n"
+                "**關鍵紀律：自建因子是 data-snooping 風險最高的一類** —— 驗證標準要"
+                "**比現在更嚴**：先寫經濟假設、pre-register、PIT-safe（防文本 contamination），"
+                "再跑 single-factor IC + DSR + FDR + OOS。",
+        "expect": "因子池從「撿公開因子」升級為「自建、變形」，驗證加嚴後留下的因子"
+                  "可信度更高。**評估標準不變 —— 過不了 DSR / FDR，自建的一樣淘汰；"
+                  "自建不是繞驗證的捷徑。**",
     },
     {
         "title": "🤖 5. ML 模型升級（呼應 AI 模型應用）",
@@ -154,24 +144,3 @@ for item in roadmap_items:
         with col_e:
             st.markdown("**🟢 預期改善**")
             st.markdown(item["expect"])
-
-st.divider()
-
-# ===============================================================
-# 結尾紀律
-# ===============================================================
-st.success(
-    """
-##### 🎯 結尾：所有 roadmap items 仍受同一套驗證紀律約束
-
-- **PIT-safe**（per-row event lag）
-- **DSR / FDR** multi-test correction
-- **Stationary Block Bootstrap** CI
-- **Pre-registered hard gates**（事前鎖、跑完不准回去挑）
-- **OOS 只測一次**
-
-**LLM 不是繞 PIT 的捷徑，ML 模型不是繞 DSR 的捷徑。** 結果再漂亮也要過同一套門檻。
-
-→ 這就是本專案「驗證紀律比 edge 重要」的延續，不是下一輪換新工具就丟掉紀律。
-"""
-)

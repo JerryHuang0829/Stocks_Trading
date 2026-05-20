@@ -57,25 +57,6 @@ with tab_strategy:
     # ─────────────────────────────────────────
     st.markdown("### 階段二：雙因子策略（52W 50% + PEAD 50%）— IR collapse 揭示")
 
-    st.warning(
-        """
-📌 **為什麼先測雙因子，再做 18 種策略 sweep？**
-
-**起因**：5 個學術因子單獨 IC 驗證後（見「因子驗證」頁），**只有 52W 高接近度 + PEAD/EPS 2 個過嚴格門檻**。
-自然就先把這 2 個強因子等權組起來測——這是**雙因子策略**。
-
-**轉折**：雙因子 IS 60 月看似 Sharpe 1.53 / IR 0.92 強到不真實，但 **OOS IR 0.0058 = 99.4% collapse**。
-揭示「**2 個 IS 強因子綁定測試容易 over-fit lucky run**」——沒做「加入第三個 variable factor 是否帶來增益」的 ablation。
-
-**升級到 3 因子組合**：推動進入階段三——共用 52W + PEAD 當基底，
-**加 1 個變動的第三因子**（融資 / 品質 / 產業動量 / 特質波動）+ 3 種持股數 = **18 種組合**。
-看哪個 3-factor variant 能帶來真實 OOS robustness。
-
-**為什麼 D-A 預先 disqualify**：D-A 候選（純 52W + PEAD 50/50）= 階段二的雙因子策略本人。
-OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中排除。
-"""
-    )
-
     metrics_is = load_d1v2_metrics("is")
     metrics_oos = load_d1v2_metrics("oos")
     daily_is = load_d1v2_daily_returns("is")
@@ -152,10 +133,9 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
         )
         st.plotly_chart(fig, width="stretch")
 
-        st.warning(
-            """
-📖 **怎麼看這張圖（很關鍵 — 不要被絕對值騙了）**
-
+        with st.expander("📖 怎麼看這張圖", expanded=False):
+            st.markdown(
+                """
 雙因子策略（藍 / 紅線）看起來一直**高於** 0050（灰虛線），會誤以為「策略一直贏」。
 **但 alpha 要看「斜率」（period growth），不是「絕對位置」**：
 
@@ -168,14 +148,16 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
 紅線位置高只是 IS 期間積累的歷史優勢、不是 OOS 持續創造的 alpha。
 **這就是 IR 從 0.9238 → 0.0058（collapse 99.4%）的視覺呈現**。
 """
-        )
+            )
 
         # 12 指標表
         st.markdown("##### 📊 12 個指標 IS vs OOS 對照")
         st.caption(
-            "📌 **表中紅色高亮的 2 行（Alpha / IR）是 over-fitting 證據**——"
-            "純 alpha 在 OOS 完全消失。其他 metric 如 Sharpe / Calmar / Total Return 還在，"
-            "是因為 OOS 2025 大盤自己就漲了 +33.5%，**被 beta × 大盤蓋過、不能當策略沒崩的依據**。"
+            "📌 **紅色高亮的 2 行（Alpha / IR）是 over-fitting 證據**——純 alpha 在 OOS 完全消失。"
+            "**判讀門檻**：alpha 沒有「> X%」這種固定標準，看 **IR**（alpha 的夏普值）"
+            "—— ≥ 0.5 有料、≥ 1 強，本策略 IS 0.92 → OOS 0.006 等於歸零。"
+            "**Sharpe** 雖然 ≥ 1 算可以，但它含 beta：OOS 的 1.41 是大盤漲（0050 +33.5%）撐的，"
+            "不是 alpha，不能當策略沒崩的依據。"
         )
 
         def _fmt(v, fmt=".3f"):
@@ -384,6 +366,8 @@ Politis-Romano 1994 的 stationary block bootstrap 以 block 為單位重抽（b
 
 **block_len=3 的意義**：60 個 monthly observations × block_len=3 → effective n ≈ 20，
 這就是為什麼 80% CI lower 是嚴格門檻——你不能用 60 個觀測偽裝出 60 個獨立資訊。
+
+**為什麼是 3 和 42**：block_len=3 對應月報酬的短期自相關（約一季）；seed=42 只是固定種子讓結果可重現，**值本身不重要**。重點 —— 這兩個連同 alpha / n 都是 L6 規格**事前鎖定**，看到結果不能回頭調（調 block_len 湊 CI = p-hacking）。
 """
             )
 
@@ -401,14 +385,6 @@ Politis-Romano 1994 的 stationary block bootstrap 以 block 為單位重抽（b
 - 95% 對 60 month sample 過嚴格，連雙因子策略 IS 都過不了
 - 80% 對雙因子策略 IS 通過，但對階段三 18 cells **依然全部過不了**
 - **證明本 sweep 的 NO-GO 不是「標準太嚴」造成，是真的沒 edge**
-"""
-            )
-
-            st.success(
-                """
-🎯 **本路徑結論**：80% CI 已是 retail-realistic 中道（vs 95% 嚴格）+ block bootstrap 是時序資料的正確方法
-+ 18 / 18 cells lower bound ≤ 0 → **任何降標都改變不了「無顯著 alpha」的事實**。
-降標讓 D-C\\|12 / D-E\\|12 / D-E\\|16（4 / 6）進 paper trade = silent_bug pattern。
 """
             )
 
