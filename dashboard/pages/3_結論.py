@@ -29,7 +29,7 @@ st.info(
 ##### 一句話總結
 
 **量化結論的可信度，建立在底層的回測架構**——自做 PIT-safe BacktestEngine 處理台股 per-row event lag、
-預先鎖定 6 道 hard gates、5 輪獨立 audit 校驗。**沒有這層紀律，再漂亮的 Sharpe 都可能是 look-ahead bias 的 artifact**
+預先鎖定 6 道 hard gates、6 輪獨立 audit 校驗。**沒有這層紀律，再漂亮的 Sharpe 都可能是 look-ahead bias 的 artifact**
 （本專案 phase 1 抓到 2 個 silent bug，揭穿過去 4 年 Sharpe 1.73 是 overfit、α +39% → +3.4%）。
 
 在這層紀律下誠實得到結論：**NO-GO（沒有 robust edge）——高信度，不是「跑得不好」**。
@@ -138,7 +138,7 @@ st.markdown(
 - **🎯 系統架構正確性比好看的 edge 更重要**——過去 4 年看似 Sharpe 1.73 的成績，根因是兩個 silent bug 造成的 look-ahead bias + universe contamination
 - **📊 long-only 月頻 vs 0050 有結構劣勢**——像 2024 大權值股獨舞的年份，因子怎麼選都追不上，這不是「因子不夠強」，是結構問題（→ Roadmap #3 L / S）
 - **🧮 60 個月對嚴格統計檢定遠遠不夠**——Block bootstrap 把時序相關性扣掉後 effective n 只剩 20，普通 t-test 假定獨立會嚴重高估顯著性（→ Roadmap #1 樣本擴充）
-- **📉 台股學術因子訊號普遍弱**——8 個學術因子個別 IC 只有 2 個過 𝛼 = 0.05 顯著（DSR 校正後也只有 1-2 個），跟美股大樣本研究結果落差大
+- **📉 台股學術因子訊號普遍弱**——8 個學術因子個別 IC 只有 3 個過 𝛼 = 0.05 顯著（high_proximity / pead_eps / idio_vol_max），且全部 DSR=0 —— 多重檢定校正後沒有一個達 institutional 門檻，跟美股大樣本研究結果落差大
 - **🔬 IC IR ≠ portfolio Sharpe**——雙因子策略 IS IR 0.92（看似強因子）→ OOS 0.0058，因子層 signal-to-noise 不等於組合後 alpha
 """
 )

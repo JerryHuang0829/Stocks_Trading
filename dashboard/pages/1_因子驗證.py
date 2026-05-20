@@ -175,9 +175,48 @@ st.caption(
 st.divider()
 
 # ===============================================================
+# 因子漏斗 9 → 8 → 6
+# ===============================================================
+st.subheader("📊 因子漏斗:9 → 8 → 6")
+st.caption("「因子」在不同階段有不同數量 —— 先看這個漏斗，下方主表才不會誤解。")
+
+fn_c1, fn_c2, fn_c3 = st.columns(3)
+with fn_c1:
+    st.metric(
+        label="① 實作的因子",
+        value="9",
+        delta="全部跑過 single-factor IC",
+        delta_color="off",
+    )
+with fn_c2:
+    st.metric(
+        label="② 進下方 IC 主表",
+        value="8",
+        delta="low_vol_v2 走獨立 spike，不在此表",
+        delta_color="off",
+    )
+with fn_c3:
+    st.metric(
+        label="③ 進最終策略候選",
+        value="6",
+        delta="排除:月營收 弱IC、外資 負IR",
+        delta_color="off",
+    )
+
+st.caption(
+    "**①→②**:9 個因子全部實作 + 跑 single-factor IC；其中 low_vol_v2 走的是獨立的 "
+    "B0-Lite spike test（IC 存在 `phase_b0_lite/`），所以**下方主表是 8 個**"
+    "（Phase A1 五 + Phase D 三）。\n\n"
+    "**②→③**:8 個再排除 2 個 —— 月營收 v2（IC 不顯著 p≈0.11）、外資 v2"
+    "（IR 為負，long-only 無法萃取 alpha）→ **最後 6 個**進策略驗證頁的 6 個候選組合。"
+)
+
+st.divider()
+
+# ===============================================================
 # 8 因子 verdict 主表
 # ===============================================================
-st.subheader("📋 8 因子 IC 主表")
+st.subheader("📋 8 因子 IC 主表（漏斗第 ② 層）")
 
 ics = load_all_eight_factor_ics()
 if not ics:
@@ -212,7 +251,6 @@ for factor in ALL_FACTORS:
     is_phase_d = factor in PHASE_D_FACTORS
     fdr = _fdr_by_factor.get(factor)
     dsr = ic.get("deflated_sharpe_ratio")
-    eff_n = ic.get("effective_n")
 
     mean_ic = overall.get("mean_ic", 0)
     p_val = overall.get("p_value", 1)
@@ -232,11 +270,47 @@ for factor in ALL_FACTORS:
         "FDR-adj p": "N/A (非 m=5 pre-reg)" if is_phase_d else (f"{fdr:.4f}" if fdr is not None else "N/A"),
         "DSR": f"{dsr:.4f}" if dsr is not None else "N/A",
         "Bootstrap CI 95%": f"[{ci[0]:.4f}, {ci[1]:.4f}]" if ci and ci[0] is not None else "N/A",
-        "effective n": f"{eff_n:.0f}" if eff_n else "N/A",
         "verdict": verdict,
     })
 
 st.dataframe(pd.DataFrame(table_rows), width="stretch", hide_index=True)
+
+with st.expander("📊 為什麼 DSR 全 0、FDR 部分顯示 N/A？（點開看白話說明）", expanded=False):
+    st.markdown(
+        """
+**① DSR 全 8 個因子都 = 0 — 不是 bug**
+
+DSR 在做一件事:**把「我試了好幾個因子、挑最好看那個」的運氣扣掉**。
+
+🎯 比喻:一群同學閉著眼睛射飛鏢（= 一組純噪音因子）。就算全部閉眼，總會有一個
+「手氣最好」剛好射得準 —— 那不是技術，是「人多了總有一個運氣好」。DSR 就問:
+**「你的因子，贏不贏得過『這批閉眼射手裡手氣最好那個』?」**
+- 本專案一組 3~5 個因子，「閉眼射手裡最準那個」的期望成績 ≈ **1.3~1.5**
+- 你最強的因子成績只有 **0.33** → 連「最好運的瞎射」都沒贏 → **DSR = 0**
+
+為什麼贏不過?因為**因子訊號本身就弱** —— 最強的 IC IR 才 0.33，離門檻 1.3~1.5 差一
+大截。這個落差**不是樣本太少造成的**:IC IR 真實值就是 0.3 等級，收再多月份資料也只是
+更精確確認 0.33，不會把它變高。DSR=0 的結構性原因是「台股月頻 long-only 因子的訊號
+天花板 ≈ 0.3~0.4，而 DSR 門檻是 hedge-fund 級的 1.3~1.5」—— 兩個世界不重疊，對 retail
+是**正常、預期內**，不是因子寫錯。
+
+> 📌 注意:DSR=0 跟「樣本只有 60 個月」**沒有直接關係**。樣本太短真正影響的是
+> 「策略驗證」頁第 6 關 bootstrap CI 的寬度，不是這裡的 DSR。兩者別混。
+
+**② 階段三 3 因子的 FDR 顯示「N/A」— 不是算不出來**
+
+`p < 0.05` = 「純靠運氣的機率只有 5%」—— 但這是**只測一個**的時候。測 5 個的話，
+就算 5 個全是噪音，光靠運氣大概也會有 1 個 p 跑進 0.05 以下（5 × 5% = 25% 機率
+踩到假警報）。FDR 就是把這個「我測了好幾個」的虛胖修正掉。
+
+FDR 算之前要先知道「家族有幾個成員」:階段一 5 因子是**看資料前就講好**要測的家族 →
+有 FDR 值;階段三 3 因子是**後來才補測**的，不在那個「5 個的家族」名單裡 →
+沒有它們的 FDR 值 → 標 **N/A**。
+
+把 8 個硬湊成一個家族一起算 = 看完結果才改當初的承諾 = 移動球門（p-hacking）→
+不可。**標 N/A 才誠實。**
+"""
+    )
 
 st.caption(
     "📌 **為什麼跳過階段二**：階段二（雙因子策略）是把階段一的 52W + PEAD 組起來測，"
@@ -264,7 +338,20 @@ with st.expander("📖 評估指標說明（看上方主表前先看）", expand
 | **FDR-adj p** | **同時測多個因子有人純粹運氣過 0.05 嗎？** | Benjamini-Hochberg 校正（階段一 5 因子 m=5 pre-reg）。避免 testing fishing 假陽性 |
 | **DSR (Deflated Sharpe Ratio)** | **校正後的 Sharpe 信心度**——Sharpe 偏離常態 + 試了多個 trial 後，真的有 edge 嗎？ | Bailey & Lopez de Prado (2014)。Ψ ≥ 0.95 強信心；Ψ ≤ 0.05 連 null 都贏不了。**注意：DSR 是 confidence 不是 p-value，方向相反！** |
 | **Bootstrap CI 95%** | **重抽 10000 次後，這個 IC 還會是正的嗎？** | Politis-Romano stationary block bootstrap (block_len=3) 保留時序自相關，估 mean IC 的 95% CI。下界 > 0 = robust |
-| **effective n** | **去掉產業 cluster 重複資訊後，真實有多少獨立資訊？** | 產業 cluster 校正後的有效樣本數。避免高度相關 cluster 過度膨脹顯著性 |
+
+---
+
+**📌 DSR 的 `n_trials` 是什麼（容易誤解，先講清楚）**
+
+DSR 公式裡的 `n_trials` = **「事前鎖定的測試因子家族大小」**，**不是** dashboard 上的因子總數 8。
+- 階段一 5 因子 → `n_trials=5`（pre-registered m=5 家族）
+- 階段三 3 因子 → `n_trials=3`（後補的另一批，自己的家族）
+- **不合併成 8**：兩批不同時間 pre-register，事後合併 = 改動 pre-registered 參數 = p-hacking
+
+DSR 對 `n_trials` 在 **[2, 30] 範圍內都給 ≈ 0** — 本專案 8 因子 DSR 全 0 對這個參數**不敏感**：
+IC IR 最強的也才 0.33，遠低於「n_trials 個純噪音因子裡運氣最好那個」的期望 Sharpe（n_trials=5 時 ≈ 1.50）。
+DSR=0 的結構性原因是「台股月頻 long-only 因子訊號天花板 ≈ 0.3~0.4 vs hedge-fund 級門檻 1.3~1.5」，
+**不是樣本太少造成的**（樣本長度影響的是策略驗證頁第 6 關 bootstrap CI，不是這裡的 DSR）。
 
 ---
 
@@ -525,51 +612,3 @@ with tab_c:
             f"**Spearman rank correlation**, n_periods≈{n_avg} monthly。"
             "RdBu_r colorscale 中央對齊 0；對角線 1.0 是因子自相關。"
         )
-
-st.divider()
-
-# ===============================================================
-# 研究決策案例 — low_vol_v2 文獻說有用、實測 reject
-# ===============================================================
-st.subheader("🔬 研究決策案例 — 不追文獻、只信能驗的東西")
-
-st.markdown(
-    """
-**low_vol_v2（低波動因子）**：文獻說有效（Frazzini-Pedersen *Betting Against Beta* / Ang et al. *The Cross-Section of Volatility and Expected Returns*），
-我也跑了 spike test 驗證——**結果 DSR Ψ = 0，reject 不納入策略候選**。
-
-這是「**不追老師、只信能驗的東西**」的具體案例：學術 paper 在美股大樣本機構規模下顯著，
-不代表在我的台股 100 萬 NTD baseline + 月頻 long-only 設定下顯著。**過不了驗證就不上**，不靠 paper 背書放行。
-"""
-)
-
-case_col1, case_col2 = st.columns(2)
-
-with case_col1:
-    st.markdown("##### 📊 Spike test 結果")
-    st.markdown(
-        """
-| 指標 | 數值 | 判斷 |
-|---|---|---|
-| mean IC | **+0.0584** | 🟡 看似 strong |
-| DSR Ψ | **0** | 🔴 完全沒信心 |
-| Turnover | **37.5%** | 🟡 過 H_lite gate |
-| Verdict | **🔴 Reject** | 不晉升 production |
-"""
-    )
-
-with case_col2:
-    st.markdown("##### 🎯 為什麼 reject？")
-    st.markdown(
-        """
-- **DSR = 0** 意思是「校正多重檢定 + Sharpe 非常態偏度峰度」後，**連 null hypothesis 都贏不了**——
-  mean IC 0.0584 看似 strong 是 lucky outlier，不是 robust edge
-- IC 跟 DSR **方向矛盾** = 經典 over-fit 訊號
-- 我**沒有為了納入這個因子降低 DSR 標準**——降標就是 silent bug pattern
-"""
-    )
-
-st.success(
-    "🎯 **紀律展示**：學術文獻 +1 因子 candidate，但**過不了 Pro methodology 三關（IC + DSR + turnover）就不上**。"
-    "low_vol_v2 是「**不信賴文獻 / 信實測**」的具體寫照——對任何訊息保持懷疑，自己驗了再決定。"
-)

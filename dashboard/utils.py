@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import plotly.graph_objects as go
 import streamlit as st
 
 # ===============================================================
@@ -392,75 +391,5 @@ def render_hero_kpi_strip(st_module) -> None:
     for col, (label, value, sub) in zip(row2, kpis[4:]):
         with col:
             st_module.metric(label=label, value=value, delta=sub, delta_color="off")
-
-
-def build_timeline_plotly() -> go.Figure:
-    """研究路徑時間軸 — horizontal scatter，標 5 階段轉折節點。
-
-    取代原首頁 markdown table；結尾為「Phase 2 規劃中」開放式收尾。
-    """
-    stages = [
-        ("Phase A1\n5 因子單獨檢驗", "2026-04-16", "2 / 5 顯著", "#3498db"),
-        ("Phase A2\n雙因子回測", "2026-04-19", "IR collapse 99.4%", "#9b59b6"),
-        ("Options pivot\nTXO Iron Condor", "2026-04-23", "5 yr OOS Sharpe -2.1~-2.9", "#e67e22"),
-        ("Phase D\n18-cell sweep", "2026-05-04", "0 / 18 過 6 / 6 gates", "#e74c3c"),
-        ("Phase 2 規劃中\n下一輪改造", "2026-05-18", "5 roadmap items", "#27ae60"),
-    ]
-    fig = go.Figure()
-    for i, (label, date, sub, color) in enumerate(stages):
-        # 主節點圓
-        fig.add_trace(
-            go.Scatter(
-                x=[date],
-                y=[0],
-                mode="markers",
-                marker=dict(size=28, color=color, line=dict(color="white", width=3)),
-                hovertemplate=f"<b>{label}</b><br>{date}<br>{sub}<extra></extra>",
-                showlegend=False,
-            )
-        )
-        # 標題標籤
-        y_offset = 0.5 if i % 2 == 0 else -0.5
-        fig.add_annotation(
-            x=date,
-            y=y_offset,
-            text=f"<b>{label}</b><br><span style='font-size:0.85em;color:#7f8c8d'>{sub}</span>",
-            showarrow=False,
-            font=dict(size=11),
-            align="center",
-            yanchor="bottom" if y_offset > 0 else "top",
-        )
-    # 連線
-    fig.add_trace(
-        go.Scatter(
-            x=[s[1] for s in stages],
-            y=[0] * len(stages),
-            mode="lines",
-            line=dict(color="#bdc3c7", width=2, dash="dot"),
-            showlegend=False,
-            hoverinfo="skip",
-        )
-    )
-    fig.update_layout(
-        height=260,
-        margin=dict(t=20, b=20, l=20, r=20),
-        xaxis=dict(
-            type="date",
-            showgrid=False,
-            zeroline=False,
-            showline=False,
-            tickformat="%Y-%m",
-        ),
-        yaxis=dict(
-            range=[-1.2, 1.2],
-            showgrid=False,
-            zeroline=False,
-            showline=False,
-            showticklabels=False,
-        ),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-    )
-    return fig
 
 

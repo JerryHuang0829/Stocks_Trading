@@ -23,7 +23,6 @@ from utils import (  # noqa: E402
     STRATEGY_NAMES,
     gate_pass_count,
     is_gate_passed,
-    load_a11_l6_ci_comparison_md,
     load_bootstrap_ci_lowers,
     load_cell_summary,
     load_d1v2_daily_returns,
@@ -163,7 +162,7 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
 
 | 期間 | 雙因子 growth | 0050 growth | Alpha |
 |---|---|---|---|
-| **IS（2020-2024，5 年）** | +400% | +120% | 策略 5 年**大贏 280pp** ✅ |
+| **IS（2020-2024，5 年）** | +431% | +137% | 策略 5 年**大贏 294pp** ✅ |
 | **OOS（2025，1 年）** | **+33.6%**（從 5.3x → 7.1x）| **+33.5%**（從 2.4x → 3.2x）| 策略 OOS **持平大盤（+0.1pp，落入 noise）** ⚠️ |
 
 **OOS 紅線跟灰虛線斜率變一致** = 沒有持續拉開差距 = **alpha 已 collapse**。
@@ -250,6 +249,12 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
         for cid in ["D-B", "D-C", "D-D", "D-E", "D-F", "D-G"]
     ])
     st.dataframe(strategy_table, width="stretch", hide_index=True)
+
+    st.caption(
+        "📌 這 6 個候選用到 6 個因子（52W / PEAD / 融資反向 / 品質 / 產業動量 / 特質波動）"
+        "—— 篩自「因子驗證」頁的 8 個（排除月營收 v2 弱 IC、外資 v2 負 IR）。"
+        "完整 9 → 8 → 6 因子漏斗見因子驗證頁頂部。"
+    )
 
     summary = load_cell_summary()
     if summary is None:
@@ -549,9 +554,9 @@ class _DataSlicer:
     st.divider()
 
     # ===========================================
-    # 5 輪獨立 audit 紀律 timeline
+    # 6 輪獨立 audit 紀律 timeline
     # ===========================================
-    st.markdown("#### 🔍 5 輪獨立 audit 紀律")
+    st.markdown("#### 🔍 6 輪獨立 audit 紀律")
 
     st.markdown(
         "**結果太好先懷疑 bug**——這是本輪 silent bug 經驗後的反思。"
