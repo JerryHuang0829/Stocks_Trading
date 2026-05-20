@@ -181,7 +181,7 @@ def load_all_eight_factor_ics() -> dict[str, dict]:
 
 @st.cache_data(ttl=600)
 def load_factor_correlation() -> dict | None:
-    """5×5 Spearman rank correlation matrix。"""
+    """8×8 Spearman rank correlation matrix。"""
     return _load_json(FACTOR_IC / "factor_correlation_matrix.json")
 
 

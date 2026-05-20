@@ -3,8 +3,8 @@
 頁面結構：
 1. 頁首 — 8 因子 verdict 主表
 2. Tab A — 學術背景 + 計算公式 + PIT 防護（動態 select factor）
-3. Tab B — IC 統計細部（select factor → 月度 IC bar + by_regime + by_decile）
-4. Tab C — 5×5 相關性 heatmap
+3. Tab B — IC 統計細部（select factor → by_regime + by_bucket + 月度 IC）
+4. Tab C — 8×8 相關性 heatmap
 """
 
 from __future__ import annotations
@@ -372,7 +372,7 @@ st.subheader("🔍 因子細部分析")
 tab_a, tab_b, tab_c = st.tabs([
     "📚 學術背景 + 計算公式",
     "📊 IC 統計細部",
-    "🔗 5×5 相關性 heatmap",
+    "🔗 8×8 相關性 heatmap",
 ])
 
 # ---- Tab A — 學術背景 + 計算公式 ----
@@ -411,7 +411,7 @@ with tab_a:
 # ---- Tab B — IC 統計細部 ----
 with tab_b:
     st.caption(
-        "**by_regime**：按市場狀態（risk_on/caution/risk_off）拆 IC，看因子在哪種市場有效。"
+        "**by_regime**：按市場狀態（trending_up/trending_down/ranging）拆 IC，看因子在哪種市場有效。"
         "**by_bucket**：按時間切片（年度）拆 IC，看因子表現是否穩定。"
         "**月度 IC**：每月 IC 的時序，看是否有 collapse / regime shift。"
     )
@@ -471,46 +471,6 @@ with tab_b:
         else:
             st.info("無 by_bucket 資料")
 
-    # by_decile (新增 — 原 dashboard 沒露)
-    st.markdown("---")
-    st.markdown("**By Decile（10 分位 spread monotonicity）**")
-    by_decile = ic.get("by_decile", {})
-    decile_avg = by_decile.get("decile_avg_returns_across_periods", {})
-    if decile_avg:
-        dec_rows = [
-            {"Decile": f"D{int(k)}", "平均下月報酬": v}
-            for k, v in sorted(decile_avg.items(), key=lambda x: int(x[0]))
-        ]
-        df_dec = pd.DataFrame(dec_rows)
-        fig_dec = go.Figure(
-            go.Bar(
-                x=df_dec["Decile"],
-                y=df_dec["平均下月報酬"],
-                marker=dict(color=df_dec["平均下月報酬"], colorscale="RdYlGn", cmid=0),
-                text=[f"{v:.4f}" for v in df_dec["平均下月報酬"]],
-                textposition="outside",
-            )
-        )
-        mono_rho = by_decile.get("monotonicity_spearman_rho")
-        title_text = f"10 分位平均下月報酬"
-        if mono_rho is not None:
-            title_text += f" — Monotonicity ρ = {mono_rho:.3f}"
-        fig_dec.update_layout(
-            height=300,
-            title=title_text,
-            margin=dict(t=40, b=20),
-            yaxis_title="平均下月報酬",
-            yaxis_tickformat=".4f",
-        )
-        fig_dec.add_hline(y=0, line_color="gray", line_width=1)
-        st.plotly_chart(fig_dec, width="stretch")
-        st.caption(
-            "**期望**：D0（最低分）→ D9（最高分）單調遞增，ρ 接近 +1。"
-            "倒 U-shape 或 ρ 接近 0 = 因子不單調，alpha 不可信。"
-        )
-    else:
-        st.info("無 by_decile 資料")
-
     # 月度 IC 時序
     st.markdown("---")
     st.markdown("**月度 IC 時間序列**")
@@ -555,12 +515,13 @@ with tab_b:
     else:
         st.info("無 period_ics 資料")
 
-# ---- Tab C — 5×5 相關性 heatmap ----
+# ---- Tab C — 8×8 相關性 heatmap ----
 with tab_c:
     st.caption(
         "因子之間相關性高 → 加在一起組合會 redundant（沒互補）。"
         "理想：找相關性低（|ρ| < 0.3）的因子組合，互補才有 diversification benefit。"
-        "**範圍**：僅階段一 5 因子（pre-registered）；階段三 3 因子未在此 heatmap。"
+        "**範圍**：全部 8 因子（階段一 5 + 階段三 3）；相關性是描述性統計，"
+        "不像 FDR 需要 pre-registered 家族，故 8 因子可一起檢視。"
     )
 
     corr_data = load_factor_correlation()

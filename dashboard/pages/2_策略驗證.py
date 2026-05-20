@@ -1,10 +1,9 @@
 """P3 — 策略驗證 + 工程亮點（4 tabs → 3 tabs，Tab A+B 合併為「策略結果」）。
 
 頁面結構：
-1. 頁首 3 hero metric（IR collapse / 0 過關 / 雙重否定）
-2. Tab A — 策略結果（合併原雙因子 IR collapse + 18-cell sweep）
-3. Tab B — Bootstrap CI 雙重否定（原 Tab C）
-4. Tab C — 工程亮點（原 Tab D，含 silent bug Sharpe 對比表 + code diff 單欄）
+1. Tab A — 策略結果（雙因子 IR collapse + 18-cell sweep）
+2. Tab B — Bootstrap CI 雙重否定
+3. Tab C — 工程亮點（PIT engine + 6 輪 audit + silent bug）
 """
 
 from __future__ import annotations
@@ -174,9 +173,9 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
         # 12 指標表
         st.markdown("##### 📊 12 個指標 IS vs OOS 對照")
         st.caption(
-            "📌 **表中紅色高亮的 3 行（Alpha / IR / Calmar）是 over-fitting 證據**——"
-            "純 alpha 在 OOS 完全消失。其他 metric 如 Sharpe / Total Return 還在，"
-            "是因為 OOS 2025 大盤自己漲 37%，**被 beta × 大盤蓋過、不能當策略沒崩的依據**。"
+            "📌 **表中紅色高亮的 2 行（Alpha / IR）是 over-fitting 證據**——"
+            "純 alpha 在 OOS 完全消失。其他 metric 如 Sharpe / Calmar / Total Return 還在，"
+            "是因為 OOS 2025 大盤自己就漲了 +33.5%，**被 beta × 大盤蓋過、不能當策略沒崩的依據**。"
         )
 
         def _fmt(v, fmt=".3f"):
@@ -212,9 +211,9 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
         df_cmp = pd.DataFrame(rows, columns=["Metric", "IS (2020-2024)", "OOS (2025)"])
 
         def _hl(row):
-            # 標 Alpha / IR / Calmar 三行為 over-fit 證據（紅色高亮）
+            # 標 Alpha / IR 兩行為 over-fit 證據（紅色高亮）
             metric_str = str(row["Metric"])
-            if any(k in metric_str for k in ["Annualized Alpha", "Information Ratio", "Calmar"]):
+            if any(k in metric_str for k in ["Annualized Alpha", "Information Ratio"]):
                 return ["background-color: #f8d7da; color: #721c24"] * len(row)
             return [""] * len(row)
 
@@ -224,7 +223,7 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
         ir_oos = metrics_oos.get("information_ratio", 0)
         st.error(
             f"🚨 **IR collapse 99.4%**：IS IR = {ir_is:.4f} → OOS IR = {ir_oos:.4f}。"
-            f"OOS 那 +37% 年化報酬不是策略賺的，是大盤自己漲的——策略從「有 alpha」退化為「高 beta 抱 0050 + 雜訊」。"
+            f"OOS 那 +33.6% 報酬不是策略賺的，是大盤自己漲的——策略從「有 alpha」退化為「高 beta 抱 0050 + 雜訊」。"
         )
 
     st.divider()
@@ -447,8 +446,10 @@ Politis-Romano 1994 的 stationary block bootstrap 以 block 為單位重抽（b
                 """
 | CI 設定 | alpha | Lower Bound（雙因子策略 IS 60 月超額） | Verdict |
 |---|---|---|---|
-| 95% CI（早期標準）| 0.05 | -0.04% | ❌ Fail |
-| **80% CI**（retail-realistic）| 0.20 | **+0.66%** | ✅ Pass |
+| 95% CI（早期標準）| 0.05 | -0.13% | ❌ Fail |
+| **80% CI**（retail-realistic）| 0.20 | **+0.37%** | ✅ Pass |
+
+> 📄 數字來源：`reports/phase_d/A11_l6_ci_comparison.md`（V1.3 canonical，block_len=3 / n=10000 / seed=42 / 10 bps slippage）。
 
 **結論**：80% 是經過 empirical 驗證的「中道標準」——
 - 95% 對 60 month sample 過嚴格，連雙因子策略 IS 都過不了
@@ -569,7 +570,7 @@ class _DataSlicer:
         ("Round 3", "2026-05-10", "issued_capital fallback / margin_short sign", "5 finding"),
         ("Round 4", "2026-05-11", "4-path PIT helper sweep", "架構債清理"),
         ("Round 5", "2026-05-11", "thresholds.py default 權重 silent drift", "6 finding（2 真 silent bug 已修）"),
-        ("Round 6", "2026-05-19", "Codex DSR audit 獨立驗證", "P0 REJECT (formula 正確) / 2 P1 CONFIRM"),
+        ("Round 6", "2026-05-19", "DSR 公式獨立審計", "P0 REJECT (formula 正確) / 2 P1 CONFIRM"),
     ]
 
     fig_audit = go.Figure()
@@ -604,7 +605,7 @@ class _DataSlicer:
 
     st.caption(
         "📌 6 輪 audit cycle 共抓到 25+ 項 P0/P1 finding，**全部當下修完並補對應 mutation test**。"
-        "Round 6（codex DSR audit）獨立驗證確認 DSR 公式正確、reject codex P0 misread；"
+        "Round 6（DSR 公式獨立審計）確認 DSR 公式正確、reject 一項 P0 misread；"
         "NO-GO 結論在 6 輪後仍然成立 → 結論 robust。"
     )
 

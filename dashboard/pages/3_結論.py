@@ -1,12 +1,10 @@
 """P4 — 結論 + 下一輪 Roadmap。
 
 頁面結構：
-1. 一句話總結 hero
-2. 本輪三件做對的事
-3. 本輪結論：NO-GO 三個失敗點
-4. 本輪學到的事
-5. Path to GO Roadmap（5 items）
-6. 結尾紀律
+1. 本輪結論：NO-GO 三個失敗點
+2. 本輪學到的事
+3. Path to GO Roadmap（5 items）
+4. 結尾紀律
 """
 
 from __future__ import annotations
@@ -20,71 +18,6 @@ st.set_page_config(
 )
 
 st.title("🏁 結論 + 下一輪 Roadmap")
-
-# ===============================================================
-# 一句話總結 hero
-# ===============================================================
-st.info(
-    """
-##### 一句話總結
-
-**量化結論的可信度，建立在底層的回測架構**——自做 PIT-safe BacktestEngine 處理台股 per-row event lag、
-預先鎖定 6 道 hard gates、6 輪獨立 audit 校驗。**沒有這層紀律，再漂亮的 Sharpe 都可能是 look-ahead bias 的 artifact**
-（本專案 phase 1 抓到 2 個 silent bug，揭穿過去 4 年 Sharpe 1.73 是 overfit、α +39% → +3.4%）。
-
-在這層紀律下誠實得到結論：**NO-GO（沒有 robust edge）——高信度，不是「跑得不好」**。
-Phase 1 出口、不是終點，phase 2 規劃 5 條改造路線。
-"""
-)
-
-st.divider()
-
-# ===============================================================
-# 本輪三件做對的事
-# ===============================================================
-st.subheader("✅ 本輪三件做對的事")
-
-right_col1, right_col2, right_col3 = st.columns(3)
-
-with right_col1:
-    st.markdown(
-        """
-##### 🔍 抓自己 silent bug 不藏
-
-例行檢查抓到 2 個 silent bug，
-揭穿過去 4 年 **Sharpe 1.73 → 0.64** /
-**α +39% → +3.4%** 全部是 overfit。
-
-不掩蓋、不 caveat，直接重寫整套驗證流程。
-"""
-    )
-
-with right_col2:
-    st.markdown(
-        """
-##### 🔒 預先鎖定 hard gates 不降標
-
-6 道驗收關卡（第 1-6 關）事前定義，跑完不准回頭調。
-
-最佳 cells（D-C\\|12 / D-E\\|12 / D-E\\|16）4 / 6 通過，
-**但卡第 6 關 → 拒絕進 paper trade**。降標就是 silent bug。
-"""
-    )
-
-with right_col3:
-    st.markdown(
-        """
-##### 🔁 6 輪 audit cycle 校驗
-
-每跑完一輪就做 audit pass，
-共抓到 **25+ 項 P0 / P1 finding** 並當下修完。
-
-Round 6 是 codex DSR 公式獨立驗證（reject P0 misread + confirm 2 P1）。
-NO-GO 結論在 6 輪 audit 後仍成立 → **robust 結論**。
-"""
-    )
-
-st.divider()
 
 # ===============================================================
 # 本輪結論：NO-GO
@@ -118,11 +51,11 @@ with fail_col2:
 with fail_col3:
     st.error(
         """
-##### Effective n 不足
+##### 8 因子訊號本身就弱
 
-**60 月 × Block bootstrap → effective n ≈ 20**
+**最強 IC IR 僅 0.33、8 因子 DSR 全 = 0**
 
-→ 樣本太短，DSR 統計力嚴重不夠
+→ 原料就弱，組合再怎麼搭也擠不出 robust alpha
 """
     )
 
@@ -135,11 +68,9 @@ st.subheader("📚 本輪學到的事 — 結構問題不是運氣不好")
 
 st.markdown(
     """
-- **🎯 系統架構正確性比好看的 edge 更重要**——過去 4 年看似 Sharpe 1.73 的成績，根因是兩個 silent bug 造成的 look-ahead bias + universe contamination
 - **📊 long-only 月頻 vs 0050 有結構劣勢**——像 2024 大權值股獨舞的年份，因子怎麼選都追不上，這不是「因子不夠強」，是結構問題（→ Roadmap #3 L / S）
 - **🧮 60 個月對嚴格統計檢定遠遠不夠**——Block bootstrap 把時序相關性扣掉後 effective n 只剩 20，普通 t-test 假定獨立會嚴重高估顯著性（→ Roadmap #1 樣本擴充）
-- **📉 台股學術因子訊號普遍弱**——8 個學術因子個別 IC 只有 3 個過 𝛼 = 0.05 顯著（high_proximity / pead_eps / idio_vol_max），且全部 DSR=0 —— 多重檢定校正後沒有一個達 institutional 門檻，跟美股大樣本研究結果落差大
-- **🔬 IC IR ≠ portfolio Sharpe**——雙因子策略 IS IR 0.92（看似強因子）→ OOS 0.0058，因子層 signal-to-noise 不等於組合後 alpha
+- **🔬 IC IR ≠ portfolio Sharpe**——因子層的 signal-to-noise（IC IR）再高，也不代表組合成策略後就有 alpha。中間隔著加權、產業約束、交易成本——factor-level 指標好看 ≠ portfolio-level 有 edge
 """
 )
 

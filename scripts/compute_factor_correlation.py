@@ -1,7 +1,8 @@
-"""Compute cross-factor Spearman correlation matrix from Phase A1 IC JSONs.
+"""Compute cross-factor Spearman correlation matrix from factor IC JSONs.
 
-Phase A2 Step 4-prep: closes the 'correlation matrix skipped' limitation
-documented in reports/factor_ic/phase_a1_summary.md. Reads the newly-added
+涵蓋全部 8 個實測因子：階段一 pre-registered 5 因子（high_proximity /
+pead_eps / margin_short_ratio / revenue_momentum_v2 / foreign_investor_v2）
++ 階段三 3 因子（quality_v3 / industry_momentum / idio_vol_max）。Reads the
 `period_factor_scores` field from each factor's IC JSON, pairs symbols
 per period, computes rank correlation, averages across periods.
 
@@ -27,11 +28,16 @@ from scipy import stats
 REPORTS_DIR = Path("reports/factor_ic")
 
 FACTORS = [
+    # 階段一 pre-registered 5 因子
     "high_proximity",
     "pead_eps",
     "margin_short_ratio",
     "revenue_momentum_v2",
     "foreign_investor_v2",
+    # 階段三 3 因子
+    "quality_v3",
+    "industry_momentum",
+    "idio_vol_max",
 ]
 
 
@@ -76,7 +82,7 @@ def compute_correlation_matrix() -> dict:
     """Average per-period Spearman correlation across all overlapping periods.
 
     Returns dict with:
-      - matrix: 5x5 dict-of-dict of mean correlation
+      - matrix: 8x8 dict-of-dict of mean correlation
       - period_counts: how many periods each pair overlapped
       - symbol_counts: avg symbols per period per pair
     """
@@ -149,7 +155,7 @@ def render_markdown(result: dict) -> str:
     pc = result["period_counts"]
 
     lines = []
-    lines.append("# Phase A1 Factor Correlation Matrix\n")
+    lines.append("# Factor Correlation Matrix（8 因子）\n")
     lines.append(
         "**Method**: per-period Spearman rank correlation, averaged across "
         "all overlapping periods with ≥10 common symbols.\n"
@@ -158,7 +164,7 @@ def render_markdown(result: dict) -> str:
         "**產出**：closes `phase_a1_summary.md` 「相關性矩陣 — skip」 known "
         "limitation（Phase A2 Step 4-prep canonical fix 2026-04-21）。\n"
     )
-    lines.append("## 5×5 相關係數 (Spearman ρ)\n")
+    lines.append("## 8×8 相關係數 (Spearman ρ)\n")
 
     short_names = {
         "high_proximity": "52W_High",
@@ -166,6 +172,9 @@ def render_markdown(result: dict) -> str:
         "margin_short_ratio": "Margin_Short",
         "revenue_momentum_v2": "Rev_v2",
         "foreign_investor_v2": "Foreign_v2",
+        "quality_v3": "Quality_v3",
+        "industry_momentum": "Industry_Mom",
+        "idio_vol_max": "IdioVol_Max",
     }
 
     # Header
@@ -204,7 +213,7 @@ def render_markdown(result: dict) -> str:
     lines.append("3. **0.3 ≤ |ρ| ≤ 0.5**：共用權重分配，但總 weight 不宜過集中於這對")
     lines.append("4. **|ρ| > 0.5**：若一定要都用，考慮其中一個給 0.5× 權重以示減量")
     lines.append("\n## 下一步\n")
-    lines.append("依此 correlation 矩陣 + 5 factor IR 數據進 Step 4 weight 討論；")
+    lines.append("依此 correlation 矩陣 + 8 factor IR 數據進 Step 4 weight 討論；")
     lines.append("user 決定 config D1-D5 後跑 Step 5 IS/OOS backtest + walk-forward。\n")
 
     return "\n".join(lines)
@@ -233,6 +242,9 @@ def main() -> None:
         "margin_short_ratio": "Margin_S",
         "revenue_momentum_v2": "Rev_v2",
         "foreign_investor_v2": "Foreign_v2",
+        "quality_v3": "Quality_v3",
+        "industry_momentum": "Ind_Mom",
+        "idio_vol_max": "IdioVolMax",
     }
     header = f"{'':<12s} " + " ".join(f"{short_names[f]:>10s}" for f in factors)
     print(header)

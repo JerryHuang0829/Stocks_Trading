@@ -4,43 +4,91 @@
     "pead_eps",
     "margin_short_ratio",
     "revenue_momentum_v2",
-    "foreign_investor_v2"
+    "foreign_investor_v2",
+    "quality_v3",
+    "industry_momentum",
+    "idio_vol_max"
   ],
   "matrix": {
     "high_proximity": {
       "high_proximity": 1.0,
       "pead_eps": 0.2126,
-      "margin_short_ratio": 0.1599,
+      "margin_short_ratio": 0.16,
       "revenue_momentum_v2": 0.1606,
-      "foreign_investor_v2": 0.0875
+      "foreign_investor_v2": 0.0875,
+      "quality_v3": 0.0715,
+      "industry_momentum": 0.1191,
+      "idio_vol_max": 0.1354
     },
     "pead_eps": {
       "pead_eps": 1.0,
       "high_proximity": 0.2126,
       "margin_short_ratio": -0.072,
       "revenue_momentum_v2": 0.3841,
-      "foreign_investor_v2": 0.1
+      "foreign_investor_v2": 0.1,
+      "quality_v3": 0.1694,
+      "industry_momentum": 0.0604,
+      "idio_vol_max": -0.1537
     },
     "margin_short_ratio": {
       "margin_short_ratio": 1.0,
-      "high_proximity": 0.1599,
+      "high_proximity": 0.16,
       "pead_eps": -0.072,
-      "revenue_momentum_v2": -0.0618,
-      "foreign_investor_v2": -0.1634
+      "revenue_momentum_v2": -0.0619,
+      "foreign_investor_v2": -0.1634,
+      "quality_v3": -0.0126,
+      "industry_momentum": -0.1444,
+      "idio_vol_max": 0.4798
     },
     "revenue_momentum_v2": {
       "revenue_momentum_v2": 1.0,
       "high_proximity": 0.1606,
       "pead_eps": 0.3841,
-      "margin_short_ratio": -0.0618,
-      "foreign_investor_v2": 0.071
+      "margin_short_ratio": -0.0619,
+      "foreign_investor_v2": 0.071,
+      "quality_v3": 0.2463,
+      "industry_momentum": 0.0643,
+      "idio_vol_max": -0.1209
     },
     "foreign_investor_v2": {
       "foreign_investor_v2": 1.0,
       "high_proximity": 0.0875,
       "pead_eps": 0.1,
       "margin_short_ratio": -0.1634,
-      "revenue_momentum_v2": 0.071
+      "revenue_momentum_v2": 0.071,
+      "quality_v3": 0.0111,
+      "industry_momentum": 0.0914,
+      "idio_vol_max": -0.2593
+    },
+    "quality_v3": {
+      "quality_v3": 1.0,
+      "high_proximity": 0.0715,
+      "pead_eps": 0.1694,
+      "margin_short_ratio": -0.0126,
+      "revenue_momentum_v2": 0.2463,
+      "foreign_investor_v2": 0.0111,
+      "industry_momentum": -0.0061,
+      "idio_vol_max": 0.0229
+    },
+    "industry_momentum": {
+      "industry_momentum": 1.0,
+      "high_proximity": 0.1191,
+      "pead_eps": 0.0604,
+      "margin_short_ratio": -0.1444,
+      "revenue_momentum_v2": 0.0643,
+      "foreign_investor_v2": 0.0914,
+      "quality_v3": -0.0061,
+      "idio_vol_max": -0.1946
+    },
+    "idio_vol_max": {
+      "idio_vol_max": 1.0,
+      "high_proximity": 0.1354,
+      "pead_eps": -0.1537,
+      "margin_short_ratio": 0.4798,
+      "revenue_momentum_v2": -0.1209,
+      "foreign_investor_v2": -0.2593,
+      "quality_v3": 0.0229,
+      "industry_momentum": -0.1946
     }
   },
   "period_counts": {
@@ -49,72 +97,162 @@
       "pead_eps": 71,
       "margin_short_ratio": 71,
       "revenue_momentum_v2": 71,
-      "foreign_investor_v2": 65
+      "foreign_investor_v2": 65,
+      "quality_v3": 71,
+      "industry_momentum": 71,
+      "idio_vol_max": 71
     },
     "pead_eps": {
       "pead_eps": 71,
       "high_proximity": 71,
       "margin_short_ratio": 71,
       "revenue_momentum_v2": 71,
-      "foreign_investor_v2": 65
+      "foreign_investor_v2": 65,
+      "quality_v3": 71,
+      "industry_momentum": 71,
+      "idio_vol_max": 71
     },
     "margin_short_ratio": {
       "margin_short_ratio": 71,
       "high_proximity": 71,
       "pead_eps": 71,
       "revenue_momentum_v2": 71,
-      "foreign_investor_v2": 65
+      "foreign_investor_v2": 65,
+      "quality_v3": 71,
+      "industry_momentum": 71,
+      "idio_vol_max": 71
     },
     "revenue_momentum_v2": {
       "revenue_momentum_v2": 71,
       "high_proximity": 71,
       "pead_eps": 71,
       "margin_short_ratio": 71,
-      "foreign_investor_v2": 65
+      "foreign_investor_v2": 65,
+      "quality_v3": 71,
+      "industry_momentum": 71,
+      "idio_vol_max": 71
     },
     "foreign_investor_v2": {
       "foreign_investor_v2": 65,
       "high_proximity": 65,
       "pead_eps": 65,
       "margin_short_ratio": 65,
-      "revenue_momentum_v2": 65
+      "revenue_momentum_v2": 65,
+      "quality_v3": 65,
+      "industry_momentum": 65,
+      "idio_vol_max": 65
+    },
+    "quality_v3": {
+      "quality_v3": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "margin_short_ratio": 71,
+      "revenue_momentum_v2": 71,
+      "foreign_investor_v2": 65,
+      "industry_momentum": 71,
+      "idio_vol_max": 71
+    },
+    "industry_momentum": {
+      "industry_momentum": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "margin_short_ratio": 71,
+      "revenue_momentum_v2": 71,
+      "foreign_investor_v2": 65,
+      "quality_v3": 71,
+      "idio_vol_max": 71
+    },
+    "idio_vol_max": {
+      "idio_vol_max": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "margin_short_ratio": 71,
+      "revenue_momentum_v2": 71,
+      "foreign_investor_v2": 65,
+      "quality_v3": 71,
+      "industry_momentum": 71
     }
   },
   "symbol_counts": {
     "high_proximity": {
       "high_proximity": 1635.8450704225352,
       "pead_eps": 1604.9,
-      "margin_short_ratio": 1483.7,
+      "margin_short_ratio": 1483.4,
       "revenue_momentum_v2": 1626.8,
-      "foreign_investor_v2": 1437.8
+      "foreign_investor_v2": 1437.8,
+      "quality_v3": 1478.6,
+      "industry_momentum": 1634.5,
+      "idio_vol_max": 1635.8
     },
     "pead_eps": {
       "pead_eps": 1608.9577464788733,
       "high_proximity": 1604.9,
-      "margin_short_ratio": 1470.7,
+      "margin_short_ratio": 1470.5,
       "revenue_momentum_v2": 1605.5,
-      "foreign_investor_v2": 1423.4
+      "foreign_investor_v2": 1423.4,
+      "quality_v3": 1459.3,
+      "industry_momentum": 1606.3,
+      "idio_vol_max": 1607.4
     },
     "margin_short_ratio": {
-      "margin_short_ratio": 1485.718309859155,
-      "high_proximity": 1483.7,
-      "pead_eps": 1470.7,
-      "revenue_momentum_v2": 1482.4,
-      "foreign_investor_v2": 1365.0
+      "margin_short_ratio": 1485.4366197183099,
+      "high_proximity": 1483.4,
+      "pead_eps": 1470.5,
+      "revenue_momentum_v2": 1482.1,
+      "foreign_investor_v2": 1365.0,
+      "quality_v3": 1346.0,
+      "industry_momentum": 1484.6,
+      "idio_vol_max": 1484.8
     },
     "revenue_momentum_v2": {
       "revenue_momentum_v2": 1633.8450704225352,
       "high_proximity": 1626.8,
       "pead_eps": 1605.5,
-      "margin_short_ratio": 1482.4,
-      "foreign_investor_v2": 1437.2
+      "margin_short_ratio": 1482.1,
+      "foreign_investor_v2": 1437.2,
+      "quality_v3": 1478.9,
+      "industry_momentum": 1629.6,
+      "idio_vol_max": 1630.9
     },
     "foreign_investor_v2": {
       "foreign_investor_v2": 1443.1384615384616,
       "high_proximity": 1437.8,
       "pead_eps": 1423.4,
       "margin_short_ratio": 1365.0,
-      "revenue_momentum_v2": 1437.2
+      "revenue_momentum_v2": 1437.2,
+      "quality_v3": 1314.6,
+      "industry_momentum": 1442.6,
+      "idio_vol_max": 1442.6
+    },
+    "quality_v3": {
+      "quality_v3": 1601.5352112676057,
+      "high_proximity": 1478.6,
+      "pead_eps": 1459.3,
+      "margin_short_ratio": 1346.0,
+      "revenue_momentum_v2": 1478.9,
+      "foreign_investor_v2": 1314.6,
+      "industry_momentum": 1593.9,
+      "idio_vol_max": 1596.0
+    },
+    "industry_momentum": {
+      "industry_momentum": 1784.9577464788733,
+      "high_proximity": 1634.5,
+      "pead_eps": 1606.3,
+      "margin_short_ratio": 1484.6,
+      "revenue_momentum_v2": 1629.6,
+      "foreign_investor_v2": 1442.6,
+      "quality_v3": 1593.9,
+      "idio_vol_max": 1785.0
+    },
+    "idio_vol_max": {
+      "idio_vol_max": 1788.4084507042253,
+      "high_proximity": 1635.8,
+      "pead_eps": 1607.4,
+      "margin_short_ratio": 1484.8,
+      "revenue_momentum_v2": 1630.9,
+      "foreign_investor_v2": 1442.6,
+      "quality_v3": 1596.0,
+      "industry_momentum": 1785.0
     }
   },
   "method": "per_period_spearman_then_average",
