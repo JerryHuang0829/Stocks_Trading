@@ -261,8 +261,8 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
     else:
         cells = summary.get("cells", [])
 
-        # 6 關詳表（折疊，置於 heatmap 上方）
-        with st.expander("📋 6 關完整詳表（先看門檻定義 + 各 cell 過幾關）", expanded=False):
+        # 6 關完整詳表（預設展開）
+        with st.expander("📋 6 關完整詳表（先看門檻定義 + 各 cell 過幾關）", expanded=True):
             gate_labels = {
                 "L1_ir_ge_0_20": "第 1 關 IR≥0.20",
                 "L2_mean_alpha_ge_0_005": "第 2 關 月α≥0.5%",
@@ -287,60 +287,6 @@ OOS 已 collapse 99.4%，**沒理由再測一次**，直接從 18 個 cell 中�
                 detail_rows.append(row)
             df_cells = pd.DataFrame(detail_rows).sort_values("過幾關", ascending=False).reset_index(drop=True)
             st.dataframe(df_cells, width="stretch", hide_index=True)
-
-        # 6×3 heatmap
-        st.markdown("##### 📊 18 策略過關 heatmap（hover 看每 cell 完整 metrics）")
-        candidates_order = ["D-B", "D-C", "D-D", "D-E", "D-F", "D-G"]
-        top_ns = [8, 12, 16]
-        matrix = [[0 for _ in top_ns] for _ in candidates_order]
-        hover_texts = [["" for _ in top_ns] for _ in candidates_order]
-
-        for c in cells:
-            cid = c.get("candidate_id", "")
-            tn = c.get("top_n", 0)
-            if cid in candidates_order and tn in top_ns:
-                i = candidates_order.index(cid)
-                j = top_ns.index(tn)
-                gates = c.get("gates", {})
-                passes = gate_pass_count(gates)
-                matrix[i][j] = passes
-                ci_low = c.get("bootstrap_ci_lower", 0)
-                all_pass = c.get("all_l1_l6_passed", False)
-                metrics = c.get("metrics", {})
-                hover_texts[i][j] = (
-                    f"<b>{STRATEGY_NAMES.get(cid, cid)} | {tn} 檔</b><br>"
-                    f"代號：{cid}|{tn}<br>"
-                    f"過 {passes}/6 關<br>"
-                    f"IR：{metrics.get('ir', 0):.3f}<br>"
-                    f"月 α：{metrics.get('mean_alpha_monthly', 0):.4f}<br>"
-                    f"第 6 關 CI lower：{ci_low:.4f}<br>"
-                    f"全 6 關通過：{'是' if all_pass else '否'}"
-                )
-
-        fig_heat = go.Figure(
-            data=go.Heatmap(
-                z=matrix,
-                x=[f"持股 {tn} 檔" for tn in top_ns],
-                y=[STRATEGY_NAMES[cid] for cid in candidates_order],
-                colorscale=[
-                    [0.0, "#c0392b"], [0.33, "#e67e22"], [0.5, "#f39c12"],
-                    [0.67, "#f1c40f"], [0.83, "#2ecc71"], [1.0, "#27ae60"],
-                ],
-                zmin=0, zmax=6,
-                text=matrix,
-                texttemplate="%{text}/6",
-                textfont={"size": 16, "color": "white"},
-                hovertext=hover_texts,
-                hovertemplate="%{hovertext}<extra></extra>",
-                colorbar=dict(title="過幾關 (0-6)", tickvals=list(range(7))),
-            )
-        )
-        fig_heat.update_layout(
-            height=440,
-            xaxis_title="持股數", yaxis_title="策略候選",
-            margin=dict(t=20, b=20, l=180, r=20),
-        )
-        st.plotly_chart(fig_heat, width="stretch")
 
         st.error(
             "🚨 **18 / 18 cells 全部過不了第 6 關**（80% bootstrap CI 下界全 ≤ 0）。"
