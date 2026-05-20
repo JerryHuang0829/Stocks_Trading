@@ -93,9 +93,9 @@ st.markdown(
 roadmap_items = [
     {
         "title": "🗓️ 1. 樣本擴充：60 月 → 2008-2024（17 年）",
-        "pain": "**60 月 effective n ≈ 20**（block bootstrap 扣掉時序相關後），DSR 統計力嚴重不足；2008-2019 完全沒覆蓋",
+        "pain": "**60 月 effective n ≈ 20**（block bootstrap 扣掉時序相關後），第 6 關 Bootstrap CI 過寬、統計檢定力嚴重不足；2008-2019 完全沒覆蓋",
         "plan": "拉到 **2008-2024（17 年）**，涵蓋金融海嘯 / 量化寬鬆 / 升息週期 / 疫情多個 regime",
-        "expect": "Block bootstrap CI 寬度縮 ~2x，第 6 關有機會通過 + DSR n_trials 校正後仍 significant",
+        "expect": "Block bootstrap CI 寬度縮 ~2x，第 6 關有機會通過；多個 regime 覆蓋也讓結果不再只反映 2020-2024 單一環境",
     },
     {
         "title": "📅 2. 頻率升級：monthly → weekly / daily",
@@ -115,7 +115,7 @@ roadmap_items = [
     },
     {
         "title": "🧠 4. 因子擴充（多元增量來源）",
-        "pain": "目前 8 因子多數訊號弱（DSR 校正後只 1-2 個顯著）；主要資料源也吃光（OHLCV / EPS / 月營收 / 法人 / 融資）",
+        "pain": "目前 8 因子訊號普遍弱（只 3 個過 p<0.05、8 個 DSR 全 0）；主要資料源也吃光（OHLCV / EPS / 月營收 / 法人 / 融資）",
         "plan": "**兩條增量來源並行**：\n\n"
                 "**(a) LLM feature engineering**（目標 2-3 個候選）—— 新聞 / 法說會逐字稿 / 產業情緒文本特徵工程。"
                 "**LLM 仍走完整驗證**：PIT-safe（只能吃當天前已公開的文本、防 training data contamination）"
