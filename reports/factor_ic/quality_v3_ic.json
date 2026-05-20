@@ -156,7 +156,7 @@
     "method": "benjamini_hochberg"
   },
   "deflated_sharpe_ratio": 0.0,
-  "deflated_sharpe_n_trials": 5,
+  "deflated_sharpe_n_trials": 3,
   "deflated_sharpe_n_obs": 71,
   "deflated_sharpe_skewness": 0.0085,
   "deflated_sharpe_kurtosis": 2.9308,
