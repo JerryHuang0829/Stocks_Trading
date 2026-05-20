@@ -367,28 +367,18 @@ def gate_color_segment(pass_count: int) -> str:
 # P1 首頁 hero 用 helper（新增）
 # ===============================================================
 def render_hero_kpi_strip(st_module) -> None:
-    """8 個 KPI 用 st.metric + 4×2 columns 排版（取代原 plotly Indicator hack）。
+    """4 個 KPI 用 st.metric + 單排 columns 排版。
 
     數字硬編碼來自專案研究現況文件。修改前先比對最新研究數字。
     """
     kpis = [
         ("樣本期", "5 年", "2020-2024 IS"),
-        ("月資料點", "60", "+ 12 OOS"),
+        ("自動化測試", "696", "pytest 全綠（含 PIT mutation + DSR golden）"),
         ("學術因子", "8", "階段一 5 + 階段三 3"),
         ("策略候選", "18", "6 組合 × 3 持股"),
-        ("自動化測試", "696", "pytest 全綠（含 PIT mutation + DSR golden）"),
-        ("審計輪次", "6", "獨立 audit cycle"),
-        ("Silent bug found", "2", "tz / universe 預篩"),
-        ("下一輪 roadmap", "5", "詳見「結論」頁"),
     ]
-    # 第 1 排 4 個
     row1 = st_module.columns(4)
-    for col, (label, value, sub) in zip(row1, kpis[:4]):
-        with col:
-            st_module.metric(label=label, value=value, delta=sub, delta_color="off")
-    # 第 2 排 4 個
-    row2 = st_module.columns(4)
-    for col, (label, value, sub) in zip(row2, kpis[4:]):
+    for col, (label, value, sub) in zip(row1, kpis):
         with col:
             st_module.metric(label=label, value=value, delta=sub, delta_color="off")
 
