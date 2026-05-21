@@ -117,9 +117,7 @@ roadmap_items = [
     },
     {
         "title": "🤖 5. ML 模型升級（呼應 AI 模型應用）",
-        "pain": "8 因子目前是 linear weight + 等權，沒利用因子間非線性互動——"
-                "例如低波動因子在多頭 / 震盪 / 空頭 regime 下 IC 方向會反轉，"
-                "線性模型給固定權重表達不出這個",
+        "pain": "8 因子目前是 linear weight + 等權，沒利用因子間非線性互動",
         "plan": "**主力 XGBoost (gradient boosted trees)，保留 linear + shrinkage 當 baseline 對照**；"
                 "Optuna / 貝氏優化調超參，搭配 **nested time-series walk-forward CV** 防 OOS 洩漏；"
                 "用 SHAP 看每個因子的邊際貢獻保持可解釋性；OOS 仍只測一次。\n\n"

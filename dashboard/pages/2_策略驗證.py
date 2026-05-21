@@ -3,7 +3,7 @@
 頁面結構：
 1. Tab A — 策略結果（雙因子 IR collapse + 18-cell sweep）
 2. Tab B — Bootstrap CI 雙重否定
-3. Tab C — 工程亮點（PIT engine + 6 輪 audit + silent bug）
+3. Tab C — 工程亮點（PIT engine）
 """
 
 from __future__ import annotations
@@ -389,7 +389,7 @@ Politis-Romano 1994 的 stationary block bootstrap 以 block 為單位重抽（b
             )
 
 # ===============================================================
-# Tab C — 工程亮點（原 Tab D，加 silent bug Sharpe 對比表）
+# Tab C — 工程亮點（PIT engine）
 # ===============================================================
 with tab_eng:
     st.markdown("### 🛠️ 工程亮點 — 為何自做 PIT engine 不用 Backtrader / Finlab")
@@ -413,35 +413,35 @@ with tab_eng:
             "事件日": "季結算日",
             "法定公告 lag": "**Q4 = 90 天**（年報 3/31）/ Q1-Q3 = 45 天",
             "PIT 重點": "**per-row lag 不同**：同一支股票不同季要套不同 lag",
-            "Backtrader / Finlab 處理？": "❌ 不會",
+            "通用回測框架處理？": "❌ 不會",
         },
         {
             "資料類型": "📈 月營收",
             "事件日": "月底",
             "法定公告 lag": "次月 10 日 + 5 天 buffer = **45 天**",
             "PIT 重點": "month-end → 公告日 cutoff 嚴格",
-            "Backtrader / Finlab 處理？": "❌ 不會",
+            "通用回測框架處理？": "❌ 不會",
         },
         {
             "資料類型": "💰 融資 / 融券餘額",
             "事件日": "交易日",
             "法定公告 lag": "TWSE 盤後 T+1 + 1 天 buffer = **2 天**",
             "PIT 重點": "日資料但仍需 T+1 cutoff",
-            "Backtrader / Finlab 處理？": "⚠️ 部分",
+            "通用回測框架處理？": "⚠️ 部分",
         },
         {
             "資料類型": "🏦 三大法人買賣超",
             "事件日": "交易日",
             "法定公告 lag": "TWSE 17:00 + T+1 buffer = **2 天**",
             "PIT 重點": "盤後資料，T+1 才可用",
-            "Backtrader / Finlab 處理？": "⚠️ 部分",
+            "通用回測框架處理？": "⚠️ 部分",
         },
         {
             "資料類型": "🏢 資產負債表",
             "事件日": "季結算日",
             "法定公告 lag": "**60 天**（公告慣例晚 IS 數天到 2 週）",
             "PIT 重點": "與 EPS 取 max(income_lag, balance_lag)",
-            "Backtrader / Finlab 處理？": "❌ 不會",
+            "通用回測框架處理？": "❌ 不會",
         },
     ])
     st.dataframe(pit_lag_table, width="stretch", hide_index=True)
@@ -472,161 +472,4 @@ class _DataSlicer:
 
 **團隊有完善歷史資料層 + per-row PIT lag 處理好的情況下**，會評估使用 Backtrader 或 Finlab。
 """
-    )
-
-    st.divider()
-
-    # ===========================================
-    # 6 輪獨立 audit 紀律 timeline
-    # ===========================================
-    st.markdown("#### 🔍 6 輪獨立 audit 紀律")
-
-    st.markdown(
-        "**結果太好先懷疑 bug**——這是本輪 silent bug 經驗後的反思。"
-        "每跑完一輪就跑 audit cycle，把所有可能的 silent bug pattern 重新檢視一遍。"
-    )
-
-    audit_data = [
-        ("Round 1", "2026-05-08", "PIT contamination / 量綱錯誤", "8 類 silent bug"),
-        ("Round 2", "2026-05-09", "PIT helper fallback / pit_violation overwrite", "4 P0/P1"),
-        ("Round 3", "2026-05-10", "issued_capital fallback / margin_short sign", "5 finding"),
-        ("Round 4", "2026-05-11", "4-path PIT helper sweep", "架構債清理"),
-        ("Round 5", "2026-05-11", "thresholds.py default 權重 silent drift", "6 finding（2 真 silent bug 已修）"),
-        ("Round 6", "2026-05-19", "DSR 公式獨立審計", "P0 REJECT (formula 正確) / 2 P1 CONFIRM"),
-    ]
-
-    fig_audit = go.Figure()
-    for i, (label, date, what, finding) in enumerate(audit_data):
-        fig_audit.add_trace(go.Scatter(
-            x=[date], y=[0],
-            mode="markers+text",
-            marker=dict(size=24, color="#3498db", line=dict(color="white", width=2)),
-            text=[label],
-            textposition="top center",
-            hovertemplate=f"<b>{label} ({date})</b><br>檢查項：{what}<br>發現：{finding}<extra></extra>",
-            showlegend=False,
-        ))
-        fig_audit.add_annotation(
-            x=date, y=-0.6,
-            text=f"<b>{what}</b><br><span style='font-size:0.85em'>{finding}</span>",
-            showarrow=False, font=dict(size=10), align="center",
-        )
-    fig_audit.add_trace(go.Scatter(
-        x=[d[1] for d in audit_data], y=[0] * len(audit_data),
-        mode="lines",
-        line=dict(color="#bdc3c7", width=2, dash="dot"),
-        showlegend=False, hoverinfo="skip",
-    ))
-    fig_audit.update_layout(
-        height=240, margin=dict(t=20, b=20, l=20, r=20),
-        xaxis=dict(type="date", showgrid=False, zeroline=False, showline=False, tickformat="%m-%d"),
-        yaxis=dict(range=[-1.2, 0.8], showgrid=False, zeroline=False, showticklabels=False),
-        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-    )
-    st.plotly_chart(fig_audit, width="stretch", config={"displayModeBar": False})
-
-    st.caption(
-        "📌 6 輪 audit cycle 共抓到 25+ 項 P0/P1 finding，**全部當下修完並補對應 mutation test**。"
-        "Round 6（DSR 公式獨立審計）確認 DSR 公式正確、reject 一項 P0 misread；"
-        "NO-GO 結論在 6 輪後仍然成立 → 結論 robust。"
-    )
-
-    st.divider()
-
-    # ===========================================
-    # Silent bug — Sharpe 對比表 + code diff 單欄
-    # ===========================================
-    st.markdown("#### 🐛 兩個 silent bug — 數字對比 + code diff")
-
-    st.markdown(
-        "**例行檢查抓到 2 個 silent bug**，揭穿過去 4 年 Sharpe 1.73 / α +39% 全部是 overfit。"
-        "這是「結果太好先懷疑 bug」紀律的真實案例。"
-    )
-
-    # Sharpe 對比表（從原 P1 搬過來）
-    sharpe_col1, sharpe_col2 = st.columns(2)
-
-    with sharpe_col1:
-        st.markdown("##### 🐛 修 bug 前（看似漂亮）")
-        st.markdown(
-            """
-| 期間 | Sharpe | 年化 α |
-|---|---|---|
-| 2022-2025 (4Y) | **1.73** | **+39%** |
-| 2025 OOS | **1.88** | **+7.27%** |
-| 2024 | — | — |
-"""
-        )
-        st.caption("看似業界水準以上的成績，幾乎達到「準量化 fund」級別。")
-
-    with sharpe_col2:
-        st.markdown("##### ✅ 修 bug 後（誠實版）")
-        st.markdown(
-            """
-| 期間 | Sharpe | 年化 α |
-|---|---|---|
-| 2022-2025 (4Y) | **0.64** | **+3.4%** |
-| 2025 OOS | **0.66** | **-18.4%** |
-| 2024 | **0.33** | **-43.2%** |
-"""
-        )
-        st.caption("alpha 縮水 91%，2024 單年甚至大幅 underperform 大盤。")
-
-    st.error(
-        "🚨 **結論：先前 alpha 主要來自 look-ahead bias + universe contamination**。"
-        "這次經驗讓我體會到**系統架構正確性比好看的 edge 更重要**——後續所有研究改用 mutation test 守 forward-leak、預先鎖定 hard gates、OOS 只測一次。"
-    )
-
-    # Code diff 單欄（合併 Bug 1 + Bug 2 為 sequential）
-    st.markdown("##### 🐞 Bug 1：`finmind.py` pandas 2.x timezone error")
-    st.markdown("**修前**（pandas 2.x 會 raise）：")
-    st.code(
-        """# src/data/finmind.py
-want_start = pd.Timestamp(date_obj, tz="UTC")
-# pandas 2.x: ValueError when date_obj already tz-aware""",
-        language="python",
-    )
-    st.markdown("**修後**：")
-    st.code(
-        """# src/data/finmind.py
-want_start = pd.Timestamp(date_obj)
-if want_start.tz is None:
-    want_start = want_start.tz_localize("UTC")
-else:
-    want_start = want_start.tz_convert("UTC")""",
-        language="python",
-    )
-    st.caption(
-        "**影響**：歷史回測 silent 失敗 fallback 到 stale cache，但 test 沒覆蓋這個 path → 抓到後補 4 個 PIT mutation test 守 forward-leak。"
-    )
-
-    st.markdown("---")
-
-    st.markdown("##### 🐞 Bug 2：universe pre-filter 用 STOCK_DAY_ALL 對歷史日期回空")
-    st.markdown("**修前**：")
-    st.code(
-        """# src/portfolio/tw_stock.py
-turnover_df = fetch_twse_daily_all(date)
-# STOCK_DAY_ALL 是「當日」全市場 snapshot
-# 對歷史日期永遠回空 → universe 變全市場 2000 支""",
-        language="python",
-    )
-    st.markdown("**修後**：")
-    st.code(
-        """# src/portfolio/tw_stock.py
-turnover_df = self._build_turnover_from_ohlcv_cache(
-    as_of_date=date, lookback_days=63
-)
-# 改用 OHLCV cache 算歷史 turnover
-# universe 退回 top-80 close × volume""",
-        language="python",
-    )
-    st.caption(
-        "**影響**：universe 退化為全市場 2000 支 → alpha 部分來自高 turnover noise → 修後抓出舊 alpha 為 universe contamination artifact。"
-    )
-
-    st.info(
-        "💡 **兩個 bug 都不是 try / except 漏接、不是 numerical 邊界，而是『程式跑了、沒報錯、結果錯了』的 silent bug**。"
-        "這正是「驗證紀律比 edge 重要」最具體的體現——**靠 mutation test + 預先鎖定 hard gates 才抓得到**，"
-        "不是靠 try / except 或 logger.error。"
     )
