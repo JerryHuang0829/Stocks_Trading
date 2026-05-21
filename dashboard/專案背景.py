@@ -126,7 +126,7 @@ with st.container(border=True):
 | 資產負債表 | 60 天（與 EPS 取 max）|
 
 → 台股 PIT 只認**事件日**不認公開日，EPS 的 lag 還隨每季改變 ——
-**同一份 DataFrame 不同列要套不同 lag，這層 Backtrader / Finlab 不會幫你做**。
+**同一份 DataFrame 不同列要套不同 lag**。
 """
         )
 

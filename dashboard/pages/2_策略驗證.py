@@ -2,7 +2,7 @@
 
 頁面結構：
 1. Tab A — 策略結果（雙因子 IR collapse + 18-cell sweep）
-2. Tab B — Bootstrap CI 雙重否定
+2. Tab B — Bootstrap 驗證
 3. Tab C — 工程亮點（PIT engine）
 """
 
@@ -43,7 +43,7 @@ st.title("🎯 策略驗證 + 工程亮點")
 # ===============================================================
 tab_strategy, tab_ci, tab_eng = st.tabs([
     "📊 策略結果（雙因子 + 18-cell sweep）",
-    "📐 Bootstrap CI 雙重否定",
+    "📐 Bootstrap 驗證",
     "🛠️ 工程亮點",
 ])
 
@@ -277,18 +277,37 @@ with tab_strategy:
         )
 
 # ===============================================================
-# Tab B — Bootstrap CI 雙重否定（原 Tab C）
+# Tab B — Bootstrap 驗證（原 Tab C）
 # ===============================================================
 with tab_ci:
-    st.markdown("### Bootstrap CI 雙重否定 — 為什麼結論可信")
+    st.markdown("### Bootstrap 驗證 — 為什麼結論可信")
 
     st.markdown(
         """
-**第 6 關**是階段三 6 條驗收門檻中最嚴格的——
-**80% Stationary Block Bootstrap (Politis-Romano 1994) CI 下界 > 0**。
+**第 6 關**是階段三 6 道驗收門檻中最嚴格的一關——用 60 個月超額報酬做
+Stationary Block Bootstrap (Politis-Romano 1994) 重抽 10000 次（block_len=3, seed=42），
+**CI 下界要嚴格大於 0**，才算統計上真有 alpha（非運氣）。
 
-用 60 個月超額報酬重抽 10000 次（block_len=3, seed=42），
-80% 信心區間下界要嚴格大於 0，才算統計上**真有 alpha**（非運氣）。
+這裡刻意採 **80% CI（而非學術慣例 95%）—— 對策略最寬鬆的設定**。
+60 個月樣本下 95% CI 過嚴，連雙因子策略 IS 自己都過不了；先用 80% 這個「中道標準」測，
+如果連這麼寬的門檻都全部 fail，NO-GO 就不是「標準訂太嚴」逼出來的。
+"""
+    )
+
+    st.markdown("##### ⚖️ 80% vs 95% CI — 為何採 80% 非 95%")
+    st.markdown(
+        """
+| CI 設定 | alpha | Lower Bound（雙因子策略 IS 60 月超額） | Verdict |
+|---|---|---|---|
+| 95% CI（早期標準）| 0.05 | -0.13% | ❌ Fail |
+| **80% CI**（retail-realistic）| 0.20 | **+0.37%** | ✅ Pass |
+
+> 📄 數字來源：`reports/phase_d/A11_l6_ci_comparison.md`（V1.3 canonical，block_len=3 / n=10000 / seed=42 / 10 bps slippage）。
+
+**這張表要說的**：80% 是經過 empirical 驗證的「中道標準」——
+- 95% 對 60 month sample 過嚴格，連雙因子策略 IS 都過不了
+- 80% 對雙因子策略 IS 能通過，代表門檻沒鬆到「人人都過」
+- 接下來的 18-cell 圖會看到：同樣這個 80% 門檻，階段三 18 cells **依然全部 fail**
 """
     )
 
@@ -368,23 +387,6 @@ Politis-Romano 1994 的 stationary block bootstrap 以 block 為單位重抽（b
 這就是為什麼 80% CI lower 是嚴格門檻——你不能用 60 個觀測偽裝出 60 個獨立資訊。
 
 **為什麼是 3 和 42**：block_len=3 對應月報酬的短期自相關（約一季）；seed=42 只是固定種子讓結果可重現，**值本身不重要**。重點 —— 這兩個連同 alpha / n 都是 L6 規格**事前鎖定**，看到結果不能回頭調（調 block_len 湊 CI = p-hacking）。
-"""
-            )
-
-            st.markdown("##### ⚖️ 80% vs 95% CI — 為何採 80% 非 95%")
-            st.markdown(
-                """
-| CI 設定 | alpha | Lower Bound（雙因子策略 IS 60 月超額） | Verdict |
-|---|---|---|---|
-| 95% CI（早期標準）| 0.05 | -0.13% | ❌ Fail |
-| **80% CI**（retail-realistic）| 0.20 | **+0.37%** | ✅ Pass |
-
-> 📄 數字來源：`reports/phase_d/A11_l6_ci_comparison.md`（V1.3 canonical，block_len=3 / n=10000 / seed=42 / 10 bps slippage）。
-
-**結論**：80% 是經過 empirical 驗證的「中道標準」——
-- 95% 對 60 month sample 過嚴格，連雙因子策略 IS 都過不了
-- 80% 對雙因子策略 IS 通過，但對階段三 18 cells **依然全部過不了**
-- **證明本 sweep 的 NO-GO 不是「標準太嚴」造成，是真的沒 edge**
 """
             )
 
