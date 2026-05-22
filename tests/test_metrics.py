@@ -319,6 +319,52 @@ class TestAdjustSplits:
         adjusted = adjust_splits(prices)
         pd.testing.assert_series_equal(adjusted, prices.astype(float))
 
+    def test_gap_spanning_drop_not_detected_as_split(self):
+        """M2 修法：跨長日曆缺口（停牌）的 -51% 變動不應被誤判為 split。
+
+        停牌股復牌時跨缺口的單筆 pct_change 可能 >40%，但不是真分割。
+        pre-fix（無 gap guard）會誤調整 → 此測試在舊版會 FAIL。"""
+        prices = pd.Series(
+            [100.0, 101.0, 102.0, 50.0, 51.0, 52.0],  # 102→50 = -51%
+            index=pd.DatetimeIndex([
+                "2024-01-01", "2024-01-02", "2024-01-03",
+                "2024-02-15", "2024-02-16", "2024-02-17",  # ~43 天缺口
+            ]),
+        )
+        adjusted = adjust_splits(prices)
+        # 跨缺口的崩跌不是 split → 整段價格不應被調整
+        pd.testing.assert_series_equal(adjusted, prices.astype(float))
+
+    def test_gap_spanning_jump_not_detected_as_reverse_split(self):
+        """M2 修法：跨長日曆缺口的 +150% 變動不應被誤判為 reverse split。"""
+        prices = pd.Series(
+            [10.0, 11.0, 12.0, 30.0, 31.0],  # 12→30 = +150%
+            index=pd.DatetimeIndex([
+                "2024-01-01", "2024-01-02", "2024-01-03",
+                "2024-02-20", "2024-02-21",  # ~48 天缺口
+            ]),
+        )
+        adjusted = adjust_splits(prices)
+        pd.testing.assert_series_equal(adjusted, prices.astype(float))
+
+    def test_real_split_detected_despite_unrelated_gap(self):
+        """M2 修法不得誤傷：連續交易日的真分割仍須偵測，與跨缺口偽變動共存時只調整真分割。"""
+        prices = pd.Series(
+            [200.0, 210.0, 52.5, 30.0, 31.0],
+            index=pd.DatetimeIndex([
+                "2024-01-01", "2024-01-02", "2024-01-03",  # 210→52.5 = 1:4 真分割（gap=1）
+                "2024-02-20", "2024-02-21",  # 52.5→30 跨 ~48 天缺口（偽變動）
+            ]),
+        )
+        adjusted = adjust_splits(prices)
+        # 真分割：分割前 (loc 0,1) 乘以 52.5/210 = 0.25
+        assert abs(adjusted.iloc[0] - 50.0) < 0.01   # 200 * 0.25
+        assert abs(adjusted.iloc[1] - 52.5) < 0.01   # 210 * 0.25
+        assert adjusted.iloc[2] == 52.5              # 分割日不變
+        # 跨缺口偽變動不調整 → 分割日之後維持原值
+        assert adjusted.iloc[3] == 30.0
+        assert adjusted.iloc[4] == 31.0
+
 
 class TestBenchmarkAnnualizationAlignment:
     """M2: benchmark 年化分母用 aligned 期間，不是 portfolio n_years。"""

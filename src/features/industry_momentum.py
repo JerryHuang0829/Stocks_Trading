@@ -41,6 +41,13 @@ DEFAULT_LOOKBACK_MONTHS: int = 6  # MG1999 per H_d_v6 V0.13; pre-commit #1 froze
 DEFAULT_PIT_INDUSTRY_LAG_DAYS: int = 30
 DEFAULT_Z_CLIP: float = 3.0
 DEFAULT_MIN_TRADING_DAYS: int = 60
+# 2026-05-22 audit (M3): the return is close[-1]/close[0]-1 over the lookback
+# window. min_trading_days alone does not pin the *horizon* — a sparse or
+# recently-listed symbol can satisfy the bar count with all bars clustered in
+# the last ~3 months, yielding a much-shorter-than-6m return that silently
+# dilutes the industry average. The window-start bar must therefore lie within
+# this many calendar days of cutoff_start, else the symbol is dropped.
+DEFAULT_HORIZON_TOLERANCE_DAYS: int = 20
 
 
 def compute_industry_momentum_panel(
@@ -51,6 +58,7 @@ def compute_industry_momentum_panel(
     lookback_months: int = DEFAULT_LOOKBACK_MONTHS,
     z_clip: float = DEFAULT_Z_CLIP,
     min_trading_days: int = DEFAULT_MIN_TRADING_DAYS,
+    horizon_tolerance_days: int = DEFAULT_HORIZON_TOLERANCE_DAYS,
 ) -> pd.Series:
     """Compute D-F industry_momentum cross-section panel at rebalance date.
 
@@ -66,6 +74,10 @@ def compute_industry_momentum_panel(
         z_clip: cross-section z-score outlier clip (default ±3σ).
         min_trading_days: per-symbol minimum OHLCV bars within lookback window
             to compute return; symbols below threshold dropped.
+        horizon_tolerance_days: M3 audit guard. The window-start bar must lie
+            within this many calendar days of cutoff_start; otherwise the
+            symbol's return horizon is shorter than 6m and it is dropped, so
+            the industry average aggregates a consistent horizon across symbols.
 
     Returns:
         pd.Series indexed by symbol, value = z-scored own industry's past-6m
@@ -101,6 +113,11 @@ def compute_industry_momentum_panel(
         # Strict-before cutoff_end; lower bound cutoff_start
         df_lookback = df[(df.index >= cutoff_start) & (df.index < cutoff_end)]
         if len(df_lookback) < min_trading_days:
+            continue
+        # M3 audit horizon-consistency guard: drop symbols whose first available
+        # bar lies well after cutoff_start — their close[-1]/close[0]-1 would be
+        # a much-shorter-than-6m return and silently dilute the industry mean.
+        if df_lookback.index[0] > cutoff_start + pd.Timedelta(days=horizon_tolerance_days):
             continue
         first_close = float(df_lookback["close"].iloc[0])
         last_close = float(df_lookback["close"].iloc[-1])

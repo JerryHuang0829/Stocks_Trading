@@ -34,8 +34,14 @@ Caller wires (Phase 2 S6 cache fresh-rerun + S5 cell sweep CLI):
 """
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 import pandas as pd
+
+from src.utils.returns import MAX_RETURN_GAP_DAYS, gap_aware_returns
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_RESIDUAL_LOOKBACK_DAYS: int = 60
@@ -130,6 +136,7 @@ def compute_idio_vol_max_panel(
     # Per-symbol IdioVol + MAX
     sym_idio_vol: dict[str, float] = {}
     sym_max_lottery: dict[str, float] = {}
+    n_gap_symbols = 0
 
     for sym, df in ohlcv_panel.items():
         if df is None or df.empty:
@@ -142,17 +149,29 @@ def compute_idio_vol_max_panel(
 
         # Residual std (60-day lookback)
         residual_window = df_pre_cutoff.iloc[-residual_lookback_days:]
-        stock_returns_residual = residual_window["close"].pct_change().dropna()
+        _res_rets, _res_gap = gap_aware_returns(residual_window["close"], method="pct")
+        stock_returns_residual = _res_rets.dropna()
         idio = _compute_residual_std(stock_returns_residual, market_residual_window)
         if np.isfinite(idio):
             sym_idio_vol[sym] = idio
 
         # MAX lottery (22-day lookback)
         max_window = df_pre_cutoff.iloc[-max_lookback_days:]
-        stock_returns_max = max_window["close"].pct_change().dropna()
+        _max_rets, _max_gap = gap_aware_returns(max_window["close"], method="pct")
+        stock_returns_max = _max_rets.dropna()
+        if _res_gap.has_gap or _max_gap.has_gap:
+            n_gap_symbols += 1
         mx = _compute_max_lottery(stock_returns_max, top_k=max_top_k)
         if np.isfinite(mx):
             sym_max_lottery[sym] = mx
+
+    if n_gap_symbols:
+        logger.warning(
+            "idio_vol_max: %d symbol(s) have calendar gaps >%dd within their "
+            "lookback window — residual-vol / MAX estimates are gap-contaminated "
+            "for those symbols (flag-only; factor values unchanged)",
+            n_gap_symbols, MAX_RETURN_GAP_DAYS,
+        )
 
     common_syms = set(sym_idio_vol) & set(sym_max_lottery)
     if not common_syms:

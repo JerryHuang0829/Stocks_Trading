@@ -12,6 +12,7 @@ from ..storage.database import compute_config_hash
 import pandas as pd
 
 from ..backtest.metrics import adjust_splits
+from ..utils.returns import gap_aware_returns
 from ..data.finmind import _BacktestCacheMissError
 from ..features.foreign_investor_v2 import compute_foreign_investor_v2_universe
 from ..features.high_proximity import compute_high_proximity_universe
@@ -665,7 +666,14 @@ def _analyze_symbol(
     structure = int(latest.get("structure", 0) or 0)
 
     avg_turnover_20 = float((df["close"] * df["volume"]).tail(20).mean())
-    volatility_20d = float(df["close"].pct_change().tail(20).std()) if len(df) >= 21 else None
+    # gap-aware: detect calendar gaps in the 20-day vol window (2026-05-22 audit).
+    # tail(21) yields 20 pct_change values, byte-identical to
+    # df["close"].pct_change().tail(20) since each pct_change row depends only on
+    # its own and the immediately-prior row.
+    _vol_window = df["close"].tail(21)
+    _vol_rets, _vol_gap = gap_aware_returns(_vol_window, method="pct")
+    volatility_20d = float(_vol_rets.tail(20).std()) if len(df) >= 21 else None
+    volatility_20d_gap = bool(_vol_gap.has_gap)
     momentum_3m = _period_return(df["close"], MOMENTUM_PERIOD_3M)
     momentum_6m = _period_return(df["close"], MOMENTUM_PERIOD_6M)
     momentum_12m = _period_return(df["close"], MOMENTUM_PERIOD_12M)
@@ -783,6 +791,7 @@ def _analyze_symbol(
         "institutional_detail": institutional_result.get("detail", ""),
         "quality_raw": quality_raw,
         "volatility_20d": volatility_20d,
+        "volatility_20d_gap": volatility_20d_gap,
         "eligible": len(filters) == 0,
         "filters": filters,
     }

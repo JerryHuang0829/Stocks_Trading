@@ -22,6 +22,18 @@ _SPLIT_DETECTION_THRESHOLD = -0.40
 # this threshold triggers automatic adjustment.  Taiwan daily limit is +10%,
 # so any single-day gain >100% must be a reverse split (e.g. 10:1 = +900%).
 _REVERSE_SPLIT_THRESHOLD = 1.00
+# Calendar-gap guard: a threshold-breaching price move is only treated as a
+# split when the two adjacent rows are at most this many calendar days apart.
+# pct_change() compares consecutive rows blind to calendar gaps, so a suspended
+# or illiquid stock (common among delisting-bound names) that resumes far below
+# its last print can produce a single "daily" return beyond the ±40%/+100%
+# thresholds with no real split — silently corrupting the whole prior series.
+# Genuine splits/consolidations almost always fall between consecutive trading
+# days, so capping the gap removes the common false positive.  Accepted blind
+# spot: a real split whose ex-date follows a >10-day suspension would also be
+# skipped — that is far rarer than the false positive, and the deliberate
+# tradeoff here favours not corrupting the series over catching that edge case.
+_SPLIT_MAX_GAP_DAYS = 10
 
 
 def adjust_splits(prices: pd.Series) -> pd.Series:
@@ -54,6 +66,22 @@ def adjust_splits(prices: pd.Series) -> pd.Series:
 
     # Detect both forward splits (big drops) and reverse splits (big jumps)
     split_mask = (daily_ret < _SPLIT_DETECTION_THRESHOLD) | (daily_ret >= _REVERSE_SPLIT_THRESHOLD)
+
+    # Calendar-gap guard: drop threshold breaches that span a long data gap
+    # (suspension / missing cache rows) — those are not real splits.  Only
+    # applied when the index carries dates; otherwise gaps are indeterminable
+    # and behaviour is unchanged from the pre-guard version.
+    if split_mask.any() and isinstance(adjusted.index, pd.DatetimeIndex):
+        gap_days = adjusted.index.to_series().diff().dt.days
+        across_gap = (gap_days > _SPLIT_MAX_GAP_DAYS).fillna(False)
+        n_suppressed = int((split_mask & across_gap).sum())
+        if n_suppressed:
+            logger.warning(
+                "adjust_splits: %d threshold breach(es) span >%d-day calendar "
+                "gaps (likely suspension/data gap, not a split); skipping those",
+                n_suppressed, _SPLIT_MAX_GAP_DAYS,
+            )
+        split_mask = split_mask & ~across_gap
 
     if not split_mask.any():
         return adjusted

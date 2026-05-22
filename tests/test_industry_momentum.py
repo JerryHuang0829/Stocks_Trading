@@ -162,6 +162,46 @@ def test_industry_momentum_zero_variance_returns_zero_zscores():
     assert all(abs(v) < 1e-9 for v in panel.values)
 
 
+def test_industry_momentum_short_horizon_symbol_dropped():
+    """M3 audit guard: a symbol with enough bars (>= min_trading_days) but whose
+    data starts well after cutoff_start has a <6m return horizon and must be
+    dropped, so the industry average aggregates a consistent 6m horizon.
+
+    cutoff_start for as_of 2024-07-15 = 2024-07-15 - 181d = 2024-01-16;
+    tolerance window end = 2024-02-05. pre-fix (no horizon guard) would include
+    the short-horizon symbol → this test FAILS on the old code (mutation guard)."""
+    ohlcv = {
+        # Full 6m history (first bar ≈ cutoff_start) — kept
+        "2330": _make_ohlcv("2024-01-01", "2024-07-01", 100.0, 120.0),
+        # ~87 business days (>= min_trading_days 60) but starts 2024-03-01,
+        # well past 2024-02-05 tolerance → only ~4m horizon → dropped
+        "2454": _make_ohlcv("2024-03-01", "2024-07-01", 100.0, 130.0),
+    }
+    industry_map = {"2330": "Semi", "2454": "Semi"}
+    panel = compute_industry_momentum_panel(
+        ohlcv, industry_map, pd.Timestamp("2024-07-15"),
+    )
+    assert "2330" in panel.index
+    assert "2454" not in panel.index  # short-horizon symbol dropped by M3 guard
+
+
+def test_industry_momentum_within_tolerance_symbol_kept():
+    """M3 guard must not over-drop: a symbol whose first bar lies within
+    horizon_tolerance_days of cutoff_start is still kept."""
+    # cutoff_start for as_of 2024-07-15 = 2024-01-16; +20d tolerance = 2024-02-05
+    ohlcv = {
+        "2330": _make_ohlcv("2024-01-01", "2024-07-01", 100.0, 120.0),
+        # Starts 2024-01-22 — within the 2024-02-05 tolerance → kept
+        "2454": _make_ohlcv("2024-01-22", "2024-07-01", 100.0, 110.0),
+    }
+    industry_map = {"2330": "Semi", "2454": "Hardware"}
+    panel = compute_industry_momentum_panel(
+        ohlcv, industry_map, pd.Timestamp("2024-07-15"),
+    )
+    assert "2330" in panel.index
+    assert "2454" in panel.index
+
+
 def test_industry_momentum_first_close_zero_handled():
     """Edge: symbol with first_close <= 0 (data corruption) excluded."""
     bad_ohlcv = pd.DataFrame(

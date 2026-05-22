@@ -4,24 +4,36 @@ Theory: high margin balance + fast margin-balance increase ≈ retail chasing
 high prices, historically correlated with subsequent underperformance.
 Short-sale balance is a weaker reverse signal (short-covering pressure).
 
-Composite (reverse-coded inside formula — **higher factor score = lower margin
-ratio = higher expected return**, because the score uses negative weights to
-flip the raw inverse-alpha signal into a positive-alpha score):
+Composite (reverse-coded inside formula — the score uses negative weights so
+that, *by design*, a lower margin ratio maps to a higher score. Whether that
+higher score actually earns a higher return is an EMPIRICAL question — see the
+"Empirical IC vs decile" caveat below; do NOT assume positive-alpha):
 
     margin_ratio      = (MarginPurchaseTodayBalance - ShortSaleTodayBalance) / issued_shares
     margin_change_20d = MarginPurchaseTodayBalance_today / MarginPurchaseTodayBalance_20d_ago - 1
     score             = -0.5 * zscore_cross(margin_ratio) - 0.5 * zscore_cross(margin_change_20d)
 
-So when used in IC pipeline:
-  - mean IC > 0 → expected (the factor predicts return positively as designed)
-  - decile rho > 0 (D9 > D0) → expected long-only behavior
-
-Sign-convention sanity check (R28-4 release):
-  Old docstring "higher factor score = lower expected return" was wrong-sign.
-  Empirical fresh rerun 2026-05-10: mean IC = +0.0387, but per-period IC vs
-  per-period (D9-D0 spread) Spearman = 0.946 (high consistency). Cross-period
-  AVERAGE IC and AVERAGE spread don't have to match in sign — that's a
-  statistical property, not a bug. Factor sign-convention itself is correct.
+Empirical IC vs decile sanity (2026-05-22 audit correction — supersedes the
+old R28-4 "sign-convention sanity check"):
+  ⚠️ This is NOT a stable long-only factor. The old docstring claimed
+  "decile rho > 0 (D9 > D0) → expected" — that is empirically FALSE. Two
+  DIFFERENT quantities were conflated and must not be:
+    - decile monotonicity rho = Spearman(decile index 0..9, decile mean
+      return) = **−0.818** (reports/factor_ic/margin_short_ratio_ic.json).
+      D0 (lowest score) earns +1.57%/period — the HIGHEST; D9 (highest score)
+      earns +0.88% — among the lowest. d9_d0_t = −1.21 (not significant).
+    - per-period (IC ↔ D9-D0 spread) Spearman = 0.946 — this is only a
+      WITHIN-PERIOD consistency metric. It does NOT resolve the monotonicity
+      sign; the old R28-4 paragraph was wrong to wave away the −0.818 with it.
+  The positive mean IC (+0.0388) is concentrated in 2022 (bucket IC +0.101, a
+  crash year) and the trending_up regime (IC +0.082); the trending_down regime
+  IC is −0.025. The signal behaves like a regime-conditional / crash-hedge
+  indicator, not a plain monotonic long-only alpha.
+  Verdict: do NOT deploy as a plain long-only factor. Any v8 use must add
+  explicit regime conditioning. Flipping the formula sign would NOT fix this —
+  it flips BOTH the IC and the decile curve, leaving the non-monotonicity
+  intact. The formula above is therefore left unchanged; only this
+  documentation is corrected.
 
 - PIT: rows with ``date > as_of - MARGIN_LAG_DAYS`` are dropped (T+2 conservative)
 - Edge: zero issued_shares / missing panel / < min_history days all drop the symbol

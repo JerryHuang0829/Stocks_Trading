@@ -19,10 +19,26 @@ from ..portfolio.tw_stock import (
 )
 from ..storage.database import compute_config_hash
 from ..utils.constants import TECH_SUPPLY_CHAIN_KEYWORDS, TW_ROUND_TRIP_COST, to_utc_ts
+from ..utils.returns import MAX_RETURN_GAP_DAYS, gap_aware_returns
 from .metrics import adjust_dividends, adjust_splits, compute_metrics, format_report
 from .universe import HistoricalUniverse
 
 logger = logging.getLogger(__name__)
+
+
+def _annotate_return_gap(snapshot: dict, gap_symbols: list[str]) -> None:
+    """Mark a snapshot data_degraded because its holding period's return series
+    spans a calendar gap (suspension / cache gap).
+
+    2026-05-22 audit: a gap-spanning row produces a single "daily" return that
+    actually covers weeks, contaminating that period's risk metrics. Per the
+    flag-only policy the return values are left untouched — only surfaced here.
+    """
+    snapshot["data_degraded"] = True
+    reasons = snapshot.setdefault("data_degraded_reasons", [])
+    reason = f"return_gap:{','.join(sorted(gap_symbols))}"
+    if reason not in reasons:
+        reasons.append(reason)
 
 DEFAULT_SLIPPAGE_BPS = 10  # 對齊 config/settings.yaml:72 (R19 external audit P1 fix 2026-05-02 + Pro sprint 2026-05-04 補 src/scripts 層)
 
@@ -311,6 +327,9 @@ class BacktestEngine:
         self._error_rate_threshold = float(_bt.get("error_rate_threshold", 0.2))
         self._factor_coverage_threshold = float(_bt.get("factor_coverage_threshold", 0.3))
         self._dividends: list[dict] | None = None
+        # Symbols whose return series spanned a calendar gap in the most recent
+        # _compute_daily_returns call (2026-05-22 audit, flag-only policy).
+        self._last_period_gap_symbols: list[str] = []
 
     def run(
         self,
@@ -384,7 +403,15 @@ class BacktestEngine:
             adjusted_close = adjust_splits(bench_df["close"])
             if self._dividends:
                 adjusted_close = adjust_dividends(adjusted_close, self._dividends, benchmark_symbol)
-            benchmark_daily = adjusted_close.pct_change().dropna()
+            _bench_rets, _bench_gap = gap_aware_returns(adjusted_close, method="pct")
+            benchmark_daily = _bench_rets.dropna()
+            if _bench_gap.has_gap:
+                logger.warning(
+                    "Benchmark %s return series spans %d calendar gap(s) >%dd "
+                    "(max %dd) — benchmark risk metrics may be gap-contaminated",
+                    benchmark_symbol, _bench_gap.n_gaps, MAX_RETURN_GAP_DAYS,
+                    _bench_gap.max_gap_days,
+                )
 
         # --- 逐月 replay ---
         monthly_snapshots: list[dict] = []
@@ -405,6 +432,13 @@ class BacktestEngine:
                     current_holdings, prev_rebal, rebal_date, slicer
                 )
                 all_daily_returns.extend(daily_rets)
+                # Attribute any return-series calendar gap to the prior period's
+                # snapshot (monthly_snapshots[-1] = period i-1, whose holdings
+                # were just replayed). 2026-05-22 audit, flag-only policy.
+                if self._last_period_gap_symbols and monthly_snapshots:
+                    _annotate_return_gap(
+                        monthly_snapshots[-1], self._last_period_gap_symbols
+                    )
 
             # --- Step B: 決定新投組（point-in-time universe）---
             universe = hist_universe.get_universe_at(
@@ -624,6 +658,10 @@ class BacktestEngine:
                 current_holdings, rebalance_dates[-1], end_date, slicer
             )
             all_daily_returns.extend(final_rets)
+            if self._last_period_gap_symbols and monthly_snapshots:
+                _annotate_return_gap(
+                    monthly_snapshots[-1], self._last_period_gap_symbols
+                )
 
         # --- 組合日頻報酬序列 ---
         if all_daily_returns:
@@ -680,8 +718,8 @@ class BacktestEngine:
         metrics["degraded_periods"] = len(degraded_periods)
         if degraded_periods:
             logger.warning(
-                "⚠️ 本輪回測有 %d/%d 個再平衡週期資料降級（分析錯誤率 >20%%），"
-                "KPI 不應視為乾淨研究基準。",
+                "⚠️ 本輪回測有 %d/%d 個再平衡週期資料降級（分析錯誤率過高 或 "
+                "報酬序列含日曆缺口），KPI 不應視為乾淨研究基準。",
                 len(degraded_periods), n_rebalances,
             )
 
@@ -712,6 +750,7 @@ class BacktestEngine:
 
         # 收集每個持倉的日報酬
         stock_daily_returns: dict[str, pd.Series] = {}
+        period_gap_symbols: list[str] = []
         for symbol, weight in holdings.items():
             if weight <= 0:
                 continue
@@ -727,7 +766,10 @@ class BacktestEngine:
             adjusted_close = adjust_splits(period_df["close"])
             if self._dividends:
                 adjusted_close = adjust_dividends(adjusted_close, self._dividends, symbol)
-            daily_ret = adjusted_close.pct_change().dropna()
+            _ret_series, _gap = gap_aware_returns(adjusted_close, method="pct")
+            if _gap.has_gap:
+                period_gap_symbols.append(symbol)
+            daily_ret = _ret_series.dropna()
             # 過濾 inf：收盤價含 0 或資料錯誤時 pct_change 可能產生 inf，
             # dropna() 不會移除 inf，必須明確替換，否則一個壞點汙染整個 KPI。
             n_inf = daily_ret.isin([float("inf"), float("-inf")]).sum()
@@ -740,6 +782,8 @@ class BacktestEngine:
             if daily_ret.empty:
                 continue
             stock_daily_returns[symbol] = daily_ret
+
+        self._last_period_gap_symbols = period_gap_symbols
 
         if not stock_daily_returns:
             return []

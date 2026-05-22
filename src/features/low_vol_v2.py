@@ -33,10 +33,15 @@ _DataSlicer in backtest mode).
 
 from __future__ import annotations
 
+import logging
 from typing import Mapping
 
 import numpy as np
 import pandas as pd
+
+from src.utils.returns import MAX_RETURN_GAP_DAYS, gap_aware_returns
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_WINDOW = 252
@@ -90,6 +95,7 @@ def compute_low_vol_v2_universe(
         as_of_ts = as_of_ts.tz_localize(None) if as_of_ts.tz is not None else as_of_ts
 
     results: dict[str, float] = {}
+    n_gap = 0  # symbols with a calendar gap in their vol window (2026-05-22 audit)
     diagnostics = {
         "dropped_for_no_close": 0,
         "dropped_for_zero_close": 0,
@@ -128,7 +134,10 @@ def compute_low_vol_v2_universe(
             continue
         # Daily log returns within the window slice. Need at least 2 prices to
         # compute 1 return; with min_history=200 prices we get ~199 returns.
-        log_ret = np.log(window_slice).diff().dropna()
+        _log_rets, _gap = gap_aware_returns(window_slice, method="log")
+        log_ret = _log_rets.dropna()
+        if _gap.has_gap:
+            n_gap += 1
         if len(log_ret) < min_history - 1:
             diagnostics["dropped_for_insufficient_history"] += 1
             continue
@@ -142,6 +151,16 @@ def compute_low_vol_v2_universe(
     diagnostics["bad_data_count"] = sum(
         v for k, v in diagnostics.items() if k != "bad_data_count"
     )
+    # 2026-05-22 audit: calendar-gap flag — added AFTER bad_data_count so it is
+    # not folded into that sum (a gap does not drop the symbol, only flags it).
+    diagnostics["symbols_with_calendar_gap"] = n_gap
+    if n_gap:
+        logger.warning(
+            "low_vol_v2: %d symbol(s) have calendar gaps >%dd within their %dd "
+            "realized-vol window — vol estimates are gap-contaminated for those "
+            "symbols (flag-only; factor values unchanged)",
+            n_gap, MAX_RETURN_GAP_DAYS, window,
+        )
     series = pd.Series(results, dtype=float)
     if return_diagnostics:
         return series, diagnostics
