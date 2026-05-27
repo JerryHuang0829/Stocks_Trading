@@ -282,7 +282,7 @@ st.code(
 │
 ├── 📂 dashboard/  (5 files)                     本 Streamlit app (主頁 + 3 子頁 + utils.py)
 ├── 📂 scripts/  (30 files)                      CLI 工具 (cache build / backtest / IC pipeline)
-└── 📂 config/  (13 yaml files)                  settings + factor_thresholds + Phase D 子設定
+└── 📂 config/  (13 yaml files)                  settings + factor_thresholds + v3.x 子設定
 """,
     language=None,
 )

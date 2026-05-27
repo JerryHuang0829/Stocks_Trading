@@ -372,14 +372,24 @@ def _build_industry_label_map(cache_dir: pathlib.Path) -> dict[str, str]:
 
 
 def _build_market_returns(cache_dir: pathlib.Path) -> pd.Series:
-    """0050 price-only daily returns for IdioVol regression."""
+    """0050 price-only daily returns for IdioVol regression.
+
+    2026-05-24 (v5.0 prerequisite): apply `adjust_splits` BEFORE `pct_change`.
+    0050 did a ~1:4 split in 2025-06; raw cache holds unadjusted prices, so a
+    naive pct_change produces a spurious ~-75% return on the split date that
+    contaminates IdioVol regression / regime detection for any v5.x run
+    extending into 2025.  adjust_splits' Fix2 calendar-gap guard does NOT
+    suppress this split (it occurs on consecutive trading days).
+    """
+    from src.backtest.metrics import adjust_splits
     pkl = cache_dir / "ohlcv" / "0050.pkl"
     if not pkl.exists():
         logger.warning("0050 OHLCV cache missing — market_returns empty")
         return pd.Series(dtype=float)
     df = pd.read_pickle(pkl)
     df.index = pd.to_datetime(df.index).tz_localize(None) if df.index.tz else pd.to_datetime(df.index)
-    return df["close"].pct_change().dropna()
+    close = adjust_splits(df["close"])
+    return close.pct_change().dropna()
 
 
 def _build_benchmark_monthly_returns(
@@ -411,7 +421,13 @@ def _build_benchmark_monthly_returns(
         return pd.Series(dtype=float)
     df = pd.read_pickle(pkl)
     df.index = pd.to_datetime(df.index).tz_localize(None) if df.index.tz else pd.to_datetime(df.index)
-    close = df["close"].copy()
+    # 2026-05-24 (v5.0 prerequisite): split-adjust 0050 BEFORE dividend-adjust.
+    # 0050 did a ~1:4 split in 2025-06; raw cache prices have a ~-75% jump on
+    # the split date that would corrupt monthly benchmark returns and Alpha for
+    # any v5.x run extending into 2025.  Split first → divide cleanly (the
+    # adjust_dividends formula is scale-invariant, so order is safe).
+    from src.backtest.metrics import adjust_splits
+    close = adjust_splits(df["close"])
 
     # V0.24: read dividends from _global.pkl (list[dict] schema), filter by symbol
     div_pkl = cache_dir / "dividends" / "_global.pkl"

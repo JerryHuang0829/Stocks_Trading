@@ -2,9 +2,13 @@
 
 最後更新：**2026-05-11**（B0 architecture hardening 補一輪：feature-module PIT cutoff mutation tests + 移除 `dir()` introspection + GitHub Actions CI + README/dashboard 一致性與呈現 polish（TL;DR / 名詞速查 / 資料流 / 「結論之後如何變 GO」表）；694 pytest 全綠 @ conda `quant`）
 
+> **版本代號**：本檔為 append-only 完整 changelog。各區段標題已於開頭加上統一版本號 `[vN.M]`；
+> 內文保留當時的舊代號（Phase A1 / Phase D v7 / V0.x / R0x / P0-P7 / Sprint / Wave 等）以維持歷史準確。
+> 新舊代號完整對照見 `docs/版本對照表.md`。
+
 ---
 
-## 2026-05-11 B0 hardening：CI + feature-module PIT mutation tests + 移除 `dir()` introspection
+## [v3.3 後] 2026-05-11 B0 hardening：CI + feature-module PIT mutation tests + 移除 `dir()` introspection
 
 **動機**：`architecture_audit_2026_05_02.md` §B.2 與 `J_multi_perspective_audit.md` §P6.1 都列了同一條 follow-up gap：`_DataSlicer` 只直接 PIT-truncate OHLCV / institutional / month_revenue / market_value，而 `quarterly_eps` / `margin_short` / `three_institutional` 走 `__getattr__` 透傳 → as_of cutoff 改在 feature module 內做（`compute_*_universe(..., as_of=)`），但**那層 cutoff 沒有 mutation test 守**。同一輪 audit §A.3 也點名 `tw_stock.py` 內一處 `"ohlcv_by_sym" in dir()` 區域變數內省（脆弱、重構會靜默壞）。
 
@@ -26,7 +30,7 @@
 
 ---
 
-## 2026-05-07 Wave 3：pandas-ta 升級鎖 0.4.71b0（撤銷 Wave 1 的 native rewrite）
+## [v3.3] 2026-05-07 Wave 3：pandas-ta 升級鎖 0.4.71b0（撤銷 Wave 1 的 native rewrite）
 
 **根因分析**：external audit 前一輪 audit 報告「pandas_ta 在 conda quant 60-120s timeout」並非 pandas_ta 本身問題。self-audit 獨立驗證 user 的 conda quant 環境 import pandas_ta 只需 3.36s。實際根因：`requirements.txt` 鎖的 `pandas-ta>=0.3.14b` 對 numpy 2.x 不相容（0.3.x 內含 `from numpy import NaN`，numpy 2.0+ 已移除大寫 `NaN`），但 user 環境另外手動裝了 `pandas-ta==0.4.71b0`（PyPI pre-release tag 版，已修 numpy 2.x 相容性）。
 
@@ -49,14 +53,14 @@
 
 ---
 
-## 2026-05-07 Wave 2：self-audit 收尾文件一致性
+## [v3.3] 2026-05-07 Wave 2：self-audit 收尾文件一致性
 
 - HANDOFF.md（gitignored，本機 only）全面更新：18-cell 表格 header `L5 corr` → `L5 A1`、18 cells 過幾關欄重算、6 處 stale path round3 → 正確路徑、紀律語句 5/6 → 4/6、加入 v7_outcome2_summary 索引。
 - `dashboard/app.py:150` 修「無 pandas_ta 依賴」（後續 Wave 3 又改回 pandas-ta 列入技術棧）。
 
 ---
 
-## 2026-05-07 Wave 1：external audit（前一輪）做的初步 closeout
+## [v3.3] 2026-05-07 Wave 1：external audit（前一輪）做的初步 closeout
 
 - 新增 `reports/phase_d/v7_outcome2_summary.md`，把 Phase D v7 正式結案為 **CONFIRM-NO-GO / Outcome-2 Partial**。
 - 修正 README / reports 對 L5 的可誤讀處：L5 是 active_corr + TE + beta-adjusted alpha t 的 aggregate A1 gate，不是單看 correlation。
@@ -66,7 +70,7 @@
 
 ---
 
-## 2026-05-07：Phase D v7 收斂事件群（V0.22-V0.26 + 18-cell run + R25-final）
+## [v3.3] 2026-05-07：Phase D v7 收斂事件群（V0.22-V0.26 = v3.3.1-v3.3.5 + 18-cell run + R25-final）
 
 ### 18-cell sweep 完成（2026-05-06 20:18:46 ~ 23:48:45，3.5 hr，PID 9036 整輪 alive）
 
@@ -172,7 +176,7 @@ self-audit 給 external reviewer 的 R25-final prompt 表格手算錯 4 cell（D
 
 ---
 
-## 2026-05-05：Phase 2 S7 + S8 stub closeout (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Phase 2 S7 + S8 stub closeout (B' 1 commit 整包)
 
 User 拍板 B（surgical S7 + S8 stub now，最後一次 commit 全包，新 session 接手只 monitor cache fill）。背景 cache fill task `b6p1mbh8v` 跑 quality_v3 source data（quarterly_financial_full + balance_sheet 各 1839 stocks，~3.5-4 hr ETA）期間，繼續寫 S7 + S8 surgical stub。
 
@@ -268,7 +272,7 @@ real wire-up post cache fill task b6p1mbh8v completion + 18 cell run).
 
 ---
 
-## 2026-05-05：Phase 2 S6.1 Path B — quality_v3 cache infra extension (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Phase 2 S6.1 Path B — quality_v3 cache infra extension (B' 1 commit 整包)
 
 User 拍板 Path B（6/6 candidates real run，含 quality_v3 cache infra extension）。User 質疑後親自驗證確認：D-G + D-F 0 hr cache infra（既有 OHLCV + stock_info 夠），**只 D-E quality_v3 真需新 cache panel**（FinMind API 100% 提供 ✓，純 cache infra 工作）。
 
@@ -339,7 +343,7 @@ User 端 sequence:
 
 ---
 
-## 2026-05-05：Phase 2 S6 stub — d_cell_aggregate_v7 + DSR n_trials=18 落地 (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Phase 2 S6 stub — d_cell_aggregate_v7 + DSR n_trials=18 落地 (B' 1 commit 整包)
 
 S6 spec (HANDOFF Section D + V0.13 Assertion 3 + V1.1b enforce) deliverable: 18 cell sweep + cache fresh-rerun + DSR n_trials=18 落地。User 拍板 A 直接進。
 
@@ -434,7 +438,7 @@ per V0.13 §"S6 fresh-rerun 範圍與時程" + V0.13 §"Cell sweep adjust pipeli
 
 ---
 
-## 2026-05-05：Phase 2 S5 — Cell Sweep CLI + V1.2 binding 完成 (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Phase 2 S5 — Cell Sweep CLI + V1.2 binding 完成 (B' 1 commit 整包)
 
 S5 spec (HANDOFF Section D + V1.2 binding + V1.1c P1 #18) deliverable: H_d_v6 pre-reg link + Cell Sweep CLI (3 件 pre-flight gate) + L5 active_corr full impl per V1.2 binding + tag `phase-d-v7-implementation-start`。User 拍板 A 直接進 (B' 1 commit 整包，per S1-S4 + v7.1 reframe pattern)。
 
@@ -517,7 +521,7 @@ S6 是 Phase 2 真正大型 backtest run — surgical scope V1.2 stub pattern �
 
 ---
 
-## 2026-05-05：Plan v7.1 Reframe — R25-mid 獨立 audit 5 P0 修法 (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Plan v7.1 Reframe — R25-mid 獨立 audit 5 P0 修法 (B' 1 commit 整包)
 
 R25-mid 獨立 audit verdict = **GO-WITH-CAVEATS（5 P0 必修）**。external audit 親跑 code + targeted tests，verdict 抓出 4 P0 設計層問題；user (self-audit) 親自驗證確認 4 P0 全 valid + 加 1 P0 (pre-commit #8 wording 模糊)。**candidate pool 定義已被污染** — 即使數值計算正確，會回答錯誤的實驗問題。User 拍板 Plan v7.1 Reframe (B' 1 commit 整包) ~5.5 hr 工程修畢進 S5 ready 狀態。
 
@@ -601,7 +605,7 @@ R25-mid 獨立 audit verdict = **GO-WITH-CAVEATS（5 P0 必修）**。external a
 
 ---
 
-## 2026-05-05：Phase 2 S4 — d_cell_sweep_v7 generic engine + 6 yaml configs (B' 1 commit 整包) → R25-mid trigger
+## [v3.3] 2026-05-05：Phase 2 S4 — d_cell_sweep_v7 generic engine + 6 yaml configs (B' 1 commit 整包) → R25-mid trigger
 
 S4 spec (HANDOFF Section D + V0.13 Assertion 2/3 落地) deliverable: composite_d_v7 generic engine + 6 yaml configs (D-B/C/D/E/F/G; D-A 不入 yaml per Assertion 2) + tests for assertions + yaml schema validation。User 拍板 B' (1 commit 整包 同 S1/S2/S3 pattern)。
 
@@ -697,7 +701,7 @@ R25-mid audit scope (per HANDOFF Section H):
 
 ---
 
-## 2026-05-05：Phase 2 S3 — D-F industry_momentum + D-G idio_vol_max (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Phase 2 S3 — D-F industry_momentum + D-G idio_vol_max (B' 1 commit 整包)
 
 S3 spec (HANDOFF Section D + V0.13 §"3 New factor PIT lag spec" + V1.2 stub pattern) deliverable: D-F `industry_momentum.py` (6m per Moskowitz-Grinblatt 1999) + D-G `idio_vol_max.py` (0.5/0.5 split residual std + MAX lottery)。User 拍板 B' (1 commit 整包)，pattern 同 S1/S2。
 
@@ -787,7 +791,7 @@ Coverage:
 
 ---
 
-## 2026-05-05：Phase 2 S2 — D-E quality_v3 PIT-correct logic + V0.13 spec lock (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Phase 2 S2 — D-E quality_v3 PIT-correct logic + V0.13 spec lock (B' 1 commit 整包)
 
 S2 spec (HANDOFF Section D + V0.13 §"3 New factor PIT lag spec" + V1.2 stub pattern) deliverable: D-E `quality_v3.py` (QMJ profitability sub-component, NOT full QMJ) + PIT financial history rewrite + tests + quality_v2 deprecation。User 拍板 B' (1 commit 整包)。
 
@@ -873,7 +877,7 @@ Coverage:
 
 ---
 
-## 2026-05-05：Phase 2 S1 — composite_backtest 67bps + 跨頻 infra + active_corr stub (B' 1 commit 整包)
+## [v3.3] 2026-05-05：Phase 2 S1 — composite_backtest 67bps + 跨頻 infra + active_corr stub (B' 1 commit 整包)
 
 S1 spec (HANDOFF Section D + V0.13 spec lock + V1.2 binding) deliverable: composite_backtest.py 57bps→0.0067 + 跨頻 infra + active_corr 定義 + 3 code-level assertions + tests。User 拍板 B' (1 commit 整包 不拆 sub-commit)。
 
@@ -963,7 +967,7 @@ S1 是 Phase 2 最重 single Session 之一 (~10-12 hr 預估)；強觸發 self-
 
 ---
 
-## 2026-05-05：Phase 1 V1.4 — A12 attacker test 2 mutation (cache priority hardening, D'' 擴展)
+## [v3.3] 2026-05-05：Phase 1 V1.4 — A12 attacker test 2 mutation (cache priority hardening, D'' 擴展)
 
 V1.4 spec (Plan v7 line 270 + H_d_v6:227 A12) deliverable: 「A12 attacker test 落地：Docker scenario `_is_posix()` 不破壞」。User 拍板 D'' 擴展 (2 mutation test，補既有 V0.2 trio 沒 cover 的 priority combinations)。
 
@@ -1031,7 +1035,7 @@ V1.4 spec (Plan v7 line 270 + H_d_v6:227 A12) deliverable: 「A12 attacker test 
 
 ---
 
-## 2026-05-05：Phase 1 V1.3 — A11 attacker test empirical (D1_v2 IS 60 monthly active returns bootstrap)
+## [v3.3] 2026-05-05：Phase 1 V1.3 — A11 attacker test empirical (D1_v2 IS 60 monthly active returns bootstrap)
 
 V1.3 spec (Plan v7 line 269 + H_d_v6:226 A11) deliverable: 「A11 attacker test 落地：D1_v2 IS bootstrap 80% vs 95% CI 對照」。User 拍板 default scope (D1_v2 IS only)。**首次 V1.x 涉及 code execution + empirical computation**（V1.1-V1.2 全純文檔）。
 
@@ -1088,7 +1092,7 @@ V1.3 empirical mean monthly active 1.41% < R24 既有 1.69% by 0.28%，對齊 Sp
 
 ---
 
-## 2026-05-05：Phase 1 V1.2 — H_d_v6 §"L5 active_corr binding (V1.2 lock)"
+## [v3.3] 2026-05-05：Phase 1 V1.2 — H_d_v6 §"L5 active_corr binding (V1.2 lock)"
 
 V1.2 spec (Plan v7 line 268) deliverable: 「H_d_v6 §L5 改 binding commit Phase 2 Session 5 — 改「pending implementation」為「locked + Phase 2 Session 5 owns implementation; 違反 = R25-final P0」杜絕 phantom gate」。
 
@@ -1128,7 +1132,7 @@ audit_doc_drift drift 0 / warnings 4 / R24 / PASS（既有 4 absolute claims 不
 
 ---
 
-## 2026-05-05：Phase 1 V1.1c — H_d_v6 L1 / L2 numerical justification 段 (C'' 擴展)
+## [v3.3] 2026-05-05：Phase 1 V1.1c — H_d_v6 L1 / L2 numerical justification 段 (C'' 擴展)
 
 V1.1 原 spec line 267 deliverable: 「H_d_v6 §"6 Hard Reject Criteria" 補 L1 / L2 numerical justification」。V1.1a V0.13 已 inline short rationale（line 33-36）；V1.1c 擴充為正式段 + 3 table form 完整數值驗算 + Conclusion，per V1.1 原 spec deliverable + 防 R25-mid 獨立 audit「numerical justification 不足」P0 attack。
 
@@ -1167,7 +1171,7 @@ audit_doc_drift drift 0 / warnings 4 / R24 / PASS（既有 4 absolute claims 不
 
 ---
 
-## 2026-05-04：Phase 1 V1.1b — ic_analysis.py DSR n_trials enforcement (B''-narrow approved)
+## [v3.3] 2026-05-04：Phase 1 V1.1b — ic_analysis.py DSR n_trials enforcement (B''-narrow approved)
 
 V1.1a V0.13 spec lock 後落地 code-level enforcement Assertion 3。User 拍板 B'' 範圍擴大 (擴 audit 4 module-level defaults)，但 forensic-sweep 後**真實 in-scope 只 DSR_N_TRIALS** (其他 3 default audit pass)，最終 = B''-narrow approved (per Pro 選擇 evidence-based 否決 broad 直覺)。
 
@@ -1224,7 +1228,7 @@ Pre-design attack 6 個 cleared 但**漏 grep `compute_factor_ic(` caller chain*
 
 ---
 
-## 2026-05-04：Phase 1 V1.1a — H_d_v6 V0.13 4 P0 spec lock
+## [v3.3] 2026-05-04：Phase 1 V1.1a — H_d_v6 V0.13 4 P0 spec lock
 
 接手 session 完成 Step 1 (context 對齊) + Step 2 (baseline verify 5/5 PASS) + Step 3 (in-house Skill chain Pro Review)。Step 3 產 27 patch（multi-perspective 22 + self-audit 19 hard checks 8 FAIL + forensic-sweep 8 sweep / 27 hits / 3 新 sibling）；verdict GO-WITH-CAVEATS @ `reports/phase_d/pre_implementation_review_2026-05-04.md`；4 P0 必補（Phase 2 S1 之前）。User 拍板 Plan v7 V1.1 拆 V1.1a/b/c。
 
@@ -1258,7 +1262,7 @@ audit_doc_drift drift 0 / warnings 4 / R24 / PASS（既有 4 absolute claims 不
 
 ---
 
-## 2026-05-04：Plan v7 closeout V0.8-V0.12 + R25 prompt 重寫
+## [v3.3] 2026-05-04：Plan v7 closeout V0.8-V0.12 + R25 prompt 重寫
 
 **Commits**：`af3924b` (R25 prompt) ← `d55d4ea` (v7 closeout) ← `d2e6eac` (cleanup) ← `54b952a` (v6 baseline) ← `0d31572` (Sprint Phase B fix)
 
@@ -1288,7 +1292,7 @@ audit_doc_drift drift 0 / warnings 4 / R24 / PASS（既有 4 absolute claims 不
 
 ---
 
-## 2026-05-04：Plan v6 Phase 0 V0.1-V0.7 baseline (commit 54b952a)
+## [v3.2] 2026-05-04：Plan v6 Phase 0 V0.1-V0.7 baseline (commit 54b952a)
 
 R24 verdict（Plan v5 NO-GO 5 P0 + 7 設計問題）後 user 拍板 v6 validation-first sprint：
 
@@ -1304,7 +1308,7 @@ R24 verdict（Plan v5 NO-GO 5 P0 + 7 設計問題）後 user 拍板 v6 validatio
 
 ---
 
-## 2026-05-04：Pro Validation Sprint Phase A-J（另一 self-audit session 平行做）
+## [v3.2~v3.3] 2026-05-04：Pro Validation Sprint Phase A-J（另一 self-audit session 平行做）
 
 `reports/sprint_pro_validation/CANONICAL_MANIFEST_2026-05-04.md` 9 phase verdict = **GO with 2 P1**。
 
@@ -1329,7 +1333,7 @@ R24 verdict（Plan v5 NO-GO 5 P0 + 7 設計問題）後 user 拍板 v6 validatio
 
 ---
 
-## 2026-05-04：Plan v4 NO-GO → v5 NO-GO
+## [v3.0→v3.1] 2026-05-04：Plan v4 NO-GO → v5 NO-GO
 
 | Round | Verdict | 主因 |
 |---|---|---|
@@ -1338,7 +1342,7 @@ R24 verdict（Plan v5 NO-GO 5 P0 + 7 設計問題）後 user 拍板 v6 validatio
 
 ---
 
-## 2026-05-03：Phase B0-Lite spike → pivot P5（後 reject → pivot D）
+## [v2.3] 2026-05-03：Phase B0-Lite spike → pivot P5（後 reject → pivot D）
 
 **Spike**: `src/features/low_vol_v2.py` single-factor IC 在 2019-2024 historical validation set
 
@@ -1358,7 +1362,7 @@ R24 verdict（Plan v5 NO-GO 5 P0 + 7 設計問題）後 user 拍板 v6 validatio
 
 ---
 
-## 2026-05-02：Pivot back from Options + Pro Validation Sprint Phase A 啟動
+## [→v3.x] 2026-05-02：Pivot back from Options + Pro Validation Sprint Phase A 啟動
 
 Options Phase 1 alpha hypothesis 證偽（TXO Iron Condor 5yr OOS 6 scenario Sharpe -2.1 ~ -2.9 + Quick A calendar hedge 改善但仍 -2.48）→ 不啟動 Phase 2 paper trading → 重啟本 repo 為主軸。
 
@@ -1366,7 +1370,7 @@ Pro Validation Sprint Phase A：env unblock + tag `phase-b0-baseline` 之上做 
 
 ---
 
-## 2026-04-23：Phase A3.1 架構強化 + Gate 全 fail + Pivot
+## [v2.2] 2026-04-23：Phase A3.1 架構強化 + Gate 全 fail + Pivot
 
 ### Phase A3.1 3 個 commits（架構實作 ready）
 
@@ -1455,7 +1459,7 @@ Pro Validation Sprint Phase A：env unblock + tag `phase-b0-baseline` 之上做 
 
 ---
 
-## 2026-04-21：Phase A2 Step 2 - 5 Factor 整合完成
+## [v2.1] 2026-04-21：Phase A2 Step 2 - 5 Factor 整合完成
 
 ### Step 1.5 → Step 2 銜接
 
@@ -1525,7 +1529,7 @@ Step 6   ⏸ Go/No-Go 決策（paper / 實盤 / Smart Beta pivot）
 
 ---
 
-## 2026-04-21：Phase A2 Step 1.5 架構重整（external audit Round 14-plan-review → Step 1.5 → Round 15）
+## [v2.1] 2026-04-21：Phase A2 Step 1.5 架構重整（external audit Round 14-plan-review → Step 1.5 → Round 15）
 
 ### 背景：external audit Round 14-plan-review audit 判 No-Go
 
@@ -1600,7 +1604,7 @@ Tests 347 → 359（R11）→ **369**（Step 1.5 +10）。commits ahead of origi
 
 ---
 
-## 2026-04-19~20：R11-R13 audit chain 收尾 + Phase A1 holistic 完成
+## [v2.0] 2026-04-19~20：R11-R13 audit chain 收尾 + Phase A1 holistic 完成
 
 ### R11：TWSE/TPEX fetchers 永久取代 FinMind 增量（commit `2b6097a`）
 
@@ -1692,7 +1696,7 @@ R13 DSR 事件後，學到 external audit holistic audit 比 line-by-line 審計
 
 ---
 
-## 2026-04-16：Round 3 獨立驗證 + follow-up
+## [v1.6] 2026-04-16：Round 3 獨立驗證 + follow-up
 
 ### 真 bug 修復
 
@@ -1737,7 +1741,7 @@ R13 DSR 事件後，學到 external audit holistic audit 比 line-by-line 審計
 
 ---
 
-## 🧹 2026-04-16：三輪 external audit 架構審計 — 8 個 silent-degradation bug 修完
+## [v1.6] 🧹 2026-04-16：三輪 external audit 架構審計 — 8 個 silent-degradation bug 修完
 
 ### 審計動機
 
@@ -1835,7 +1839,7 @@ Pre-filter / timezone 兩個 bug 修完後，讓 external reviewer 從架構層�
 
 ---
 
-## 🚨 2026-04-15 下午：揭露兩個隱藏 bug，alpha 大幅消失
+## [v1.6] 🚨 2026-04-15 下午：揭露兩個隱藏 bug，alpha 大幅消失
 
 ### 發現過程
 
@@ -1926,7 +1930,7 @@ TWSE turnover unavailable — skipping pre-filter, using all 1997 stocks
 
 ---
 
-## 摘要與路線圖
+## [v1.x 摘要] 摘要與路線圖
 
 ### 整體判斷
 
@@ -2671,7 +2675,7 @@ Docker 87 測試全通過、本機 29 測試全通過、回測結果可重現（
 
 ---
 
-## P5 雙視角審查 + 工程修復（2026-04-01 ~ 04-02）
+## [v1.2] P5 雙視角審查 + 工程修復（2026-04-01 ~ 04-02）
 
 ### 背景
 
@@ -2735,7 +2739,7 @@ Docker 87 測試全通過、本機 29 測試全通過、回測結果可重現（
 
 ---
 
-## 專案架構評估（self-audit + external audit 交叉驗證，2026-03-31）
+## [v1.x] 專案架構評估（self-audit + external audit 交叉驗證，2026-03-31）
 
 ### 視角一：專業投資人
 
@@ -2777,7 +2781,7 @@ Docker 87 測試全通過、本機 29 測試全通過、回測結果可重現（
 
 ---
 
-## P4.3 Walk-Forward 驗證（2026-04-01）
+## [v1.1] P4.3 Walk-Forward 驗證（2026-04-01）
 
 ### 11 個半年視窗（2020-H2 → 2025-H2）
 
@@ -2804,7 +2808,7 @@ Sharpe 1.91、Alpha +27.03%、MDD -17.41%。疫情期間 2020-02 轉 risk_off �
 
 ---
 
-## P4.1 + P4.2 修復驗證（2026-04-01）
+## [v1.1] P4.1 + P4.2 修復驗證（2026-04-01）
 
 ### P4.1 Benchmark Stock Split 修復
 
@@ -2823,7 +2827,7 @@ Sharpe 1.91、Alpha +27.03%、MDD -17.41%。疫情期間 2020-02 轉 risk_off �
 
 ---
 
-## 2025 OOS 回測報告（2026-03-31 初版 → 04-01 P4.1 修復版）
+## [v1.x] 2025 OOS 回測報告（2026-03-31 初版 → 04-01 P4.1 修復版）
 
 ### OOS vs In-Sample
 
@@ -2842,7 +2846,7 @@ Sharpe 1.91、Alpha +27.03%、MDD -17.41%。疫情期間 2020-02 轉 risk_off �
 
 ---
 
-## P3 策略擴展研究（2026-03-31）
+## [v1.0] P3 策略擴展研究（2026-03-31）
 
 ### P3.3 波動率加權 ❌
 
@@ -2862,7 +2866,7 @@ Sharpe 1.91、Alpha +27.03%、MDD -17.41%。疫情期間 2020-02 轉 risk_off �
 
 ---
 
-## P2 因子權重與 Exposure 優化（2026-03-30）
+## [v1.0] P2 因子權重與 Exposure 優化（2026-03-30）
 
 ### IF 移除（10→0%）— 落地 ✅
 
@@ -2891,7 +2895,7 @@ IF=0% fresh rerun 與 self-audit artifact 0.0% 差異。`score_weights` 邏輯�
 
 ---
 
-## P1 Grid Search（2026-03-30）
+## [v1.0] P1 Grid Search（2026-03-30）
 
 ### max_same_industry 2→3（最大改善來源）
 
@@ -2916,7 +2920,7 @@ industry=3 的 6M/3Y 兩輪精準對上。原始 ind=2 的 3Y 有 5.8% 差異（
 
 ---
 
-## P0 + 早期修正（2026-03-30 及之前）
+## [v1.0] P0 + 早期修正（2026-03-30 及之前）
 
 ### 跨機器驗證
 

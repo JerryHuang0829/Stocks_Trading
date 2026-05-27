@@ -27,6 +27,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.d_cell_sweep_v7_real import (  # noqa: E402
+    _build_benchmark_monthly_returns,
+    _build_market_returns,
     _compute_beta_adj_alpha_t,
     _compute_cell_metrics,
     _compute_max_drawdown,
@@ -181,3 +183,66 @@ def test_run_cell_sweep_real_requires_ctx_or_cache_dir():
             "D-B", 8,
             datetime(2020, 1, 1), datetime(2020, 12, 31),
         )
+
+
+# ---------------------------------------------------------------------------
+# 0050 split-adjust prerequisite (v5.0; 2026-05-24)
+# ---------------------------------------------------------------------------
+def _write_fake_0050_with_split(cache_dir, n_pre=200, n_post=50, split_ratio=0.25):
+    """Write synthetic 0050 OHLCV with a clean 1:4 split between two consecutive
+    business days. Pre-split prices ≈ 100; post-split ≈ 100 * split_ratio = 25.
+    """
+    ohlcv_dir = cache_dir / "ohlcv"
+    ohlcv_dir.mkdir(parents=True, exist_ok=True)
+    dates = pd.bdate_range("2025-01-01", periods=n_pre + n_post)
+    close = np.concatenate([
+        np.linspace(100.0, 100.0, n_pre),
+        np.linspace(100.0 * split_ratio, 100.0 * split_ratio, n_post),
+    ])
+    df = pd.DataFrame(
+        {"open": close, "high": close, "low": close, "close": close,
+         "volume": [1_000_000] * len(close)},
+        index=dates,
+    )
+    df.to_pickle(ohlcv_dir / "0050.pkl")
+    return dates
+
+
+def test_build_market_returns_split_adjusted(tmp_path):
+    """v5.0 prerequisite: 0050 1:4 split must NOT produce a -75% daily return.
+
+    Mutation guard: revert `adjust_splits` call → split day shows return ≈ -0.75
+    and this assertion fires.
+    """
+    _write_fake_0050_with_split(tmp_path)
+    rets = _build_market_returns(tmp_path)
+    assert not rets.empty
+    # No single-day return should be even close to -75% after split-adjust.
+    assert rets.min() > -0.40, (
+        f"Found unadjusted split spike: min daily return = {rets.min():.4f}"
+    )
+    # Pre-split flat + post-split flat → returns essentially 0 throughout.
+    assert rets.abs().max() < 1e-9, (
+        f"Split-adjusted flat series should give ~0 returns; got max |r|={rets.abs().max():.2e}"
+    )
+
+
+def test_build_benchmark_monthly_returns_split_adjusted(tmp_path):
+    """v5.0 prerequisite: 0050 1:4 split in monthly benchmark returns must NOT
+    leave a ~-75% spike in any month.  require_dividend_adjust=False to skip
+    the dividend-cache requirement for this isolated unit test.
+    """
+    dates = _write_fake_0050_with_split(tmp_path)
+    # Month-ends spanning the split (3 months should cover both pre and post)
+    month_ends = list(pd.date_range(
+        dates[100], dates[-1], freq="BME",
+    ).to_pydatetime())
+    if len(month_ends) < 2:
+        pytest.skip("need at least 2 month-ends in fixture window")
+    rets = _build_benchmark_monthly_returns(
+        tmp_path, month_ends, require_dividend_adjust=False,
+    )
+    assert not rets.empty
+    assert rets.min() > -0.40, (
+        f"Found unadjusted split spike in monthly benchmark: min={rets.min():.4f}"
+    )

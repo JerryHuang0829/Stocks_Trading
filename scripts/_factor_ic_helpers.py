@@ -45,6 +45,7 @@ from typing import Sequence
 
 import pandas as pd
 
+from src.backtest.metrics import adjust_splits_ohlc
 from src.strategy.indicators import calculate_indicators
 from src.strategy.regime import detect_regime
 from src.utils.thresholds import get_threshold, per_panel_min_obs
@@ -375,7 +376,12 @@ def _compute_regimes(
     rebalance_dates: list,
     strategy_cfg: dict,
 ) -> list[str | None]:
-    full = calculate_indicators(benchmark_ohlcv.copy(), strategy_cfg)
+    # Codex v5.0 R1 P1-4 fix (2026-05-25): adjust OHLC for splits before
+    # computing technical indicators. Without this, the 0050 2025-06 1:4
+    # split corrupted ADX / SMA values for downstream regime classification,
+    # poisoning 2025 OOS regime contextual feature in v5.0 ML.
+    benchmark_adjusted = adjust_splits_ohlc(benchmark_ohlcv)
+    full = calculate_indicators(benchmark_adjusted.copy(), strategy_cfg)
     full_idx = full.index
     if getattr(full_idx, "tz", None) is not None:
         full = full.copy()

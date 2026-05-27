@@ -52,3 +52,17 @@ pandas-ta==0.4.71b0
 # Test
 # ------------------------------------------------------------------
 pytest>=7.0.0
+
+# ------------------------------------------------------------------
+# v5.0 ML pipeline (added 2026-05-25 per Codex v5.0 R1 P1-3 fix)
+# ------------------------------------------------------------------
+# Required by Step 4 ML pipeline engineering:
+#   - xgboost: classifier (binary top-decile) + LambdaMART (XGBRanker)
+#   - optuna:  nested CV hyperparameter search (50 trials × 8 cells = 400)
+#   - shap:    feature importance + interaction values (Step 4f)
+# Smoke test: tests/test_ml_imports.py verifies all three import cleanly.
+# Versions pinned to known-compatible-with-Python-3.12 / numpy 2.x ranges.
+xgboost>=1.7.0,<3.0.0
+optuna>=3.5.0,<5.0.0
+shap>=0.43.0,<1.0.0
+tabulate>=0.9.0,<1.0.0   # pandas DataFrame.to_markdown() backend (Step 5 deliverables)

@@ -1,0 +1,209 @@
+{
+  "factors": [
+    "idio_vol_max",
+    "high_proximity",
+    "pead_eps",
+    "value_ep",
+    "reversal_1m",
+    "value_ep_sn",
+    "pead_eps_sn"
+  ],
+  "matrix": {
+    "idio_vol_max": {
+      "idio_vol_max": 1.0,
+      "high_proximity": 0.1354,
+      "pead_eps": -0.1537,
+      "value_ep": 0.2468,
+      "reversal_1m": 0.222,
+      "value_ep_sn": 0.1872,
+      "pead_eps_sn": -0.1422
+    },
+    "high_proximity": {
+      "high_proximity": 1.0,
+      "idio_vol_max": 0.1354,
+      "pead_eps": 0.2126,
+      "value_ep": 0.0333,
+      "reversal_1m": -0.4167,
+      "value_ep_sn": 0.0136,
+      "pead_eps_sn": 0.2051
+    },
+    "pead_eps": {
+      "pead_eps": 1.0,
+      "idio_vol_max": -0.1537,
+      "high_proximity": 0.2126,
+      "value_ep": 0.0732,
+      "reversal_1m": -0.0641,
+      "value_ep_sn": 0.0691,
+      "pead_eps_sn": 0.9266
+    },
+    "value_ep": {
+      "value_ep": 1.0,
+      "idio_vol_max": 0.2468,
+      "high_proximity": 0.0333,
+      "pead_eps": 0.0732,
+      "reversal_1m": 0.0627,
+      "value_ep_sn": 0.9124,
+      "pead_eps_sn": 0.0618
+    },
+    "reversal_1m": {
+      "reversal_1m": 1.0,
+      "idio_vol_max": 0.222,
+      "high_proximity": -0.4167,
+      "pead_eps": -0.0641,
+      "value_ep": 0.0627,
+      "value_ep_sn": 0.06,
+      "pead_eps_sn": -0.0603
+    },
+    "value_ep_sn": {
+      "value_ep_sn": 1.0,
+      "idio_vol_max": 0.1872,
+      "high_proximity": 0.0136,
+      "pead_eps": 0.0691,
+      "value_ep": 0.9124,
+      "reversal_1m": 0.06,
+      "pead_eps_sn": 0.0724
+    },
+    "pead_eps_sn": {
+      "pead_eps_sn": 1.0,
+      "idio_vol_max": -0.1422,
+      "high_proximity": 0.2051,
+      "pead_eps": 0.9266,
+      "value_ep": 0.0618,
+      "reversal_1m": -0.0603,
+      "value_ep_sn": 0.0724
+    }
+  },
+  "period_counts": {
+    "idio_vol_max": {
+      "idio_vol_max": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "value_ep": 71,
+      "reversal_1m": 71,
+      "value_ep_sn": 71,
+      "pead_eps_sn": 71
+    },
+    "high_proximity": {
+      "high_proximity": 71,
+      "idio_vol_max": 71,
+      "pead_eps": 71,
+      "value_ep": 71,
+      "reversal_1m": 71,
+      "value_ep_sn": 71,
+      "pead_eps_sn": 71
+    },
+    "pead_eps": {
+      "pead_eps": 71,
+      "idio_vol_max": 71,
+      "high_proximity": 71,
+      "value_ep": 71,
+      "reversal_1m": 71,
+      "value_ep_sn": 71,
+      "pead_eps_sn": 71
+    },
+    "value_ep": {
+      "value_ep": 71,
+      "idio_vol_max": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "reversal_1m": 71,
+      "value_ep_sn": 71,
+      "pead_eps_sn": 71
+    },
+    "reversal_1m": {
+      "reversal_1m": 71,
+      "idio_vol_max": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "value_ep": 71,
+      "value_ep_sn": 71,
+      "pead_eps_sn": 71
+    },
+    "value_ep_sn": {
+      "value_ep_sn": 71,
+      "idio_vol_max": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "value_ep": 71,
+      "reversal_1m": 71,
+      "pead_eps_sn": 71
+    },
+    "pead_eps_sn": {
+      "pead_eps_sn": 71,
+      "idio_vol_max": 71,
+      "high_proximity": 71,
+      "pead_eps": 71,
+      "value_ep": 71,
+      "reversal_1m": 71,
+      "value_ep_sn": 71
+    }
+  },
+  "symbol_counts": {
+    "idio_vol_max": {
+      "idio_vol_max": 1788.4084507042253,
+      "high_proximity": 1635.8,
+      "pead_eps": 1607.4,
+      "value_ep": 1299.7,
+      "reversal_1m": 1643.5,
+      "value_ep_sn": 1299.7,
+      "pead_eps_sn": 1607.9
+    },
+    "high_proximity": {
+      "high_proximity": 1635.8450704225352,
+      "idio_vol_max": 1635.8,
+      "pead_eps": 1604.9,
+      "value_ep": 1293.6,
+      "reversal_1m": 1635.8,
+      "value_ep_sn": 1293.6,
+      "pead_eps_sn": 1604.9
+    },
+    "pead_eps": {
+      "pead_eps": 1608.9577464788733,
+      "idio_vol_max": 1607.4,
+      "high_proximity": 1604.9,
+      "value_ep": 1269.6,
+      "reversal_1m": 1608.5,
+      "value_ep_sn": 1269.6,
+      "pead_eps_sn": 1609.0
+    },
+    "value_ep": {
+      "value_ep": 1303.2957746478874,
+      "idio_vol_max": 1299.7,
+      "high_proximity": 1293.6,
+      "pead_eps": 1269.6,
+      "reversal_1m": 1302.2,
+      "value_ep_sn": 1303.3,
+      "pead_eps_sn": 1270.0
+    },
+    "reversal_1m": {
+      "reversal_1m": 1646.9859154929577,
+      "idio_vol_max": 1643.5,
+      "high_proximity": 1635.8,
+      "pead_eps": 1608.5,
+      "value_ep": 1302.2,
+      "value_ep_sn": 1302.2,
+      "pead_eps_sn": 1608.9
+    },
+    "value_ep_sn": {
+      "value_ep_sn": 1303.2957746478874,
+      "idio_vol_max": 1299.7,
+      "high_proximity": 1293.6,
+      "pead_eps": 1269.6,
+      "value_ep": 1303.3,
+      "reversal_1m": 1302.2,
+      "pead_eps_sn": 1270.0
+    },
+    "pead_eps_sn": {
+      "pead_eps_sn": 1609.4084507042253,
+      "idio_vol_max": 1607.9,
+      "high_proximity": 1604.9,
+      "pead_eps": 1609.0,
+      "value_ep": 1270.0,
+      "reversal_1m": 1608.9,
+      "value_ep_sn": 1270.0
+    }
+  },
+  "method": "per_period_spearman_then_average",
+  "version": "v5.0_ml_feature_set",
+  "notes": "v5.0 ML feature checkpoint. Same method as 8-factor v2.x snapshot. Identify redundant pairs (|ρ|>0.7) and correlated pairs (|ρ|>0.5) before locking pre-registration."
+}

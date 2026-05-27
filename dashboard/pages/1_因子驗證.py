@@ -215,7 +215,7 @@ if not ics:
     st.error("讀不到 reports/factor_ic/ 內因子 IC JSON。")
     st.stop()
 
-# 動態算 FDR（Phase A1 5 因子 m=5 pre-registered）
+# 動態算 FDR（v2.0 的 5 因子 m=5 pre-registered）
 _nominal_pvals = [
     ics.get(f, {}).get("overall", {}).get("p_value") if ics.get(f) else None
     for f in FIVE_FACTORS

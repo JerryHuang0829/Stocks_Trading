@@ -109,6 +109,64 @@ def adjust_splits(prices: pd.Series) -> pd.Series:
     return adjusted
 
 
+def adjust_splits_ohlc(ohlc: pd.DataFrame) -> pd.DataFrame:
+    """Forward-adjust an OHLC(V) DataFrame for stock splits / reverse splits.
+
+    Extension of :func:`adjust_splits` to a multi-column DataFrame: the split
+    detection is run on the ``close`` column (same threshold + calendar-gap
+    guard as the Series version) and the resulting ratio is applied uniformly
+    to all OHLC columns(open / high / low / close)so candle geometry stays
+    intact post-adjustment.
+
+    Required for downstream indicators that read OHLC(e.g. ADX in
+    ``calculate_indicators``)— a close-only adjusted price series would leave
+    open / high / low untouched and any TR-based indicator would explode at
+    the split bar (e.g. 0050 2025-06-XX 1:4 split → ADX spike → regime
+    classifier misfire).
+
+    Used by:
+        - ``scripts/_factor_ic_helpers._compute_regimes`` (Codex R1 P1-4 fix)
+
+    Parameters
+    ----------
+    ohlc : pd.DataFrame
+        Must have at minimum ``close``; any of ``open`` / ``high`` / ``low``
+        present will receive the same adjustment ratio. Index must be sorted
+        ascending; carries a ``DatetimeIndex`` for the calendar-gap guard to
+        kick in (else gap guard is skipped, matching :func:`adjust_splits`).
+        Extra columns (e.g. ``volume``, ``turnover``) are passed through
+        unchanged — volume after a split would inflate; that is intentional
+        (turnover dollar amount is invariant, share count is not).
+
+    Returns
+    -------
+    pd.DataFrame
+        Same columns / index as input; OHLC columns forward-adjusted, other
+        columns passed through unchanged.
+    """
+    if ohlc is None or ohlc.empty or "close" not in ohlc.columns:
+        return ohlc.copy() if ohlc is not None else ohlc
+    if len(ohlc) < 2:
+        return ohlc.copy()
+
+    out = ohlc.copy()
+    close = out["close"].astype(float)
+    adjusted_close = adjust_splits(close)
+
+    # Per-bar adjustment ratio = adjusted_close / original_close. Bars before
+    # any detected split get ratio < 1 (forward split) or > 1 (reverse split);
+    # bars at or after the most-recent split get ratio = 1.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = adjusted_close / close
+    ratio = ratio.where(close != 0, other=1.0).fillna(1.0)
+
+    for col in ("open", "high", "low", "close"):
+        if col in out.columns:
+            out[col] = out[col].astype(float) * ratio
+
+    return out
+
+
 def adjust_dividends(
     prices: pd.Series,
     dividends: list[dict],

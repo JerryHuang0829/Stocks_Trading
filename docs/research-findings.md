@@ -1,10 +1,12 @@
 # 策略研究
 
-最後更新：**2026-05-11**（Phase D v7 18-cell run 完成 → CONFIRM-NO-GO / Outcome-2 Partial / 0/18 cells 過 6 hard gates；A-then-B 的 A（v7 closeout）+ B0（architecture hardening：Phase A1 R26–R33 PIT 修法 + CI + 文件一致性）已完成，B（v8 reframe）待決定）
+最後更新：**2026-05-11**（v3.3 18-cell run 完成 → CONFIRM-NO-GO / Outcome-2 Partial / 0/18 cells 過 6 hard gates；A-then-B 的 A（v3.3 closeout）+ B0（architecture hardening：PIT 修法 + CI + 文件一致性）已完成，B（v4.x reframe）待決定）
+
+> **版本代號**：本檔為 append-only 研究日誌，各日期章節**內文保留當時的舊代號**（Phase A1 / Phase D v7 / V0.x / P1-P7 等）以維持歷史準確。章節標題與下方「累積階段結論」表已改用線性 `vN.M`；完整新舊對照見 `docs/版本對照表.md`。
 
 ---
 
-## 🟥 2026-05-07 — Phase D v7 結論：CONFIRM-NO-GO（Outcome-2 Partial）
+## 🟥 2026-05-07 — v3.3（舊 Phase D v7）結論：CONFIRM-NO-GO（Outcome-2 Partial）
 
 ### 18-cell sweep 實證結果
 
@@ -58,7 +60,7 @@ User 在收 external audit CONFIRM-NO-GO 後指示「請你實際驗證 不要�
 
 → v7 不是「程式 bug」，是**現實上 60 個月 + 嚴格 retail-realistic gate 下 18 個假設都不夠強**。
 
-### Phase D v7 對研究本身的學習
+### v3.3 對研究本身的學習
 
 **正面收穫**：
 - Pro methodology infra 全套建好（DSR / FDR / stationary block bootstrap / PIT mutation tests / forward-leak guard）
@@ -78,24 +80,24 @@ User 在收 external audit CONFIRM-NO-GO 後指示「請你實際驗證 不要�
 
 ### 累積階段結論（更新）
 
-| Phase | 結論 |
+| 版本（舊代號） | 結論 |
 |---|---|
-| P1-P7 (2024) | 三因子 tw_3m_stable 過去 alpha 揭穿為 overfit (timezone + universe pre-filter bug) |
-| Phase A1 (2026-04) | 5 新因子 + Pro methodology 建立；2 通過中道（52W High / PEAD）|
-| Phase A2 D1_v2 | 2-factor composite OOS 2025 α 不顯著 |
-| Phase A3.1 | sector_neutral / regime_aware 全 fail |
-| Pivot Options (2026-04-23 ~ 05-02) | TXO Iron Condor 5yr OOS Sharpe -2.1~-2.9 → Phase 1 alpha 證偽 |
-| Pivot back (2026-05-02) | 重啟 Quantitative Phase D |
-| Phase D v6 → v7 (2026-05-04) | Plan v4/v5 NO-GO → v6 baseline → v7 closeout |
-| **Phase D v7 (2026-05-07)** | **18-cell run 完成 / 0 過 6/6 / Outcome-2 Partial / CONFIRM-NO-GO** |
+| v1.x（舊 P1-P7，2024） | 三因子 tw_3m_stable 過去 alpha 揭穿為 overfit (timezone + universe pre-filter bug) |
+| v2.0（舊 Phase A1，2026-04） | 5 新因子 + Pro methodology 建立；2 通過中道（52W High / PEAD）|
+| v2.1（舊 Phase A2，D1_v2） | 2-factor composite OOS 2025 α 不顯著 |
+| v2.2（舊 Phase A3.1） | sector_neutral / regime_aware 全 fail |
+| Pivot Options (2026-04-23 ~ 05-02) | TXO Iron Condor 5yr OOS Sharpe -2.1~-2.9 → alpha 證偽（姊妹 repo）|
+| Pivot back (2026-05-02) | 重啟 Quantitative，進入 v3.x |
+| v3.0–v3.2（舊 Plan v4/v5/v6，2026-05-04） | Plan v4/v5 NO-GO → v6 baseline |
+| **v3.3（舊 Phase D v7，2026-05-07）** | **18-cell run 完成 / 0 過 6/6 / Outcome-2 Partial / CONFIRM-NO-GO** |
 
 ### 下一步（A-then-B）
 
 | Step | 路徑 | 狀態 |
 |---|---|---|
 | A | 結案 `v7_outcome2_summary.md` + 0050 DCA practical baseline | ✅ 已完成 |
-| B0 | architecture hardening：Phase A1 R26–R33 PIT 修法 + GitHub Actions CI + feature-module PIT mutation tests + 文件/dashboard 一致性 polish（694 pytest 全綠）| ✅ 已完成 |
-| B | v8 reframe：樣本延伸 / core-satellite / formal engine / preregistered trials | 待決定 |
+| B0 | architecture hardening：v2.0 PIT 修法 + GitHub Actions CI + feature-module PIT mutation tests + 文件/dashboard 一致性 polish（694 pytest 全綠）| ✅ 已完成 |
+| B | v4.x reframe：樣本延伸 / core-satellite / formal engine / preregistered trials | 待決定 |
 
 **紀律**：CONFIRM-NO-GO 下不允許 active top-N paper trade kickoff（4/6 ≠ 6/6，降標 hard gates = silent_bug）。
 
@@ -103,7 +105,7 @@ User 在收 external audit CONFIRM-NO-GO 後指示「請你實際驗證 不要�
 
 ---
 
-## 🟢 2026-05-04 — Phase D v7 hypothesis lock + 6 candidates + Sprint manifest verification
+## 🟢 2026-05-04 — v3.3（舊 Phase D v7）hypothesis lock + 6 candidates + Sprint manifest verification
 
 ### H_d_v6 (= H_d_v7) 假設陳述（pre-registered，事前鎖定）
 
@@ -179,7 +181,7 @@ Outcome-3 (D-A control) v6 起移除（D-A 預先 disqualify）。
 
 ---
 
-## 🟡 2026-05-03 — Phase B0-Lite low_vol_v2 spike 結論
+## 🟡 2026-05-03 — v2.3（舊 Phase B0-Lite）low_vol_v2 spike 結論
 
 **研究發現**：低波動率因子（IdioVol 殘差 std）single-factor IC 在 2019-2024 表面強但結構性 fail。
 
@@ -217,9 +219,9 @@ Outcome-3 (D-A control) v6 起移除（D-A 預先 disqualify）。
 
 ---
 
-## 🛑 2026-04-23 — Phase A3.1 結案 + Pivot 決策
+## 🛑 2026-04-23 — v2.2（舊 Phase A3.1）結案 + Pivot 決策
 
-### Phase A3.1 執行結果（三架構強化 + 三 backtest）
+### v2.2 執行結果（三架構強化 + 三 backtest）
 
 **架構**（commits `2a50a8e` → `9265f2c` → `1c9d4bb` + 本次 A3.1.4 pool fix）：
 - **A3.1.1 Sector-neutral ranking**（產業內排名，強制分散）
@@ -302,9 +304,9 @@ Outcome-3 (D-A control) v6 起移除（D-A 預先 disqualify）。
 
 ---
 
-## 🎯 2026-04-20 — Phase A1 holistic audit 結論 + Phase A2 啟動
+## 🎯 2026-04-20 — v2.0（舊 Phase A1）holistic audit 結論 + v2.1 啟動
 
-### Phase A1 最終結論：**新 5 因子 IC 測完，嚴格標準 0 通過，中道標準 2 通過**
+### v2.0 最終結論：**新 5 因子 IC 測完，嚴格標準 0 通過，中道標準 2 通過**
 
 | Factor | IR | nominal p | FDR (m=5) | DSR Ψ | Block CI | 中道通過 |
 |---|---|---|---|---|---|---|
@@ -328,7 +330,7 @@ Outcome-3 (D-A control) v6 起移除（D-A 預先 disqualify）。
 
 這也是為何 Phase A1 不能只看 IC 就上實盤——**必須 OOS 驗證**。新 composite 也沒 2025 OOS 驗過。
 
-### Phase A2 Strategy C 路徑（2026-04-20 決議）
+### v2.1 Strategy C 路徑（2026-04-20 決議）
 
 ```
 Step 2 engine 整合 5 新 factor → Step 3 external audit 審 → Step 4 討論 weight
@@ -429,7 +431,7 @@ R11.1 v1/v2 累計修 **411,333 rows across 734 TPEX syms**（含 17 轉板股�
 
 ---
 
-## 📊 2026-04-16 晚 — Phase A1 因子研究（月頻 × TW-specific 篩選）
+## 📊 2026-04-16 晚 — v2.0（舊 Phase A1）因子研究（月頻 × TW-specific 篩選）
 
 ### 篩選原則
 

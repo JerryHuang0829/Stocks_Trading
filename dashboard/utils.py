@@ -27,7 +27,7 @@ FIVE_FACTORS = [
     "foreign_investor_v2",
 ]
 
-# 2026-05-11 補測 Phase D 3 因子 single IC（之前只在 v7 cell sweep aggregate 中露面）
+# 2026-05-11 補測 v3.x 的 3 因子 single IC（之前只在 v3.3 cell sweep aggregate 中露面）
 PHASE_D_FACTORS = [
     "quality_v3",
     "industry_momentum",
@@ -46,7 +46,7 @@ FACTOR_DISPLAY_NAMES = {
     # 標準台股中文翻譯；舊「4 子訊號」schema 因 R28 P1-D deprecate consistency
     # 後變誤導（實際 3 active sub-signal）。
     "foreign_investor_v2": "外資法人因子 v2",
-    # Phase D 3 因子（2026-05-11 補跑 single IC）
+    # v3.x 的 3 因子（2026-05-11 補跑 single IC）
     "quality_v3": "品質",
     "industry_momentum": "產業動量",
     "idio_vol_max": "特質波動+樂透",
@@ -54,7 +54,7 @@ FACTOR_DISPLAY_NAMES = {
 
 
 # ===============================================================
-# Phase D v7 6 個 candidates 的策略名稱 + 因子組合對照
+# v3.3 的 6 個 candidates 的策略名稱 + 因子組合對照
 # 多個 dashboard page 共用，避免 D-X 代號散落
 # ===============================================================
 STRATEGY_NAMES = {
@@ -122,11 +122,11 @@ def _load_text(path: Path) -> str | None:
 
 
 # ===============================================================
-# Phase D v7 18-cell sweep loaders（頁 1 + 頁 5 用）
+# v3.3 的 18-cell sweep loaders（頁 1 + 頁 5 用）
 # ===============================================================
 @st.cache_data(ttl=600)
 def load_cell_summary() -> dict | None:
-    """Phase D v7 18-cell 結論 (outcome / sole_survivor / cells gates)。"""
+    """v3.3 的 18-cell 結論 (outcome / sole_survivor / cells gates)。"""
     return _load_json(PHASE_D_RESULTS / "cell_summary.json")
 
 
@@ -149,7 +149,7 @@ def load_bootstrap_ci_lowers() -> dict | None:
 
 
 # ===============================================================
-# Phase A1 5 因子 IC loaders（頁 2 用）
+# v2.0 的 5 因子 IC loaders（頁 2 用）
 # ===============================================================
 @st.cache_data(ttl=600)
 def load_factor_ic(factor_name: str) -> dict | None:
@@ -170,7 +170,7 @@ def load_all_factor_ics() -> dict[str, dict]:
 
 @st.cache_data(ttl=600)
 def load_all_eight_factor_ics() -> dict[str, dict]:
-    """8 因子 IC raw 總集（Phase A1 5 + Phase D 3）；2026-05-11 補測。"""
+    """8 因子 IC raw 總集（v2.0 的 5 + v3.x 的 3）；2026-05-11 補測。"""
     out: dict[str, dict] = {}
     for f in ALL_FACTORS:
         ic = load_factor_ic(f)
@@ -187,7 +187,7 @@ def load_factor_correlation() -> dict | None:
 
 @st.cache_data(ttl=600)
 def load_phase_a1_summary_md() -> str | None:
-    """Phase A1 綜合結論 markdown。"""
+    """v2.0 綜合結論 markdown。"""
     return _load_text(FACTOR_IC / "phase_a1_summary.md")
 
 

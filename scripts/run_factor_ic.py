@@ -39,7 +39,13 @@ from src.features.foreign_investor_v2 import compute_foreign_investor_v2_univers
 from src.features.high_proximity import compute_high_proximity_universe
 from src.features.margin_short_ratio import compute_margin_short_ratio_universe
 from src.features.pead_eps import compute_pead_eps_universe
+from src.features.reversal_1m import compute_reversal_1m_universe
 from src.features.revenue_momentum_v2 import compute_revenue_momentum_v2_universe
+from src.features.value_ep import compute_value_ep_universe
+# DROPPED imports (Codex v5.0 R1 Extra-3 demote, 2026-05-25):
+#   from src.features.size_factor import compute_size_universe  # IC p=0.76 fail
+#   from src.features.momentum_12_1 import compute_momentum_12_1_universe  # IC p=0.97 fail
+# src/features/ + tests/ 保留供 audit trail / future re-evaluation;客製 IC script 可用。
 from src.utils.config import load_config
 from src.utils.paths import resolve_cache_dir
 from src.utils.thresholds import get_threshold
@@ -111,7 +117,34 @@ FACTOR_REGISTRY: dict[str, dict] = {
         "aux_panel": None,
         "default_min_history": 12,    # quarters
     },
+    # v5.0 new factors (2026-05-24) — Fama-French Value gap fix + DeBondt-Thaler
+    # short-horizon reversal complement to high_proximity.
+    "value_ep": {
+        "fn": compute_value_ep_universe,
+        "panel_type": "quarterly_eps",
+        "aux_panel": None,
+        "default_min_history": 4,     # quarters (TTM)
+    },
+    "reversal_1m": {
+        "fn": compute_reversal_1m_universe,
+        "panel_type": "ohlcv",
+        "aux_panel": None,
+        "default_min_history": 22,    # trading days (lookback 21 + 1)
+    },
 }
+
+# v5.0 candidate research (2026-05-25) — Codex v5.0 R1 Extra-3 demote (2026-05-25):
+# size_factor + momentum_12_1 + gross_profitability 全 IC fail (p ≥ 0.76);
+# 從 FACTOR_REGISTRY 拿掉避免誤用,但保留 src/features/ 程式 + tests 作為
+# audit trail / reproducibility 證據 + 未來 v5.x 重評可重跑 IC。
+# 若要重跑這 3 個 candidate 的 IC,使用 scripts/_research_gp_ic.py 或
+# 仿照寫 _research_size_ic.py / _research_mom_12_1_ic.py 客製腳本。
+#
+# DROPPED (IC fail, 不在 FACTOR_REGISTRY):
+#   - size_factor: src/features/size_factor.py + tests/test_size_factor.py (16 tests)
+#   - gross_profitability: src/features/gross_profitability.py + tests (24 tests)
+#   - momentum_12_1: src/features/momentum_12_1.py + tests (16 tests)
+# IC 證據: reports/factor_ic/{size_factor,gross_profitability,momentum_12_1}_ic.json
 
 
 
@@ -338,6 +371,9 @@ def main() -> None:
             factor_kwargs["aux_panel"] = _issued_capital_asof(aux_issued_panel, as_of)
         # P0-B: foreign_investor_v2 cum_foreign 改金額制需要 close panel
         if args.factor == "foreign_investor_v2":
+            factor_kwargs["close_by_symbol"] = close_by_symbol
+        # v5.0: value_ep needs close panel (E/P = TTM_EPS / price)
+        if args.factor == "value_ep":
             factor_kwargs["close_by_symbol"] = close_by_symbol
         factor_scores = factor_fn(panel_by_symbol, **factor_kwargs)
         if universe_filter is not None:

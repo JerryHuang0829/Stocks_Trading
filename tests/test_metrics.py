@@ -7,10 +7,15 @@ from pathlib import Path
 
 import pandas as pd
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.backtest.metrics import adjust_splits, compute_metrics
+from src.backtest.metrics import (
+    adjust_splits,
+    adjust_splits_ohlc,
+    compute_metrics,
+)
 
 
 class TestComputeMetrics:
@@ -445,3 +450,109 @@ class TestStatStabilityOnConstants:
         assert result["kurtosis"] is not None
         assert np.isfinite(result["skewness"])
         assert np.isfinite(result["kurtosis"])
+
+
+class TestAdjustSplitsOHLC:
+    """adjust_splits_ohlc(): OHLC DataFrame 4-column split adjustment.
+
+    Added 2026-05-25 for Codex v5.0 R1 P1-4 fix — _compute_regimes needs
+    OHLC-level adjustment so ADX / SMA technical indicators don't misfire
+    at 0050 2025-06 1:4 split.
+    """
+
+    def _make_ohlc(self, closes: list[float]) -> pd.DataFrame:
+        """Build OHLC DataFrame with sensible candle geometry."""
+        df = pd.DataFrame({
+            "open":  [c * 0.99 for c in closes],
+            "high":  [c * 1.02 for c in closes],
+            "low":   [c * 0.97 for c in closes],
+            "close": closes,
+            "volume": [1000] * len(closes),
+        }, index=pd.date_range("2024-01-01", periods=len(closes)))
+        return df
+
+    def test_no_split_passes_through(self):
+        df = self._make_ohlc([100.0, 101.0, 102.0])
+        out = adjust_splits_ohlc(df)
+        pd.testing.assert_frame_equal(
+            out[["open", "high", "low", "close"]].astype(float),
+            df[["open", "high", "low", "close"]].astype(float),
+        )
+
+    def test_1_to_4_split_adjusts_all_ohlc_columns(self):
+        """1:4 split detected on close → all 4 OHLC columns get ratio 0.25."""
+        df = self._make_ohlc([160.0, 170.0, 180.0, 45.0, 46.0, 47.0])
+        out = adjust_splits_ohlc(df)
+        # Post-split bars unchanged
+        for col in ("open", "high", "low", "close"):
+            assert out[col].iloc[3] == pytest.approx(df[col].iloc[3])
+            assert out[col].iloc[4] == pytest.approx(df[col].iloc[4])
+        # Pre-split bars × 0.25(45/180)
+        ratio = 45.0 / 180.0
+        for col in ("open", "high", "low", "close"):
+            for i in (0, 1, 2):
+                assert out[col].iloc[i] == pytest.approx(df[col].iloc[i] * ratio)
+
+    def test_candle_geometry_preserved(self):
+        """After adjustment, low ≤ open/close ≤ high relationship must hold."""
+        df = self._make_ohlc([160.0, 170.0, 180.0, 45.0, 46.0, 47.0])
+        out = adjust_splits_ohlc(df)
+        assert (out["low"] <= out["open"]).all()
+        assert (out["low"] <= out["close"]).all()
+        assert (out["open"] <= out["high"]).all()
+        assert (out["close"] <= out["high"]).all()
+
+    def test_volume_passed_through_unchanged(self):
+        """Volume column should not be adjusted (intentional — see docstring)."""
+        df = self._make_ohlc([160.0, 170.0, 180.0, 45.0, 46.0, 47.0])
+        out = adjust_splits_ohlc(df)
+        assert (out["volume"] == df["volume"]).all()
+
+    def test_partial_columns_ok(self):
+        """Only close present → adjusts close, others untouched (none exist)."""
+        df = pd.DataFrame(
+            {"close": [160.0, 170.0, 180.0, 45.0, 46.0]},
+            index=pd.date_range("2024-01-01", periods=5),
+        )
+        out = adjust_splits_ohlc(df)
+        ratio = 45.0 / 180.0
+        assert out["close"].iloc[0] == pytest.approx(160.0 * ratio)
+        assert out["close"].iloc[3] == 45.0
+
+    def test_empty_returns_copy(self):
+        df = pd.DataFrame({"close": []})
+        out = adjust_splits_ohlc(df)
+        assert out.empty
+
+    def test_missing_close_passes_through(self):
+        df = pd.DataFrame({"open": [100.0, 101.0]})
+        out = adjust_splits_ohlc(df)
+        pd.testing.assert_frame_equal(out, df)
+
+    def test_mutation_close_only_adjusted_would_break_geometry(self):
+        """Mutation: if we only adjusted close (not OHL), then candle geometry
+        breaks at the split bar — high becomes much greater than close on
+        pre-split bars. This test fails IF someone reverts to close-only.
+
+        With proper OHLC adjustment: high stays proportional.
+        Without (close-only): high stays at ORIGINAL scale while close drops.
+        """
+        df = self._make_ohlc([180.0, 45.0])  # 1:4 split between bars
+        out = adjust_splits_ohlc(df)
+        # On pre-split bar, ratio = 0.25, so high should be 180*1.02*0.25 = 45.9
+        # If only close were adjusted, high would still be 180*1.02 = 183.6
+        # (way above adjusted close 45.0)
+        assert out["high"].iloc[0] < 50.0   # proper OHLC adjust
+        assert out["high"].iloc[0] > 30.0   # not zeroed out
+
+    def test_index_preserved(self):
+        df = self._make_ohlc([100.0, 50.0])  # 1:2 split
+        out = adjust_splits_ohlc(df)
+        pd.testing.assert_index_equal(out.index, df.index)
+
+    def test_no_split_volume_open_unchanged(self):
+        """Negative test — when there's no split, OHLCV all pass through unchanged."""
+        df = self._make_ohlc([100.0, 101.0, 102.0, 103.0])
+        out = adjust_splits_ohlc(df)
+        for col in ("open", "high", "low", "close", "volume"):
+            assert (out[col] == df[col].astype(float if col != "volume" else "int64")).all()
