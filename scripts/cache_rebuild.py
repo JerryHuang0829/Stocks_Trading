@@ -21,7 +21,6 @@ import logging
 import os
 import pathlib
 import pickle
-import sys
 import time as _time
 from datetime import datetime, timedelta
 
@@ -117,14 +116,15 @@ class TwseProxyPool:
             logger.info("Switched to %s", self.label)
 
     def _fetch(self) -> list[str]:
+        import random
+
         import requests as _req
         import urllib3
-        import random
         urllib3.disable_warnings()
         logger.info("Fetching SOCKS5 proxy list...")
         try:
             resp = _req.get(PROXY_LIST_URL, timeout=15)
-            candidates = [l.strip() for l in resp.text.strip().split("\n") if l.strip()]
+            candidates = [line.strip() for line in resp.text.strip().split("\n") if line.strip()]
         except Exception:
             return []
         random.shuffle(candidates)
@@ -161,9 +161,9 @@ class TokenRotator:
       Token3 + Proxy-B (new IP) → 580 calls
       All exhausted → wait 65 min, restart from Token1
 
-    Confirmed 2026-04-09: FinMind tracks quota per-token (not per-IP),
-    and tokens work from any IP (JWT ip field is not verified).
-    We still switch IP together with token for maximum safety.
+    FinMind tracks quota per-token (not per-IP), and tokens work from any IP
+    (JWT ip field is not verified). We still switch IP together with token for
+    maximum safety.
     """
 
     QUOTA_PER_SLOT = 580  # leave 20 call buffer under the 600 limit
@@ -171,7 +171,7 @@ class TokenRotator:
     _PROXY_LIST_URL = ("https://raw.githubusercontent.com/proxifly/"
                        "free-proxy-list/main/proxies/protocols/socks5/data.txt")
 
-    # 2026-05-05 V0.15 cache infra improvements:
+    # Cache infra tuning:
     # - PROXY_BENCHMARK_MAX: max candidates to latency-benchmark per fetch
     # - PROXY_LATENCY_CUTOFF_SEC: ignore proxies slower than this on connect
     # - BACKUP_POOL_SIZE: keep N backup proxies for hot-swap (without rotating token)
@@ -195,10 +195,10 @@ class TokenRotator:
         self._calls_on_current = 0
         self._loader = None
         self._current_proxy: str | None = None  # for external access
-        # V0.15: track when each slot's first call was made → smart_sleep can
+        # Track when each slot's first call was made → smart_sleep can
         # calculate exact wait for earliest quota window reset.
         self._slot_first_call_at: dict[int, datetime] = {}
-        # V0.15: backup proxies (already latency-verified) for hot-swap.
+        # Backup proxies (already latency-verified) for hot-swap.
         self._backup_proxies: list[str] = []
         logger.info("TokenRotator: %d tokens loaded, starting with Token1 + Direct",
                      len(self._tokens))
@@ -216,7 +216,7 @@ class TokenRotator:
         return f"Token{token_num}+Direct"
 
     def _verify_proxy_with_latency(self, proxy: str) -> float | None:
-        """V0.15: verify proxy connectivity + return connect latency in seconds.
+        """Verify proxy connectivity + return connect latency in seconds.
 
         Returns None if connection fails or status != 200. A successful return
         means the proxy CAN reach api.ipify.org within PROXY_LATENCY_CUTOFF_SEC
@@ -238,23 +238,24 @@ class TokenRotator:
         return None
 
     def _fetch_working_proxy(self) -> str | None:
-        """V0.15: fetch + benchmark up to PROXY_BENCHMARK_MAX proxies, return fastest.
+        """Fetch + benchmark up to PROXY_BENCHMARK_MAX proxies, return fastest.
 
-        Replaces single-proxy "first OK wins" with latency-aware selection:
+        Latency-aware selection (vs single-proxy "first OK wins"):
         1. Fetch Proxifly list (random shuffle)
         2. Try up to PROXY_BENCHMARK_MAX candidates with latency timing
         3. Return fastest; store next BACKUP_POOL_SIZE in self._backup_proxies for hot-swap
 
         Trade-off: 10 candidates × 5s timeout = up to 50s upfront, but only
-        called on rotation/exhaust path so amortized cost is small. Avoids
-        Token1 wasting 577 calls on 25s/call slow proxy (our 14:00 incident).
+        called on rotation/exhaust path so amortized cost is small. Avoids a
+        token wasting hundreds of calls on a 25s/call slow proxy.
         """
-        import requests as _req
         import random
+
+        import requests as _req
         logger.info("Fetching free SOCKS5 proxy list (V0.15 latency benchmark)...")
         try:
             resp = _req.get(self._PROXY_LIST_URL, timeout=15)
-            candidates = [l.strip() for l in resp.text.strip().split("\n") if l.strip()]
+            candidates = [line.strip() for line in resp.text.strip().split("\n") if line.strip()]
         except Exception as exc:
             logger.warning("Failed to fetch proxy list: %s", exc)
             return None
@@ -285,7 +286,7 @@ class TokenRotator:
         return fastest_proxy
 
     def get_backup_proxy(self) -> str | None:
-        """V0.15: pop a pre-verified backup proxy for hot-swap (without rotating token).
+        """Pop a pre-verified backup proxy for hot-swap (without rotating token).
 
         Returns None if backup pool is empty. Caller falls back to full rotate.
         """
@@ -294,7 +295,7 @@ class TokenRotator:
         return self._backup_proxies.pop(0)
 
     def patch_current_proxy(self, new_proxy: str) -> None:
-        """V0.15: hot-swap proxy on current token without consuming the token slot.
+        """Hot-swap proxy on current token without consuming the token slot.
 
         Used when slow proxy detected but token still has quota. Re-inits
         loader with new proxy on same token. _calls_on_current is preserved
@@ -312,16 +313,11 @@ class TokenRotator:
         )
 
     def _smart_sleep_until_quota_reset(self) -> None:
-        """V0.15: replace hardcoded 65 min sleep with quota-window-aware wait.
+        """Quota-window-aware wait (vs a hardcoded 65 min sleep).
 
         FinMind quota window = QUOTA_WINDOW_MIN (60 min) from first call on
-        each token. Once all tokens exhausted, the earliest-resetting token is
-        max(slot_first_call_at.values()) + 60min (not min — we need the
-        earliest reset that's still in the future; if all are in the past
-        already, sleep is 0 = no wait).
-
-        Actually we want the earliest token to come back online: that's
-        min(first_call + 60min). For our case Token1@14:00, Token2@14:02,
+        each token. Once all tokens exhausted, the earliest token to come back
+        online is min(first_call + 60min). E.g. Token1@14:00, Token2@14:02,
         Token3@14:42 → Token1 resets first at 15:00; if we're at 14:45 we
         sleep ~15 min. If we're at 15:18 (already past Token1 reset) sleep ~0.
         """
@@ -349,24 +345,22 @@ class TokenRotator:
         _time.sleep(sleep_sec)
 
     def _build_remaining_slots(self):
-        """V0.21 (2026-05-05): hybrid Token1+Direct fixed / Token2/3+Proxy with fallback.
+        """Hybrid: Token1+Direct fixed / Token2/3+Proxy with fallback.
 
-        Per user explicit request 2026-05-05 23:50: "Token1 固定用本機 + Token2/3
-        使用 proxy + 過了一小時 quota reset 後自己再用本機 IP 打 Token1".
-
-        Design (revert V0.20 back to V0.19 + clarify):
+        Design:
         - Slot 0 = Token1 + Direct (本機 IP, fixed) — already done in __init__
         - Slot 1 = Token2 + Proxy (Proxifly fetch)
         - Slot 2 = Token3 + Proxy (Proxifly fetch)
-        - V0.19 fallback: if proxy SSL fail → _make_loader appends Direct as
+        - Fallback: if proxy SSL fail → _make_loader appends Direct as
           last resort (避免 sleep 浪費)
-        - All exhausted → V0.15 smart_sleep until earliest reset → restart
+        - All exhausted → smart_sleep until earliest reset → restart
           from Slot 0 (Token1 + Direct) automatically
 
-        V0.20 全 Direct 觀察：Token3+Direct 在 6 calls 即觸發 SLOW 偵測，疑似
-        FinMind 對同 IP 多 token 確有 throttle（memory warning 部分 confirmed）。
-        V0.21 spread load: Token1 用本機 IP (主力), Token2/3 走 proxy 分散 IP，
-        proxy 死才 fallback Direct。
+        Spread load rationale: running all tokens through Direct caused
+        Token3+Direct to trip SLOW detection in ~6 calls — FinMind appears to
+        throttle multiple tokens sharing one IP. So Token1 keeps the workstation
+        IP (primary) while Token2/3 use proxies to spread IPs, falling back to
+        Direct only when a proxy dies.
         """
         for i in range(1, len(self._tokens)):
             if i < len(self._slots):
@@ -377,38 +371,36 @@ class TokenRotator:
                 logger.info("V0.21 Prepared slot %d: Token%d + Proxy %s",
                             i, i + 1, proxy)
             else:
-                # Proxifly fetch fail → fallback to Direct upfront (V0.19 fallback
-                # would still try, but better to skip the SSL handshake waste).
+                # Proxifly fetch fail → fallback to Direct upfront (skip the
+                # SSL handshake waste of trying a dead proxy first).
                 logger.warning(
                     "V0.21 Cannot find proxy for Token%d, falling back to Direct",
                     i + 1)
                 self._slots.append((self._tokens[i], None))
 
     def _make_loader(self):
-        """V0.17 (2026-05-05) connection-resilient loader build.
+        """Connection-resilient loader build.
 
-        Trigger: V0.15 hot-swap pulled `socks5://104.200.152.30:4145` from
-        backup pool, but that proxy was TCP-alive yet HTTPS-dead (couldn't
-        reach api.web.finmindtrade.com). `loader.login_by_token()` raised
-        ConnectionError uncaught → process crash at 16:16:23.
-
-        Fix: wrap login_by_token in try/except. On connection failure, drain
-        backup_proxies and retry; if all backups exhausted, raise ConnectionError
-        which caller (_rotate / get_loader) handles via record_quota_error path.
+        A hot-swap can pull a proxy from the backup pool that is TCP-alive yet
+        HTTPS-dead (cannot reach api.web.finmindtrade.com), so
+        `loader.login_by_token()` raises ConnectionError. We wrap login in
+        try/except: on connection failure, drain backup_proxies and retry; if
+        all backups exhausted, raise ConnectionError which caller (_rotate /
+        get_loader) handles via the record_quota_error path.
         """
         from FinMind.data import DataLoader
         token, original_proxy = self._slots[self._current_slot]
 
-        # V0.17 retry loop: try original proxy, then drain backups on conn failure.
-        # V0.19 (2026-05-05): if all proxies SSL-poisoned (Proxifly free pool can
-        # serve self-signed cert proxies), fall back to Direct (None = workstation
-        # IP) as last resort. User explicit consent: "掛掉時請用本機IP". Trade-off:
-        # 3 tokens sharing workstation IP risks IP-based throttling, but Proxifly
-        # today (2026-05-05) is largely unusable so fallback Direct beats sleep.
+        # Retry loop: try original proxy, then drain backups on conn failure.
+        # If all proxies are SSL-poisoned (Proxifly free pool can serve
+        # self-signed cert proxies), fall back to Direct (None = workstation IP)
+        # as last resort. Trade-off: 3 tokens sharing the workstation IP risks
+        # IP-based throttling, but when Proxifly is largely unusable a Direct
+        # fallback beats sleeping.
         proxies_to_try: list[str | None] = [original_proxy]
         proxies_to_try.extend(self._backup_proxies)
         if None not in proxies_to_try:
-            proxies_to_try.append(None)  # V0.19 Direct fallback
+            proxies_to_try.append(None)  # Direct fallback
         last_exc: Exception | None = None
 
         for attempt_idx, proxy in enumerate(proxies_to_try):
@@ -468,8 +460,8 @@ class TokenRotator:
     def get_loader(self):
         """Return a DataLoader, rotating token+proxy if quota is near limit.
 
-        V0.17: if _make_loader raises ConnectionError (all proxy attempts
-        failed on current token), force-advance to next slot.
+        If _make_loader raises ConnectionError (all proxy attempts failed on
+        current token), force-advance to next slot.
         """
         if self._loader is None:
             try:
@@ -495,11 +487,9 @@ class TokenRotator:
 
         if next_slot < len(self._slots):
             self._current_slot = next_slot
-            # V0.18 (2026-05-05): wrap _make_loader rotation path in try/except
-            # too. V0.17 only wrapped the first-call path; rotation path was
-            # bare, causing crash when rotated-to-slot's all proxies SSL fail
-            # (e.g. 20:36:54 incident: Token2 hot-swap → all 4 proxies SSL fail
-            # → ConnectionError uncaught → process exit 1).
+            # Wrap the _make_loader rotation path in try/except too: otherwise a
+            # rotated-to slot whose proxies all SSL-fail raises an uncaught
+            # ConnectionError and crashes the process.
             try:
                 self._make_loader()
                 logger.info("Rotated to [%s]", self.current_label)
@@ -512,7 +502,7 @@ class TokenRotator:
                 self._calls_on_current = self.QUOTA_PER_SLOT
                 return self.get_loader()  # recursive: try next slot
         else:
-            # All tokens exhausted — V0.15 smart sleep until earliest quota reset.
+            # All tokens exhausted — smart sleep until earliest quota reset.
             logger.warning(
                 "All %d tokens exhausted. Calculating smart sleep...",
                 len(self._tokens))
@@ -521,7 +511,7 @@ class TokenRotator:
             self._slots = [(self._tokens[0], None)]  # reset, re-fetch proxies later
             self._slot_first_call_at = {}  # reset timestamps for fresh quota window
             self._backup_proxies = []
-            # V0.18: wrap post-sleep _make_loader too. If reset-Token1 fails
+            # Wrap the post-sleep _make_loader too: if reset-Token1 fails
             # (e.g. workstation IP suddenly throttled), advance instead of crash.
             try:
                 self._make_loader()
@@ -539,7 +529,7 @@ class TokenRotator:
     def record_call(self):
         """Record one API call.
 
-        V0.15: track timestamp of first call per slot for smart_sleep wait calc.
+        Tracks the timestamp of the first call per slot for smart_sleep wait calc.
         """
         if self._current_slot not in self._slot_first_call_at:
             self._slot_first_call_at[self._current_slot] = datetime.now()
@@ -553,16 +543,14 @@ class TokenRotator:
         self.get_loader()
 
     def start_with_proxy(self) -> bool:
-        """S6.1 Path B (R25-mid 獨立 audit, 2026-05-05): patch Slot 0 to
-        start with fresh Proxifly SOCKS5 proxy instead of Direct.
+        """Patch Slot 0 to start with a fresh Proxifly SOCKS5 proxy instead of Direct.
 
-        Per user 提醒 + memory `FinMind Tokens & Quota`: 3 tokens all bound
-        to same IP (<isp_ip>). Default starting Direct means Token1
-        runs 580 calls on workstation IP before rotation. For large
-        datasets (e.g. quarterly_financial_full / balance_sheet ~2492
-        symbols × 2), this risks IP-based throttling. Calling this method
-        AFTER `__init__` swaps Slot 0 from (Token1, None) to (Token1,
-        fresh_proxy).
+        All 3 tokens are bound to the same IP (<isp_ip>). Default starting
+        Direct means Token1 runs 580 calls on the workstation IP before
+        rotation. For large datasets (e.g. quarterly_financial_full /
+        balance_sheet ~2492 symbols × 2), this risks IP-based throttling.
+        Calling this method AFTER `__init__` swaps Slot 0 from (Token1, None)
+        to (Token1, fresh_proxy).
 
         Returns True if proxy fetch succeeded; False on fallback to Direct.
         """
@@ -619,13 +607,12 @@ def phase1_stock_info():
 
     logger.info("=== Phase 1: stock_info + dividends ===")
 
-    from src.data.twse_scraper import (
-        fetch_twse_issued_capital,
-        fetch_twse_dividends,
-        _parse_company_profile,
-    )
     import requests
     import urllib3
+
+    from src.data.twse_scraper import (
+        fetch_twse_dividends,
+    )
     urllib3.disable_warnings()
 
     records = []
@@ -751,7 +738,7 @@ def phase1_stock_info():
 def phase2_twse_ohlcv():
     """Fetch OHLCV for all TWSE-listed stocks using STOCK_DAY.
 
-    Fixes applied 2026-04-09 (9 bugs):
+    Design notes:
     - Ghost stocks: only mark done when pkl saved
     - IPO-aware: skip months before listing date
     - 307 auto-proxy: switch to SOCKS5 proxy on rate limit
@@ -781,7 +768,7 @@ def phase2_twse_ohlcv():
             twse_stocks.append(etf)
     twse_stocks = sorted(twse_stocks)
 
-    # Fix 8: IPO dates from stock_info
+    # IPO dates from stock_info
     ipo_dates: dict[str, tuple[int, int]] = {}
     for _, row in si.iterrows():
         sid = str(row.get("stock_id", "")).strip()
@@ -801,17 +788,17 @@ def phase2_twse_ohlcv():
     ohlcv_dir.mkdir(parents=True, exist_ok=True)
 
     pool = TwseProxyPool(max_per_ip=15)
-    global_307_count = 0  # Fix 7: track consecutive 307s
+    global_307_count = 0  # track consecutive 307s
 
     for i, sym in enumerate(todo, 1):
         if i % 50 == 0 or i <= 3:
             logger.info("[Phase2 %d/%d] %s [%s] ...", i, len(todo), sym, pool.label)
 
-        # Fix 5: refresh end date per stock
+        # Refresh end date per stock
         now = datetime.now()
         end_year, end_month = now.year, now.month
 
-        # Fix 8: start from IPO date if known
+        # Start from IPO date if known
         ipo = ipo_dates.get(sym)
         if ipo and ipo > (START_YEAR, START_MONTH):
             start_y, start_m = ipo
@@ -823,7 +810,7 @@ def phase2_twse_ohlcv():
         consecutive_empty = 0
 
         while (year, month) <= (end_year, end_month):
-            # Fix 2+3: use proxy pool, handle 307
+            # Use proxy pool, handle 307
             pool.rotate_if_needed()
             date_str = f"{year}{month:02d}01"
 
@@ -841,7 +828,7 @@ def phase2_twse_ohlcv():
                 if resp.status_code in (307, 403):
                     was_307 = True
                     global_307_count += 1
-                    # Fix 7: auto-activate proxy after repeated 307
+                    # Auto-activate proxy after repeated 307
                     if global_307_count >= 3:
                         pool.activate_on_307()
                         global_307_count = 0
@@ -888,8 +875,8 @@ def phase2_twse_ohlcv():
             else:
                 if not was_307:
                     consecutive_empty += 1
-                # else: 307 doesn't count toward consecutive_empty (Fix 2)
-                # Fix 8: raised from 12 to 24
+                # else: 307 doesn't count toward consecutive_empty
+                # Raised from 12 to 24 to tolerate longer data gaps
                 if consecutive_empty >= 24:
                     break
 
@@ -902,7 +889,7 @@ def phase2_twse_ohlcv():
 
             _time.sleep(TWSE_INTERVAL)
 
-        # Fix 1 + 6 + 9: validate before save, only mark done if pkl saved
+        # Validate before save, only mark done if pkl saved
         if all_records:
             df = pd.DataFrame(all_records)
             df["date"] = pd.to_datetime(df["date"])
@@ -910,7 +897,7 @@ def phase2_twse_ohlcv():
             df.index = df.index.tz_localize("UTC")
             df = df[["open", "high", "low", "close", "volume"]].dropna()
 
-            # Fix 6+9: validation
+            # Validation
             if len(df) < 20:
                 logger.warning("  %s: only %d rows after cleanup, skipping", sym, len(df))
             elif len(df["close"].unique()) <= 5 and len(df) > 100:
@@ -921,7 +908,7 @@ def phase2_twse_ohlcv():
                 df.to_pickle(tmp)
                 tmp.replace(ohlcv_dir / f"{sym}.pkl")
                 done_set.add(sym)
-                # Fix 4: save progress every stock
+                # Save progress every stock
                 _save_phase_progress(2, sorted(done_set))
         else:
             logger.warning("  %s: no data, NOT marking done", sym)

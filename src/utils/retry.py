@@ -1,14 +1,15 @@
 """API 重試機制"""
 
 import logging
+
+import requests
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
 )
-import requests
 
 logger = logging.getLogger(__name__)
 

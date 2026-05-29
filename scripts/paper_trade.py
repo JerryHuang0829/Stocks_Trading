@@ -295,13 +295,13 @@ def main():
     print(f"  市場訊號:   {record['market_signal']}")
     print(f"  總曝險:     {record['gross_exposure']:.0%}")
     print(f"  持股數:     {record['selected_count']}")
-    print(f"\n  --- 集中度監控 ---")
+    print("\n  --- 集中度監控 ---")
     print(f"    科技供應鏈：{tech_weight:.0%}（{tech_count} 檔）")
     print(f"    最大產業：{top_ind} {top_ind_w:.0%}")
-    print(f"\n  --- 建議持股 ---")
+    print("\n  --- 建議持股 ---")
     for p in record["positions"]:
         print(f"    {p['symbol']} {p['name']:　<6} 權重 {p['weight']:.1%}  分數 {p['score']:.1f}  [{p.get('industry', '')}]")
-    print(f"\n  --- Top 10 排名 ---")
+    print("\n  --- Top 10 排名 ---")
     for r in record["top10_ranking"]:
         print(f"    #{r['rank']} {r['symbol']} {r['name']:　<6} {r['score']:.1f}")
     print(f"\n  已儲存: {out_path}")

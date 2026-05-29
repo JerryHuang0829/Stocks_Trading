@@ -3,9 +3,9 @@
   - Single-factor strategy: idio_vol_max only (SHAP top feature)
   - Compare both to ML best cell (xgboost top_n=15)
 
-Answers Codex-style red flags:
-  #1 Baseline using only 5 features → unfair vs ML's 57 features
-  #3 idio_vol_max SHAP 54% dominance → does single factor capture most?
+Open design questions this addresses:
+  - Baseline using only 5 features → unfair vs ML's 57 features
+  - idio_vol_max SHAP 54% dominance → does single factor capture most?
 
 Builds OOS matrix on the fly (~5-7 min). Does NOT touch IS (faster than
 production rerun).
@@ -21,7 +21,6 @@ from datetime import datetime
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 
@@ -37,7 +36,10 @@ from scripts._factor_ic_helpers import (  # noqa: E402
 from src.analysis.ml_contextual import ContextualConfig, add_contextual_features  # noqa: E402
 from src.analysis.ml_features import LOCKED_FEATURE_NAMES, compute_feature_panel  # noqa: E402
 from src.analysis.ml_models import baseline_score  # noqa: E402
-from src.analysis.ml_optuna import _portfolio_monthly_returns_from_scores, _sharpe_ratio  # noqa: E402
+from src.analysis.ml_optuna import (  # noqa: E402
+    _portfolio_monthly_returns_from_scores,
+    _sharpe_ratio,
+)
 from src.analysis.ml_pooling import PoolingConfig, build_training_matrix  # noqa: E402
 from src.backtest.engine import BacktestEngine  # noqa: E402
 from src.backtest.metrics import adjust_splits_ohlc  # noqa: E402

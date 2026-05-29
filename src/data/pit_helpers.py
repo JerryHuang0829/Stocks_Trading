@@ -1,14 +1,11 @@
 """Point-in-time (PIT) data helpers — single source of truth across 4 data paths.
 
-2026-05-11 R30 architecture cleanup（R29 抓的 4-path PIT 違規 root cause）：
-    Stock-Trading 專案有 4 條獨立 data loading path：
+架構說明：Stock-Trading 專案有 4 條獨立 data loading path，各自易自寫
+`_load_<X>` 走 latest 而違反 PIT：
       1. IC pipeline       (`scripts/run_factor_ic.py` + `scripts/_factor_ic_helpers.py`)
       2. Portfolio         (`src/portfolio/tw_stock.py`)
       3. Phase D v7 sweep  (`scripts/d_cell_sweep_v7_real.py`)
       4. Cache fetch       (`src/data/finmind.py`)
-
-    R26 抓 path 1 / R27 抓 path 2 / R28-2 修 path 2 局部 / R29 抓 path 3 + path 2 殘留。
-    每輪 audit 抓另一條 path 的同款 PIT 違規（每 path 自寫 `_load_<X>` 走 latest）。
 
     本模組是 single source of truth。4 條 path 全部 import from here。
     舊 helper functions（`scripts/_factor_ic_helpers.py::_load_market_value_panel`
@@ -20,11 +17,11 @@ Functions exported:
     _load_issued_capital_panel    — load issued_shares panel (with cache fallback)
     _issued_capital_asof          — as-of issued_shares lookup at target_date
 
-Static-snapshot caveat（R28-1 / R29 finding 4）：
+Static-snapshot caveat：
     `data/cache/issued_capital/_global.pkl` 缺 date column 時，fallback 用
     `pd.Timestamp("1970-01-01")` 讓所有歷史 query 都 hit latest snapshot。
     這是 form-correct 但 substance-equivalent（仍是 latest_shares 對所有 date）。
-    完整 PIT 需另寫 TWSE OpenAPI scraper 抓歷史 issued_shares (P1 backlog 4-8 hr).
+    完整 PIT 需另寫 TWSE OpenAPI scraper 抓歷史 issued_shares (backlog).
 """
 
 from __future__ import annotations
@@ -97,11 +94,11 @@ def _load_issued_capital_panel(cache_dir: Path) -> pd.DataFrame:
     lacks the ``issued_shares`` column. Returns empty DataFrame if neither
     cache populated (caller should detect via ``.empty``).
 
-    ⚠️ Static-snapshot caveat (R28-1 / R29-4):
+    ⚠️ Static-snapshot caveat:
         當 ``issued_capital/_global.pkl`` 缺 ``date`` column 時，fallback 用
         ``pd.Timestamp("1970-01-01")`` 讓所有歷史 query 都 hit。這只是
         form-correct（cache 結構帶 date column），實質仍是 latest snapshot。
-        完整 PIT 需新 TWSE OpenAPI scraper 抓歷史 issued_shares (P1 backlog).
+        完整 PIT 需新 TWSE OpenAPI scraper 抓歷史 issued_shares (backlog).
     """
     path = cache_dir / "market_value" / "_global.pkl"
     if path.exists():
@@ -132,9 +129,9 @@ def _load_issued_capital_panel(cache_dir: Path) -> pd.DataFrame:
             if col is None:
                 return pd.DataFrame(columns=["stock_id", "date", "issued_shares"])
             if "date" not in cap.columns:
-                # 2026-05-10 R27 P0-2 fallback：cache lacks date column → treat
-                # as static snapshot valid for ALL dates (Timestamp.min equivalent).
-                # Form-correct but substance-equivalent to latest (R28-1).
+                # cache lacks date column → treat as static snapshot valid for
+                # ALL dates (Timestamp.min equivalent). Form-correct but
+                # substance-equivalent to latest.
                 warnings.warn(
                     f"issued_capital cache {capital_path} lacks 'date' column. "
                     "Treating as static snapshot (PIT approximation). To get "

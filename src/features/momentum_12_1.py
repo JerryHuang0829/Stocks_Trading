@@ -51,7 +51,6 @@ from typing import Mapping
 import numpy as np
 import pandas as pd
 
-
 DEFAULT_SKIP_DAYS = 21       # 1 trading month skip
 DEFAULT_LOOKBACK_DAYS = 252  # 12 trading months
 DEFAULT_MIN_HISTORY = 253    # need both anchors

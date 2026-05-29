@@ -88,7 +88,7 @@ def main():
     # 1. Full-period (2022-2025) sanity-check vs metrics.json annualized_alpha
     whole = precise_ols_alpha(df["strategy"], df["benchmark"])
     whole_approx = approx_prior_alpha(df["strategy"], df["benchmark"])
-    print(f"\nFull period (2022-01-12 .. 2025-12-xx):")
+    print("\nFull period (2022-01-12 .. 2025-12-xx):")
     print(f"  precise OLS alpha_ann_simple     = {whole['alpha_ann_simple']:+.4%}")
     print(f"  precise OLS alpha_ann_compound   = {whole['alpha_ann_compound']:+.4%}")
     print(f"  precise OLS alpha_excess_ann     = {whole['alpha_excess_ann']:+.4%}")
@@ -96,7 +96,7 @@ def main():
     print(f"  prior-round approx (compound)    = {whole_approx:+.4%}")
 
     # Published metrics.json value: annualized_alpha = 0.03395 (3.4%)
-    print(f"  (metrics.json says annualized_alpha = 0.03395)")
+    print("  (metrics.json says annualized_alpha = 0.03395)")
 
     # 2. Rolling 252d windows, compare precise vs prior approx
     rows = []
@@ -133,7 +133,7 @@ def main():
     print(f"  precise p-value                = {last['precise_p']}")
     print(f"  prior-round approx (compound)  = {last['prior_approx_compound']:+.4%}")
     print(f"  diff (precise - approx)        = {last['diff_vs_prior']:+.6f}")
-    print(f"  (backtest_20250101_20251231_metrics.json annualized_alpha = -18.44%)")
+    print("  (backtest_20250101_20251231_metrics.json annualized_alpha = -18.44%)")
 
     # 4. Max diff between precise and prior
     max_diff = max(abs(r["diff_vs_prior"]) for r in rows)
@@ -141,11 +141,11 @@ def main():
 
     # 5. Worst rolling window (lowest alpha) and last 6
     sorted_rows = sorted(rows, key=lambda r: r["precise_alpha_compound"])
-    print(f"\nWorst 3 rolling alpha windows (precise compound):")
+    print("\nWorst 3 rolling alpha windows (precise compound):")
     for r in sorted_rows[:3]:
         print(f"  {r['date']}: alpha={r['precise_alpha_compound']:+.4%} t={r['precise_t']} p={r['precise_p']}")
 
-    print(f"\nLast 6 month-ends (precise):")
+    print("\nLast 6 month-ends (precise):")
     print(f"{'date':<12}{'precise_alpha':>14}{'prior_approx':>14}{'diff':>10}{'t':>8}{'p':>8}")
     for r in month_ends[-6:]:
         print(f"{r['date']:<12}{r['precise_alpha_compound']:+14.2%}{r['prior_approx_compound']:+14.2%}"
@@ -154,7 +154,7 @@ def main():
     # 2025-12 specifically
     dec2025 = [r for r in rows if r["date"].startswith("2025-12")]
     if dec2025:
-        print(f"\n2025-12 rolling windows:")
+        print("\n2025-12 rolling windows:")
         for r in dec2025[-3:]:
             print(f"  {r['date']}: precise={r['precise_alpha_compound']:+.4%} approx={r['prior_approx_compound']:+.4%}")
 

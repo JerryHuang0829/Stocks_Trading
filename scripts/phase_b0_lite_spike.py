@@ -41,13 +41,6 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 
-# Reuse run_factor_ic.py infra
-from src.analysis.ic_analysis import factor_ic_report
-from src.backtest.engine import BacktestEngine
-from src.features.low_vol_v2 import compute_low_vol_v2_universe
-from src.utils.config import load_config
-from src.utils.paths import resolve_cache_dir
-# Phase P5 Session 1 / R21 finding F6 fix (2026-05-03):
 # Import path migrated from scripts.run_factor_ic to scripts._factor_ic_helpers
 # (12 helpers extracted as shared utility; cross-script private import 反 pattern fix)
 from scripts._factor_ic_helpers import (  # noqa: E402
@@ -59,6 +52,12 @@ from scripts._factor_ic_helpers import (  # noqa: E402
     _load_universe_ohlcv,
 )
 
+# Reuse run_factor_ic.py infra
+from src.analysis.ic_analysis import factor_ic_report
+from src.backtest.engine import BacktestEngine
+from src.features.low_vol_v2 import compute_low_vol_v2_universe
+from src.utils.config import load_config
+from src.utils.paths import resolve_cache_dir
 
 TOP_N_UNIVERSE = 80   # per H_main spec
 TOP_N_PORTFOLIO = 8   # per H_main spec
@@ -209,10 +208,9 @@ def _evaluate_reject_criteria(
 ) -> dict:
     """Apply reject criteria per H_lite_preregistration.
 
-    R21 Codex audit P1/P2 fix (2026-05-03): 同時輸出 script_outcome (按 reject
-    criteria 主表 L2/L4/L5) AND strict_outcome (按 H_lite hypothesis 完整陳述
-    含 DSR ≥ 0.95 AND condition)。讓後續工具讀 JSON 時看到兩個 outcome 不會
-    silently 走錯路。
+    同時輸出 script_outcome (按 reject criteria 主表 L2/L4/L5) AND strict_outcome
+    (按 H_lite hypothesis 完整陳述含 DSR ≥ 0.95 AND condition)。讓後續工具讀 JSON
+    時看到兩個 outcome 不會 silently 走錯路。
 
     decision.outcome 仍保留為 backward-compat alias = strict_outcome（嚴格 win）。
     """
@@ -274,7 +272,7 @@ def _evaluate_reject_criteria(
         "outcome": strict_outcome,
         "reason": strict_reason,
         "next_step": strict_next,
-        # Dual outcome fields per R21 P1/P2 fix
+        # Dual outcome fields
         "script_outcome": script_outcome,
         "script_reason": script_reason,
         "script_next_step": script_next,
@@ -310,7 +308,7 @@ def _write_spike_md(
     lines.append(f"**執行日期**：{datetime.now().strftime('%Y-%m-%d %H:%M')}")
     lines.append(f"**Sample period**：{args.start} ~ {args.end} (historical validation set)")
     lines.append(f"**Universe**：top-{TOP_N_UNIVERSE} by close × volume per rebalance")
-    lines.append(f"**Hypothesis lock**：reports/phase_b0_lite/H_lite_preregistration.md (commit 27e5fe6)")
+    lines.append("**Hypothesis lock**：reports/phase_b0_lite/H_lite_preregistration.md (commit 27e5fe6)")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -320,7 +318,7 @@ def _write_spike_md(
     l4_icon = "✅ PASS" if decision["L4_coverage_pass"] else "❌ FAIL"
     l5_icon = "✅ PASS" if decision["L5_turnover_pass"] else "❌ FAIL"
     ldsr_icon = "✅ PASS" if decision["L_dsr_pass"] else "❌ FAIL"
-    lines.append(f"- **L1 (quality_v2 IC)** — DEFERRED to full B0 (cache 不存在 + lookahead bias)")
+    lines.append("- **L1 (quality_v2 IC)** — DEFERRED to full B0 (cache 不存在 + lookahead bias)")
     lines.append(
         f"- **L2 (low_vol_v2 IC > 0.02)**：{l2_icon} — mean IC = "
         f"{decision['L2_mean_ic']:.4f}, DSR = {decision['L2_dsr']}"
@@ -339,7 +337,7 @@ def _write_spike_md(
     lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append(f"## Verdict (dual outcome per R21 P1/P2 fix)")
+    lines.append("## Verdict (dual outcome per R21 P1/P2 fix)")
     lines.append("")
     lines.append(
         f"- **Script outcome (按 reject criteria 主表 L2/L4/L5)**：**{decision['script_outcome']}**"

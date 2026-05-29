@@ -1,4 +1,4 @@
-"""Phase B0-Lite tests for quality_v2 (single-snapshot lookahead version).
+"""Tests for quality_v2 (single-snapshot lookahead version).
 
 5 tests covering:
     1. ROE + gross_margin clip + composite math sanity
@@ -13,8 +13,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -78,6 +76,6 @@ def test_refusal_gate_in_backtest_context():
     assert_not_in_pit_backtest({})
     assert_not_in_pit_backtest({"_backtest_context": False})
 
-    # _backtest_context=True → raise (mirrors tw_stock.py:691 R19 audit gate)
+    # _backtest_context=True → raise (mirrors tw_stock.py refusal gate)
     with pytest.raises(RuntimeError, match="lookahead bias"):
         assert_not_in_pit_backtest({"_backtest_context": True})

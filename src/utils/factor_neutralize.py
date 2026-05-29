@@ -29,7 +29,6 @@ from typing import Mapping
 import numpy as np
 import pandas as pd
 
-
 DEFAULT_MIN_INDUSTRY_SIZE = 3      # smaller industries pool into "_OTHER"
 DEFAULT_SIZE_N_BUCKETS = 10        # market-cap deciles
 

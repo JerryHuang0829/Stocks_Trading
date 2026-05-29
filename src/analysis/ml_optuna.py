@@ -178,9 +178,9 @@ def _cv_folds_for_objective(
     cpcv_config: CPCVConfig | None,
     inner_cv_n_splits: int,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
-    """Per pre-reg §8.3 / §9 (Codex v5.0 R6 P0 fix):
+    """Per pre-reg §8.3 / §9:
     - If cpcv_config provided: use CPCV outer (10 paths) — pre-reg LOCK
-    - Else: fallback to TimeSeriesSplit inner-only (legacy, R6-flagged)
+    - Else: fallback to TimeSeriesSplit inner-only (legacy, spec-violation fallback)
     """
     if cpcv_config is not None:
         if label_end_arr is None:
@@ -280,11 +280,11 @@ def run_optuna_for_cell(
 ) -> tuple[dict, float]:
     """Run Optuna study for one (model, top_n) cell.
 
-    Per pre-reg §8.3 + §9 (Codex v5.0 R6 P0 fix 2026-05-26):
+    Per pre-reg §8.3 + §9:
     - CPCV outer loop(10 paths)is the LOCKED outer CV
     - Caller must pass cpcv_config + label_end_arr to enable CPCV
     - If cpcv_config is None → falls back to inner TimeSeriesSplit only
-      (legacy mode — Codex R6 flagged as spec violation if used in production)
+      (legacy mode — spec violation if used in production)
 
     Returns
     -------

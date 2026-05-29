@@ -1,0 +1,20 @@
+# Ruff config — lint + import 排序，給 Stock-Trading 量化 repo。
+# 起步只開 E,F,I 三組,讓第一次導入的違規量可被人工逐條 review。
+# 清完初次 backlog 後再視需要擴充規則組。
+
+line-length = 100
+target-version = "py312"
+
+[lint]
+# E = pycodestyle(PEP8 排版)
+# F = pyflakes(undefined name / unused import / unused variable ← 真的抓 bug)
+# I = isort(import 排序,取代 CLAUDE.md 手寫的 stdlib→third-party→local 規則)
+select = ["E", "F", "I"]
+# 先關的規則(首次導入暫關,清完 backlog 後再視需要開啟):
+#   E501 line-too-long       — 既有大量行超過 100;待跑過一次 format pass 後再開
+#   E701/E702 一行多語句      — `if x: return` 屬刻意風格,非 bug(139 處純噪音)
+#   E402 import-not-at-top    — scripts 常見 sys.path 操作後才 import,屬刻意
+ignore = ["E501", "E701", "E702", "E402"]
+
+[lint.isort]
+known-first-party = ["src", "scripts"]

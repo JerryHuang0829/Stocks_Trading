@@ -37,7 +37,6 @@ from typing import Mapping
 import numpy as np
 import pandas as pd
 
-
 DEFAULT_LOOKBACK_DAYS = 21        # ~1 month of trading days
 
 

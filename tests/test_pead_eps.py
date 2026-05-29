@@ -139,7 +139,7 @@ def test_as_of_required_raises():
 
 
 def test_q4_annual_report_requires_90d_lag():
-    """P1-1: Q4 EPS must not be usable until as_of >= quarter_end + 90 days.
+    """Q4 EPS must not be usable until as_of >= quarter_end + 90 days.
 
     Construct a frame whose latest row is Q4 (2024-12-31) with 12 prior baseline
     quarters, and query at as_of 75 days after Q4 end. Under the old blanket
@@ -166,7 +166,7 @@ def test_q4_annual_report_requires_90d_lag():
 
 
 def test_q1_quarterly_report_uses_45d_lag():
-    """P1-1 positive case: Q1 EPS should be visible 50 days after quarter end."""
+    """Positive case: Q1 EPS should be visible 50 days after quarter end."""
     # 13 quarters ending at Q1 2024 (2021-Q1 through 2024-Q1)
     dates = pd.date_range("2021-03-31", periods=13, freq="QE")
     values = [2.0] * 12 + [5.0]
@@ -181,7 +181,7 @@ def test_q1_quarterly_report_uses_45d_lag():
 
 
 def test_q1_before_45d_lag_excluded():
-    """P1-1: Q1 EPS must be dropped before 45 days elapse."""
+    """Q1 EPS must be dropped before 45 days elapse."""
     dates = pd.date_range("2021-03-31", periods=13, freq="QE")
     values = [2.0] * 12 + [5.0]
     df = pd.DataFrame({
@@ -194,11 +194,11 @@ def test_q1_before_45d_lag_excluded():
     assert out["latest_eps"] == pytest.approx(2.0, abs=1e-9)
 
 
-# R6-3 companion tests -----------------------------------------------
+# Near-constant baseline companion tests ------------------------------
 
 
 def test_pead_surprise_z_handles_near_constant_baseline():
-    """R6-3: baseline with float-noise but ideologically zero variance must
+    """Baseline with float-noise but ideologically zero variance must
     yield None, not a pathological z-score ~ 4e12.
 
     Without the fix (sd == 0 exact compare), `[2.0, 2.0, 2.0, ..., 2.0001]`

@@ -23,7 +23,6 @@ from src.utils.returns import (  # noqa: E402
     gap_aware_returns,
 )
 
-
 # --- constant ---------------------------------------------------------------
 
 def test_max_return_gap_days_default():

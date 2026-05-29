@@ -165,7 +165,7 @@ def test_composite_handles_partial_none_subsignals():
 
 
 def test_subsignal_weights_yaml_in_sync_with_constant():
-    """2026-05-11 R32 finding: the module now reads weights from
+    """The module reads weights from
     `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2.weights`
     via `_subsignal_weights()` (yaml keys renamed accel_3m3m→accel, pct_24m→percentile
     to match the module). Guard that yaml and the module fallback constant stay in
@@ -177,7 +177,7 @@ def test_subsignal_weights_yaml_in_sync_with_constant():
         "config/factor_thresholds.yaml revenue weights drifted from SUBSIGNAL_WEIGHTS "
         f"constant: yaml={yaml_weights} vs constant={SUBSIGNAL_WEIGHTS}"
     )
-    # yaml keys must match the module's sub-signal names (the R32 bug was a key mismatch)
+    # yaml keys must match the module's sub-signal names (a key mismatch breaks the weighting)
     assert set(yaml_weights) == {"yoy", "accel", "percentile", "seasonal_z"}
     assert abs(sum(yaml_weights.values()) - 1.0) < 1e-9
 
@@ -197,7 +197,7 @@ def test_universe_batch_drops_insufficient_history():
 
 
 def test_yoy_strict_month_matching_no_fallback():
-    """P1-新6: latest month 2026-02 with missing 2025-02 must NOT fall back to 2025-01."""
+    """latest month 2026-02 with missing 2025-02 must NOT fall back to 2025-01."""
     # Construct a frame including 2025-01 (which is ±45 days of 2025-02) but
     # EXCLUDE 2025-02 itself. Old tolerance logic would substitute 2025-01.
     # Strict year/month must return None for YoY.
@@ -216,7 +216,7 @@ def test_yoy_strict_month_matching_no_fallback():
 
 
 def test_yoy_strict_month_matches_exact_prior_year():
-    """P1-新6 positive: when 2025-02 IS present, YoY must pair with it, not an adjacent month."""
+    """positive case: when 2025-02 IS present, YoY must pair with it, not an adjacent month."""
     dates = pd.date_range("2024-01-01", "2026-02-01", freq="MS")
     # Make 2025-02 an outlier low (so if YoY erroneously used 2025-01 or 2025-03,
     # the result would be dramatically different).
@@ -248,15 +248,15 @@ def test_zero_revenue_base_handled_gracefully():
     assert "yoy" in out
 
 
-# R6-3 companion --------------------------------------------------
+# near-constant peer-window companion --------------------------------------------------
 
 
 def test_seasonal_z_handles_near_constant_peer_window():
-    """R6-3: `seasonal_z` with near-constant peer revenue (float noise std
+    """`seasonal_z` with near-constant peer revenue (float noise std
     ~ 1e-14) must return None, not seasonal_z=7e13.
 
-    Pre-fix used `sd == 0` exact compare which missed float accumulation
-    noise. The R6-3 tolerance (sd < 1e-12) catches it.
+    An exact `sd == 0` compare misses float accumulation noise; a
+    tolerance check (sd < 1e-12) catches it.
     """
     # 36 months where every same-calendar-month peer is near-constant
     # (base + microscopic noise), then a huge jump in the latest row.

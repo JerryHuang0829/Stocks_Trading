@@ -1,4 +1,4 @@
-"""Phase B0-Lite tests for low_vol_v2 factor.
+"""Tests for low_vol_v2 factor.
 
 6 tests covering:
     1. 252d std numerical correctness (known synthetic series)
@@ -119,12 +119,12 @@ def test_high_vol_lower_score():
 
 
 def test_compute_low_vol_v2_filters_zero_close():
-    """F5 R21 fix (Phase P5 Session 1): close == 0 rows must be filtered.
+    """close == 0 rows must be filtered.
 
     Halted/delisted stocks may have stray close=0 rows in cache (verified
     in repo: 4 stocks / 12 rows / 0.2%). Without filter, log(0)=-inf taints
-    the std calculation. F5 adds explicit `close > 0` filter inside the
-    universe loop.
+    the std calculation. An explicit `close > 0` filter inside the universe
+    loop removes them before the log transform.
     """
     base = _make_constant_drift_close(n=300, seed=42)
     # Inject 5 close=0 rows in the middle
@@ -133,7 +133,7 @@ def test_compute_low_vol_v2_filters_zero_close():
     as_of = pd.Timestamp("2024-12-31")
 
     # Without the filter, log(0)=-inf would propagate; std would be non-finite
-    # and the symbol drops via std_val<=0 guard. With F5 filter, the 5 rows
+    # and the symbol drops via std_val<=0 guard. With the filter, the 5 rows
     # are excluded BEFORE log; the symbol survives if remaining history ≥ 200.
     series, diag = compute_low_vol_v2_universe(
         {"BAD": bad}, as_of=as_of, window=252, min_history=200,
@@ -150,7 +150,7 @@ def test_compute_low_vol_v2_filters_zero_close():
 
 
 def test_compute_low_vol_v2_diagnostics_count():
-    """F5 R21 fix: return_diagnostics=True returns (series, dict) with
+    """return_diagnostics=True returns (series, dict) with
     correct counts per drop reason."""
     short = _make_constant_drift_close(n=150, seed=0)  # < 200 history
     long = _make_constant_drift_close(n=300, seed=0)

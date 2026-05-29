@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from math import isfinite
 from pathlib import Path
-
-from ..storage.database import compute_config_hash
 
 import pandas as pd
 
 from ..backtest.metrics import adjust_splits
-from ..utils.returns import gap_aware_returns
 from ..data.finmind import _BacktestCacheMissError
 from ..features.foreign_investor_v2 import compute_foreign_investor_v2_universe
 from ..features.high_proximity import compute_high_proximity_universe
@@ -20,6 +17,7 @@ from ..features.institutional import score_institutional
 from ..features.margin_short_ratio import compute_margin_short_ratio_universe
 from ..features.pead_eps import compute_pead_eps_universe
 from ..features.revenue_momentum_v2 import compute_revenue_momentum_v2_universe
+from ..storage.database import compute_config_hash
 from ..strategy.indicators import calculate_indicators
 from ..strategy.regime import detect_regime, get_regime_display
 from ..utils.constants import (
@@ -33,6 +31,7 @@ from ..utils.constants import (
     TW_TZ,
 )
 from ..utils.paths import resolve_cache_dir
+from ..utils.returns import gap_aware_returns
 
 logger = logging.getLogger(__name__)
 
@@ -73,15 +72,15 @@ DEFAULT_PORTFOLIO_CONFIG = {
         "risk_off": 0.35,
     },
     "score_weights": {
-        # 2026-05-11 R30-6 fix (R30): institutional_flow 0.10 → 0.0
-        # 對齊 active config/settings.yaml（legacy 因子，profile 切換時不該被
-        # 意外帶回；外資 v1 IC=-0.053 已被 R26-R29 確認 fail，v2 R28 DROP）.
-        # 舊 default 0.45/0.25/0.20/0.10 重分配為 0.55/0.20/0.25/0.00.
+        # institutional_flow 0.0: 對齊 active config/settings.yaml（legacy 因子，
+        # profile 切換時不該被意外帶回；外資 v1 IC=-0.053 已確認 fail，v2 DROP）.
+        # default 重分配為 price_momentum 0.55 / trend_quality 0.20 /
+        # revenue_momentum 0.25 / institutional_flow 0.00（sum=1）.
         "price_momentum": 0.55,
         "trend_quality": 0.20,
         "revenue_momentum": 0.25,
         "institutional_flow": 0.00,
-        # Phase A2 Step 2: new factor slots (default 0.0; enable via settings.yaml)
+        # new factor slots (default 0.0; enable via settings.yaml)
         "high_proximity": 0.0,
         "pead_eps": 0.0,
         "margin_short_ratio": 0.0,
@@ -109,18 +108,18 @@ PORTFOLIO_PROFILES = {
         "hold_score_floor": 60.0,
         "max_position_weight": 0.12,
         "turnover_score_threshold": 6.0,
-        "max_same_industry": 3,  # P1 驗證：2→3（settings.yaml 為準）
+        "max_same_industry": 3,  # settings.yaml 為準
         "exposure": {
             "risk_on": 0.96,
             "caution": 0.70,
             "risk_off": 0.35,
         },
         "score_weights": {
-            "price_momentum": 0.55,     # P1-P3 grid search 最佳
+            "price_momentum": 0.55,     # grid search 最佳
             "trend_quality": 0.20,
             "revenue_momentum": 0.25,
-            "institutional_flow": 0.00,  # 已停用（P2 測試績效下降）
-            # Phase A2 Step 2: new factor slots (default 0.0 for this profile too)
+            "institutional_flow": 0.00,  # 已停用（測試績效下降）
+            # new factor slots (default 0.0 for this profile too)
             "high_proximity": 0.0,
             "pead_eps": 0.0,
             "margin_short_ratio": 0.0,
@@ -144,14 +143,13 @@ PORTFOLIO_PROFILES = {
             "risk_off": 0.35,
         },
         "score_weights": {
-            # 2026-05-11 R30-6 fix (R30): institutional_flow 0.10 → 0.0
-            # 同主 profile（legacy 因子已 R26-R29 確認 fail；redistribute 至
-            # price_momentum + revenue_momentum 保持 sum=1）.
+            # institutional_flow 0.0: 同主 profile（legacy 因子已確認 fail；
+            # redistribute 至 price_momentum + revenue_momentum 保持 sum=1）.
             "price_momentum": 0.50,
             "trend_quality": 0.20,
             "revenue_momentum": 0.30,
             "institutional_flow": 0.00,
-            # Phase A2 Step 2: new factor slots (default 0.0 for this profile too)
+            # new factor slots (default 0.0 for this profile too)
             "high_proximity": 0.0,
             "pead_eps": 0.0,
             "margin_short_ratio": 0.0,
@@ -345,7 +343,7 @@ def run_tw_stock_portfolio_rebalance(
         for item in ranked[: min(10, len(ranked))]
     ]
 
-    # P0-4: 完整 ranked universe（每檔因子原始值 + percentile + 篩選結果）
+    # 完整 ranked universe（每檔因子原始值 + percentile + 篩選結果）
     full_ranked = [
         {
             "rank": item.get("rank"),
@@ -367,13 +365,13 @@ def run_tw_stock_portfolio_rebalance(
         for item in ranked
     ]
 
-    # P0-4: universe snapshot（記錄本次分析的 universe 組成）
+    # universe snapshot（記錄本次分析的 universe 組成）
     universe_snapshot = [
         {"symbol": sym["symbol"], "name": sym.get("name", ""), "industry": sym.get("industry", "")}
         for sym in universe
     ]
 
-    # P0-4: config hash
+    # config hash
     config_hash = compute_config_hash(portfolio_config)
 
     snapshot = {
@@ -407,7 +405,7 @@ def run_tw_stock_portfolio_rebalance(
             f"universe_size={len(universe)}",
             f"analysis_success_rate={success_count}/{len(analyses)}",
         ],
-        # P0-4: 研究可重現性欄位
+        # 研究可重現性欄位
         "config_hash": config_hash,
         "strategy_version": f"{portfolio_config.get('profile', 'custom')}@{config_hash}",
         "full_ranked": full_ranked,
@@ -514,8 +512,9 @@ def _prepare_auto_universe_by_size_proxy(
     pre_filter_size = int(portfolio_config.get("auto_universe_pre_filter_size", 0) or 0)
     if pre_filter_size > 0 and len(working) > pre_filter_size:
         try:
-            from src.data.twse_scraper import fetch_combined_turnover
             from datetime import datetime as _dt
+
+            from src.data.twse_scraper import fetch_combined_turnover
             ohlcv_src = source.fetch_ohlcv if hasattr(source, "fetch_ohlcv") else None
             candidate_ids = working["stock_id"].astype(str).tolist()
             _turnover = fetch_combined_turnover(
@@ -666,7 +665,7 @@ def _analyze_symbol(
     structure = int(latest.get("structure", 0) or 0)
 
     avg_turnover_20 = float((df["close"] * df["volume"]).tail(20).mean())
-    # gap-aware: detect calendar gaps in the 20-day vol window (2026-05-22 audit).
+    # gap-aware: detect calendar gaps in the 20-day vol window.
     # tail(21) yields 20 pct_change values, byte-identical to
     # df["close"].pct_change().tail(20) since each pct_change row depends only on
     # its own and the immediately-prior row.
@@ -691,13 +690,12 @@ def _analyze_symbol(
     institutional_result = {"score": 0, "detail": "disabled"}
     inst_weight = float(portfolio_config.get("score_weights", {}).get("institutional_flow", 0))
     if inst_weight > 0 and strategy.get("use_institutional", True) and hasattr(source, "fetch_institutional"):
-        # PIT cover note (audit 2026-05-02 A.2): when `source` is a
-        # `_DataSlicer` (the backtest engine wires it that way at engine.py:421),
-        # `fetch_institutional` is the slicer's PIT-correct override
-        # (engine.py:196) — so the call below is already truncated by
+        # PIT cover note: when `source` is a `_DataSlicer` (the backtest engine
+        # wires it that way), `fetch_institutional` is the slicer's PIT-correct
+        # override — so the call below is already truncated by
         # `_truncate_by_date_col` against the slicer's `set_as_of`. Live
         # callers pass the raw `FinMindSource` and there is no `as_of` to
-        # enforce. The pre-audit comment claiming "未傳遞 as_of 截斷" was stale.
+        # enforce.
         institutional_df = source.fetch_institutional(symbol)
         institutional_result = score_institutional(institutional_df)
     institutional_raw = float(institutional_result.get("score", 0))
@@ -707,7 +705,7 @@ def _analyze_symbol(
     quality_raw = None
     score_weights = portfolio_config.get("score_weights", {})
     if float(score_weights.get("quality", 0)) > 0 and hasattr(source, "fetch_financial_quality"):
-        # Audit 2026-05-02 A.2: `fetch_financial_quality` returns a single
+        # `fetch_financial_quality` returns a single
         # latest-quarter snapshot dict (not a time-series), so it has no PIT
         # entry-point. In backtest the snapshot reflects whatever quarter
         # the cache was filled at — typically newer than `as_of` → look-ahead.
@@ -801,11 +799,11 @@ def _resolve_regime_score_weights(
     portfolio_config: dict,
     market_view: dict | None,
 ) -> dict:
-    """Phase A3.1.2 helper: pick factor weight schedule based on regime.
+    """Pick factor weight schedule based on regime.
 
     Returns the weight dict that `_rank_analyses` should use. Precedence:
     1. If market_view is None OR `regime_score_weights` config missing/empty,
-       return flat `portfolio_config['score_weights']` (Phase A2 behavior).
+       return flat `portfolio_config['score_weights']` (legacy flat behavior).
     2. If regime_score_weights present AND market_view["regime"] matches a key,
        return that regime-specific weight dict (log the active regime).
     3. If regime doesn't match any key (unknown state), fall back to flat
@@ -841,7 +839,7 @@ def _rank_analyses(
 ) -> list[dict]:
     """Attach percentile-ranked factor scores and total portfolio score.
 
-    Phase A3.1.2 (2026-04-22): optional regime-aware weighting. If
+    Optional regime-aware weighting. If
     portfolio_config has `regime_score_weights` dict AND `market_view` is
     provided with a valid regime, the factor weights used for ranking are
     looked up from `regime_score_weights[regime]` instead of the flat
@@ -873,7 +871,7 @@ def _rank_analyses(
         "revenue_momentum": "revenue_raw",
         "institutional_flow": "institutional_raw",
         "quality": "quality_raw",
-        # Phase A2 Step 2: 5 new factors (batch-computed in _batch_precompute_and_analyze)
+        # 5 new factors (batch-computed in _batch_precompute_and_analyze)
         "high_proximity": "high_proximity_raw",
         "pead_eps": "pead_eps_raw",
         "margin_short_ratio": "margin_short_ratio_raw",
@@ -881,9 +879,9 @@ def _rank_analyses(
         "foreign_investor_v2": "foreign_investor_v2_raw",
     }
 
-    # Phase A3.1.1: opt-in sector-neutral ranking per factor.
+    # opt-in sector-neutral ranking per factor.
     # Config:  portfolio_config["sector_neutral_metrics"] = ["high_proximity", ...]
-    # Default: [] (pure cross-sectional rank, Phase A2 behavior preserved)
+    # Default: [] (pure cross-sectional rank)
     sector_neutral_metrics = set(
         portfolio_config.get("sector_neutral_metrics", []) or []
     )
@@ -905,7 +903,7 @@ def _rank_analyses(
         else:
             silent_dropped.append(score_name)
 
-    # Phase A2 Step 1.5.4 silent renormalize guard: factors with weight>0 but
+    # silent renormalize guard: factors with weight>0 but
     # no real data (>50% NaN/Inf) would be quietly excluded from active_weights,
     # then weight_sum renormalizes — producing backtest outputs that look clean
     # but didn't use the intended factor set. Backtest context raises; live path
@@ -929,9 +927,9 @@ def _rank_analyses(
         weight_sum,
     )
 
-    # Audit 2026-05-02 A.1 fix: per-symbol weight_sum re-normalization.
-    # `_metric_ranks` returns None for symbols missing factor data (was 0.5 median
-    # imputation pre-fix). Each symbol now gets normalized over only the factors
+    # per-symbol weight_sum re-normalization.
+    # `_metric_ranks` returns None for symbols missing factor data (avoiding 0.5
+    # median imputation). Each symbol now gets normalized over only the factors
     # it actually has, with `min_factor_coverage_per_symbol` floor below which
     # the symbol's score collapses to 0 (forced ineligible by ranking).
     min_coverage = float(
@@ -1006,7 +1004,7 @@ def _rank_analyses(
 def _safe_fetch(fetch_func, symbol: str, *extra_args, **kwargs):
     """Per-symbol fetch with exception isolation for universe-batch factor precompute.
 
-    CRITICAL (external audit Round 14 P1-1): must NOT catch _BacktestCacheMissError —
+    CRITICAL: must NOT catch _BacktestCacheMissError —
     that exception signals backtest cache-miss that must propagate so the user
     seeds cache first; catching would produce silent-wrong results.
     Other exceptions (network / transient API errors) are logged and return
@@ -1032,12 +1030,11 @@ def _bulk_fetch_latest_market_value(
     source,
     as_of: pd.Timestamp | None = None,
 ) -> dict[str, float]:
-    """Bulk fetch market_value (PIT-aware after R30 architecture cleanup).
+    """Bulk fetch market_value (PIT-aware).
 
-    2026-05-11 R30 cleanup (R29 finding 2): aligned with IC pipeline +
-    portfolio path issued_capital helper to use single source-of-truth PIT
-    helpers from ``src.data.pit_helpers``. Adds ``as_of`` keyword (default
-    None = today/live mode).
+    Aligned with IC pipeline + portfolio path issued_capital helper to use
+    single source-of-truth PIT helpers from ``src.data.pit_helpers``. The
+    ``as_of`` keyword defaults to None = today/live mode.
 
     Behavior:
         - ``as_of=None`` (live mode): falls through to legacy
@@ -1046,9 +1043,9 @@ def _bulk_fetch_latest_market_value(
           ``_market_value_asof()`` for PIT-correct lookup. Caller (backtest
           replay) needs cache populated for the target date.
 
-    external audit Round 14 P0-1 FIX context: ``fetch_market_value(days=10)`` takes
-    ``days`` (int) — does NOT accept a symbol argument. Returns full-market
-    DataFrame (stock_id, date, market_value).
+    Note: ``fetch_market_value(days=10)`` takes ``days`` (int) — does NOT
+    accept a symbol argument. Returns full-market DataFrame
+    (stock_id, date, market_value).
     """
     # Live mode: as_of None or today → fast latest snapshot via source
     if as_of is None or pd.Timestamp(as_of).date() >= pd.Timestamp.today().date():
@@ -1085,24 +1082,23 @@ def _load_issued_capital_dict(
     universe_symbols: list[str],
     as_of: pd.Timestamp | None = None,
 ) -> dict[str, float]:
-    """Load issued_shares for universe symbols (R28-2 PIT-aligned).
+    """Load issued_shares for universe symbols (PIT-aligned).
 
-    2026-05-10 R28-2 修法: was reading global latest snapshot (one-shot
-    dict). Now imports the same panel + asof helper as IC pipeline
+    Imports the same panel + asof helper as IC pipeline
     (`scripts._factor_ic_helpers`), so portfolio/backtest path gets the same
     PIT discipline (or fallback static-snapshot warning when cache lacks date).
 
-    external audit Round 14 P0-2 history: explicit dtype cast (stock_id->str,
-    issued_shares->float) + coverage warning when universe symbols missing
-    from cache (e.g. ETFs like 0050/0056, or newly listed stocks).
+    Explicit dtype cast (stock_id->str, issued_shares->float) + coverage
+    warning when universe symbols missing from cache (e.g. ETFs like
+    0050/0056, or newly listed stocks).
 
     Args:
         universe_symbols: list of stock_ids to look up
         as_of: target date for PIT lookup. None = today (live mode).
     """
     from scripts._factor_ic_helpers import (
-        _load_issued_capital_panel,
         _issued_capital_asof,
+        _load_issued_capital_panel,
     )
 
     cache_dir = Path(resolve_cache_dir())
@@ -1140,7 +1136,7 @@ def _compute_universe_batch_factors(
     portfolio_config: dict,
     as_of_ts: pd.Timestamp,
 ) -> dict[str, dict[str, float]]:
-    """Pre-compute 5 Phase A2 universe-batch factor scores.
+    """Pre-compute 5 universe-batch factor scores.
 
     Each factor is computed only when its weight > 0 (cost optimization — we
     never fetch data for disabled factors). Returns a mapping::
@@ -1174,7 +1170,7 @@ def _compute_universe_batch_factors(
 
     if float(sw.get("margin_short_ratio", 0)) > 0:
         margin_by_sym = {s: _safe_fetch(source.fetch_margin_short, s) for s in universe_symbols}
-        # 2026-05-10 R28-2: pass as_of so issued_shares is PIT-aligned with
+        # pass as_of so issued_shares is PIT-aligned with
         # IC pipeline (still falls back to static snapshot when cache lacks date
         # column — same approximation as IC pipeline, consistent across paths).
         issued_by_sym = _load_issued_capital_dict(universe_symbols, as_of=as_of_ts)
@@ -1189,12 +1185,11 @@ def _compute_universe_batch_factors(
         out["revenue_momentum_v2"] = series.to_dict()
 
     if float(sw.get("foreign_investor_v2", 0)) > 0:
-        # 2026-05-10 P1-3 (R27): foreign_investor_v2 v2 API requires
-        # close_by_symbol for dollar-denominated cum_ratio + rank_stability
-        # (P0-B 修法). Without it both sub-signals are skipped and
-        # covered_weight drops below 0.5 threshold → universe goes empty.
-        # 2026-05-11 R30 4-path PIT cleanup (R29 finding 2):
-        # _bulk_fetch_latest_market_value now PIT-aware with as_of kwarg.
+        # foreign_investor_v2 v2 API requires close_by_symbol for
+        # dollar-denominated cum_ratio + rank_stability. Without it both
+        # sub-signals are skipped and covered_weight drops below 0.5
+        # threshold → universe goes empty.
+        # _bulk_fetch_latest_market_value is PIT-aware with as_of kwarg.
         # Live mode (as_of=today): fast source.fetch_market_value path.
         # Backtest mode (as_of=historical): disk cache panel + asof lookup.
         inst_by_sym = {s: _safe_fetch(source.fetch_three_institutional, s) for s in universe_symbols}
@@ -1227,11 +1222,9 @@ def _batch_precompute_and_analyze(
 ) -> list[dict]:
     """Shared analyze loop for both live and backtest callers.
 
-    Phase A2 Step 1.5: Pure extraction of current per-symbol analyze behavior.
-    Phase A2 Step 2: Universe-batch factor precompute runs BEFORE the symbol
+    Universe-batch factor precompute runs BEFORE the symbol
     loop; batch scores are injected as ``<factor>_raw`` onto each per-symbol
-    analysis dict. Both live and backtest paths pick this up automatically
-    (external audit Round 14 P0-1 fix).
+    analysis dict. Both live and backtest paths pick this up automatically.
 
     Error handling: per-symbol Exception is caught and logged; the offending
     symbol gets a 5-key stub dict (symbol/name/eligible/filters/industry) with
@@ -1311,7 +1304,6 @@ def _select_positions(
         }
     rank_by_symbol = {item["symbol"]: item["rank"] for item in ranked}
     score_by_symbol = {item["symbol"]: item.get("portfolio_score", 0) for item in ranked}
-    industry_by_symbol = {item["symbol"]: item.get("industry", "") for item in ranked}
 
     selected: list[dict] = []
     selected_symbols: set[str] = set()
@@ -1370,7 +1362,7 @@ def _select_positions(
             selected_symbols -= to_remove
 
     # Step 2: 填入新候選，考慮交易成本門檻 + 產業分散
-    _used_replaceable: set[str] = set()  # P0-7: 追蹤已配對的 replaceable 持股
+    _used_replaceable: set[str] = set()  # 追蹤已配對的 replaceable 持股
     for candidate in eligible:
         if len(selected) >= top_n:
             break
@@ -1387,7 +1379,7 @@ def _select_positions(
             if same_industry_count >= max_same_industry:
                 continue
 
-        # P0-7 fix: 交易成本門檻 — 逐一配對比較，每次選入後移除已配對的 replaceable
+        # 交易成本門檻 — 逐一配對比較，每次選入後移除已配對的 replaceable
         if current_positions:
             replaceable = [
                 (sym, score_by_symbol.get(sym, 0))
@@ -1479,7 +1471,7 @@ def _select_positions(
 
     # 估算換倉成本，納入 ENTER / EXIT / ADD / REDUCE 的實際權重變化
     turnover_cost = float(portfolio_config.get("turnover_cost", TW_ROUND_TRIP_COST))
-    slippage_bps = float(portfolio_config.get("slippage_bps", 10))  # 對齊 settings.yaml (R19 fix 補)
+    slippage_bps = float(portfolio_config.get("slippage_bps", 10))  # 對齊 settings.yaml
     estimated_turnover = _estimate_rebalance_turnover(current_positions, positions)
     estimated_cost = estimated_turnover * turnover_cost + estimated_turnover * 2 * (slippage_bps / 10000.0)
 
@@ -1624,7 +1616,7 @@ def _group_items_by_industry(
     *,
     min_size: int = _SECTOR_NEUTRAL_MIN_SIZE,
 ) -> dict[str, list[dict]]:
-    """Phase A3.1.1: Group items by industry, pool small groups into _OTHER.
+    """Group items by industry, pool small groups into _OTHER.
 
     Small-industry pooling avoids statistical noise from ranking < 3 stocks
     within a sector (rank=0.5 fallback would otherwise dominate).
@@ -1656,12 +1648,12 @@ def _metric_ranks(
 ) -> tuple[dict[str, float | None], bool]:
     """Compute percentile rank of a factor across the eligible universe.
 
-    Phase A3.1.1 (2026-04-22): `sector_neutral=True` performs rank within
-    each industry bucket instead of cross-sectional. Small industries
-    (< 3 members) are pooled into _OTHER to avoid noise. Backward
-    compatible — default `sector_neutral=False` preserves Phase A2 behavior.
+    `sector_neutral=True` performs rank within each industry bucket instead
+    of cross-sectional. Small industries (< 3 members) are pooled into _OTHER
+    to avoid noise. Backward compatible — default `sector_neutral=False`
+    preserves flat cross-sectional behavior.
 
-    Audit 2026-05-02 A.1 fix (silent imputation removal):
+    Silent imputation removal:
         Symbols whose factor value is NaN/Inf used to be filled with 0.5
         (median percentile) so they competed in `top_n` with a "neutral"
         score. This masked data-quality issues. Now they receive `None`
@@ -1706,14 +1698,14 @@ def _metric_ranks_sector_neutral(
     Returns {symbol: within-industry percentile rank or None} + has_real_data bool.
     has_real_data mirrors cross-sectional >50% NaN threshold globally.
 
-    Phase A3.1.4 (2026-04-23): groups whose valid-value count < 2 are deferred
+    Groups whose valid-value count < 2 are deferred
     to a second-pass pool (rather than silently skipped with items left at
     0.5). Semantics: items whose sector cannot rank meaningfully get pooled
     together and ranked in a single cross-sectional bucket, so has_real_data
     no longer collapses below 50% just because the universe is sliced thin
     across many thin sectors.
 
-    Audit 2026-05-02 A.1 fix (silent imputation removal):
+    Silent imputation removal:
         Symbols missing factor data — even after second-pass pooling — used
         to receive 0.5 (median percentile) and silently competed in `top_n`.
         Now they get `None`; caller per-symbol re-normalizes weight_sum.
@@ -1843,7 +1835,7 @@ def _monthly_revenue_momentum(
     # 過濾尚未公開的營收資料（避免 look-ahead bias）
     # 台股月營收法定公告期限為次月 10 日前
     # FinMind date 欄位為營收月份（如 2026-01-01 表示一月營收）
-    # P0-8: 使用 REVENUE_LAG_DAYS 天延遲（次月底 + 5 天緩衝），原 40 天偏保守會浪費可用資料
+    # 使用 REVENUE_LAG_DAYS 天延遲（次月底 + 5 天緩衝），40 天偏保守會浪費可用資料
     as_of_ts = pd.Timestamp(as_of).tz_localize(None) if pd.Timestamp(as_of).tzinfo else pd.Timestamp(as_of)
     cutoff = as_of_ts - pd.Timedelta(days=REVENUE_LAG_DAYS)
     working = working[working["date"] <= cutoff]

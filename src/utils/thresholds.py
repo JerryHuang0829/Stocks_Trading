@@ -4,19 +4,19 @@ Layered defaults:
     1. Hard-coded DEFAULTS below (single source of truth for fallback)
     2. `config/factor_thresholds.yaml` (optional; deep-merged on top)
 
-Callers (what actually reads which section — kept accurate per R32):
+Callers (what actually reads which section):
     - `src.analysis.ic_analysis` reads bootstrap / permutation / DSR / effective_n
     - `src.features.foreign_investor_v2` reads `factor_specific.foreign_investor_v2`
       weights / last20_max_calendar_span_days / rank_stability_top_pct + rank_stability
-      min_universe_size (yaml-driven via module helpers; R31-4 fix)
+      min_universe_size (yaml-driven via module helpers)
     - `src.features.revenue_momentum_v2` reads `factor_specific.revenue_momentum_v2.weights`
-      (yaml-driven via module helper; R32 fix)
+      (yaml-driven via module helper)
     - `scripts.run_factor_ic` reads per-panel `min_obs_per_symbol` and forward_return
 
     NOT yet yaml-driven (yaml section exists as a SPEC MIRROR only — the module
     hard-codes the values; edit BOTH if changing). These params are hypothesis-locked
-    structural constants so the spec mirror is acceptable for now (R33 may
-    decide whether to wire them):
+    structural constants so the spec mirror is acceptable for now (wiring
+    them to yaml is deferred):
     - `factor_specific.high_proximity` (rolling_max_days=252 / shift=1)
     - `factor_specific.pead_eps` (baseline_quarters / lag_days_q4 / lag_days_other)
     - `factor_specific.margin_short_ratio` (ratio_weight / change_weight /
@@ -69,13 +69,13 @@ DEFAULTS: dict[str, Any] = {
             "shift": 1,
         },
         "revenue_momentum_v2": {
-            # 2026-05-11 R32 finding: keys accel_3m3m→accel, pct_24m→percentile
-            # to match src/features/revenue_momentum_v2.py::SUBSIGNAL_WEIGHTS (was a
+            # keys accel_3m3m→accel, pct_24m→percentile to match
+            # src/features/revenue_momentum_v2.py::SUBSIGNAL_WEIGHTS (was a
             # silent config drift — module hardcoded + yaml/default keys mismatched).
             # `weights` is yaml-driven; `seasonal_window_months` is SPEC MIRROR
             # (module hard-codes DEFAULT_SEASONAL_LOOKBACK_MONTHS=24).
-            # `yoy_strict_month_matching` removed 2026-05-11 (R33 B2): P1-新6
-            # removed the ±45-day tolerance path → module is always strict, no knob.
+            # `yoy_strict_month_matching` removed: the ±45-day tolerance path was
+            # dropped → module is always strict, no knob.
             "weights": {
                 "yoy": 0.50,
                 "accel": 0.20,
@@ -91,15 +91,15 @@ DEFAULTS: dict[str, Any] = {
             "use_trading_day_offset": True,
         },
         "foreign_investor_v2": {
-            # 2026-05-11 R30-3 fix (R30): weights 跟 yaml +
+            # weights 跟 yaml +
             # `src/features/foreign_investor_v2.py::SUBSIGNAL_WEIGHTS` 對齊（之前是
             # silent drift：yaml/module 改 0.50/0.25/0.25/0.0 但此 default 殘留
             # 舊 0.40/0.20/0.20/0.20，hierarchy fallback 會用錯權重）.
             "weights": {
-                "foreign_cum_ratio": 0.50,    # 0.40 → 0.50 (P1-D 重分配 consistency 後)
-                "persistence": 0.25,          # 0.20 → 0.25
-                "rank_stability": 0.25,       # 0.20 → 0.25
-                "consistency": 0.0,           # 0.20 → 0.0 (P1-D 78% sparsity deprecation)
+                "foreign_cum_ratio": 0.50,    # 重分配 consistency 後從 0.40 提高
+                "persistence": 0.25,
+                "rank_stability": 0.25,
+                "consistency": 0.0,           # 78% sparsity → deprecated
             },
             "foreign_cum_lookback_days": 20,
             "rank_stability_lookback_days": 60,
@@ -221,24 +221,20 @@ def per_panel_min_obs(panel_name: str) -> int:
     """`universe.min_obs_per_symbol.<panel>` with fallback to `default`.
 
     Defensive: if someone writes `min_obs_per_symbol: 250` (scalar) in YAML
-    instead of a dict (external audit Round 5 R5-1 regression mode), we still treat
-    that scalar as the `default` for every panel and log a warning once so
-    the mistake surfaces without silently flattening quarterly panels.
+    instead of a dict, we still treat that scalar as the `default` for every
+    panel and log a warning once so the mistake surfaces without silently
+    flattening quarterly panels.
     """
     panel_map = get_threshold("universe", "min_obs_per_symbol", default=None)
     if isinstance(panel_map, (int, float)):
         # YAML override is a scalar — collapse it to a synthetic default.
         # Warn once per process so repeated calls don't spam.
         #
-        # History (R6-1 / R7-1): earlier revisions of this warning had
-        # two distinct bugs — a literal inaccuracy (claimed every scalar
-        # collapses to 250) and a logical self-contradiction when the YAML
-        # scalar happened to match a panel's default (the previous phrasing
-        # would assert a value vs an `intended` value with both sides equal).
-        # Current phrasing avoids contrastive framing: it states (a) the
-        # scalar value, (b) that it is applied uniformly, (c) the per-panel
-        # defaults being overridden, and (d) the exact YAML fix. No
-        # branching needed.
+        # Phrasing avoids contrastive framing (do not assert a value vs an
+        # `intended` value, which self-contradicts when the YAML scalar equals
+        # a panel's default): it states (a) the scalar value, (b) that it is
+        # applied uniformly, (c) the per-panel defaults being overridden, and
+        # (d) the exact YAML fix. No branching needed.
         if not getattr(per_panel_min_obs, "_warned_scalar", False):
             scalar_value = int(panel_map)
             logger.warning(

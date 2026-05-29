@@ -13,7 +13,6 @@ import math
 import random
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 SNAPSHOTS = Path("reports/backtests/backtest_20220101_20251231_snapshots.json")
@@ -192,7 +191,6 @@ def permutation_baseline(snapshots: list[dict], daily_path: Path, n_sims: int = 
                 continue
             gross = snap.get("gross_exposure", 0.96)
             picks = rng.sample(pool, top_n)
-            w = gross / top_n
 
             # Get daily close for each pick over [start, end]
             sym_returns = []
@@ -207,8 +205,7 @@ def permutation_baseline(snapshots: list[dict], daily_path: Path, n_sims: int = 
                 sym_returns.append(ret)
             if not sym_returns:
                 continue
-            portfolio_daily = pd.concat(sym_returns, axis=1).mean(axis=1) * w * top_n  # sum of weighted = mean * n * (gross/n)
-            # Actually: weight per sym = gross/top_n; sum of weights = gross
+            # weight per sym = gross/top_n; sum of weights = gross
             # Portfolio return = Σ w_i r_i = (gross/top_n) Σ r_i = gross * mean(r_i)
             port_daily = pd.concat(sym_returns, axis=1).mean(axis=1) * gross
             daily_sim.append(port_daily)

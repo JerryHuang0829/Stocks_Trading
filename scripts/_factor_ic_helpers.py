@@ -1,10 +1,7 @@
 """Shared utility helpers for factor IC research scripts.
 
-Phase P5 Session 1 / R21 finding F6 fix (2026-05-03):
-    Extracted from `scripts/run_factor_ic.py` (lines 104-398) so that
-    cross-script callers (originally `scripts/phase_b0_lite_spike.py` —
-    cleaned up 2026-05-04 — and future P5+ / Phase D scripts) no longer
-    import private functions across script boundaries (anti-pattern).
+Extracted from `scripts/run_factor_ic.py` so that cross-script callers no
+longer import private functions across script boundaries (anti-pattern).
 
 `scripts/run_factor_ic.py` retains a thin re-export shim so existing
 callers (`/factor-ic` skill, manual CLI) keep working unchanged.
@@ -16,18 +13,18 @@ Functions exported here (16):
     _load_universe_revenue
     _load_universe_timeseries
     _load_issued_capital                  # DEPRECATED — see _load_issued_capital_panel
-    _load_issued_capital_panel            # 2026-05-10 P1-A: PIT-able panel loader
-    _issued_capital_asof                  # 2026-05-10 P1-A: as-of lookup
+    _load_issued_capital_panel            # PIT-able panel loader
+    _issued_capital_asof                  # as-of lookup
     _load_industry_labels
     _load_market_value                    # DEPRECATED — see _load_market_value_panel
-    _load_market_value_panel              # 2026-05-10 P0-A: PIT-able panel loader
-    _market_value_asof                    # 2026-05-10 P0-A: as-of lookup
+    _load_market_value_panel              # PIT-able panel loader
+    _market_value_asof                    # as-of lookup
     _resolve_price_asof
     _forward_return
     _compute_intersection_universe
     _compute_regimes
 
-PIT NOTICE (R26 audit):
+PIT NOTICE:
     _load_market_value() and _load_issued_capital() return latest values
     via drop_duplicates(keep="last"), which violates point-in-time discipline
     when called once outside a rebalance loop (every period sees current-day
@@ -49,7 +46,6 @@ from src.backtest.metrics import adjust_splits_ohlc
 from src.strategy.indicators import calculate_indicators
 from src.strategy.regime import detect_regime
 from src.utils.thresholds import get_threshold, per_panel_min_obs
-
 
 REGIME_SYMBOL = "0050"
 MIN_UNIVERSE_SIZE = 50
@@ -133,13 +129,13 @@ def _load_universe_timeseries(panel_dir: Path) -> dict[str, pd.DataFrame]:
 
 
 def _load_issued_capital(cache_dir: Path) -> dict[str, float]:
-    """DEPRECATED (2026-05-10 P1-A): latest issued_shares per symbol.
+    """DEPRECATED: latest issued_shares per symbol.
 
     Returns the same value for every rebalance date, which violates PIT
     discipline (issued_shares can change via increases / decreases / stock
     dividend). New code: use ``_load_issued_capital_panel()`` +
     ``_issued_capital_asof()``. Retained only for backward-compat with
-    pre-2026-05-10 historical scripts.
+    legacy historical scripts.
     """
     import warnings
 
@@ -177,9 +173,9 @@ def _load_issued_capital(cache_dir: Path) -> dict[str, float]:
     )
 
 
-# 2026-05-11 R30 architecture cleanup: 4 PIT helper functions 移到
-# `src/data/pit_helpers.py` 為 single source of truth。本模組改為 re-export
-# shim 維持 backward compat（IC pipeline / 其他 caller 不破）。
+# PIT helper functions live in `src/data/pit_helpers.py` as single source of
+# truth; this module re-exports them to keep backward compat (IC pipeline /
+# other callers unaffected).
 from src.data.pit_helpers import (  # noqa: F401, E402
     _issued_capital_asof,
     _load_issued_capital_panel,
@@ -209,13 +205,13 @@ def _load_industry_labels(cache_dir: Path) -> dict[str, str] | None:
 
 
 def _load_market_value(cache_dir: Path) -> dict[str, float]:
-    """DEPRECATED (2026-05-10 P0-A): latest market_value per symbol.
+    """DEPRECATED: latest market_value per symbol.
 
     Returns the same value for every rebalance date, which violates PIT
     discipline (a 2020 rebalance should never see 2026 market_value as
     denominator). New code: use ``_load_market_value_panel()`` +
     ``_market_value_asof()``. Retained only for backward-compat with
-    pre-2026-05-10 historical scripts.
+    legacy historical scripts.
     """
     import warnings
 
@@ -237,8 +233,8 @@ def _load_market_value(cache_dir: Path) -> dict[str, float]:
     return dict(zip(latest["stock_id"].astype(str), latest["market_value"].astype(float)))
 
 
-# 2026-05-11 R30 architecture cleanup: market_value PIT helpers 移到
-# `src/data/pit_helpers.py` 為 single source of truth。本模組改為 re-export shim。
+# market_value PIT helpers live in `src/data/pit_helpers.py` as single source
+# of truth; this module re-exports them as a backward-compat shim.
 from src.data.pit_helpers import (  # noqa: F401, E402
     _load_market_value_panel,
     _market_value_asof,
@@ -251,7 +247,7 @@ def _resolve_price_asof(
     *,
     max_gap_days: int = DEFAULT_MAX_GAP_DAYS,
 ) -> tuple[float, pd.Timestamp] | None:
-    """P1-新2: return (price, anchor_date) at target_date or the last non-NaN
+    """Return (price, anchor_date) at target_date or the last non-NaN
     trading day within `max_gap_days`, else None.
 
     Using the prior ``dropna()`` approach silently backfills stale prices from
@@ -297,9 +293,9 @@ def _compute_intersection_universe(
     min_obs_per_symbol: "int | dict[str, int] | None" = None,
     log: logging.Logger | None = None,
 ) -> list[str]:
-    """P1-新1 + follow-up-4 (audit-confirmed): intersection universe with
-    **per-panel** `min_obs_per_symbol` so quarterly panels (~28 rows/symbol
-    over 7Y) are not dropped by the daily-frequency threshold of 250.
+    """Intersection universe with **per-panel** `min_obs_per_symbol` so
+    quarterly panels (~28 rows/symbol over 7Y) are not dropped by the
+    daily-frequency threshold of 250.
 
     Args:
         cache_dir: root of `data/cache/`.
@@ -376,10 +372,10 @@ def _compute_regimes(
     rebalance_dates: list,
     strategy_cfg: dict,
 ) -> list[str | None]:
-    # Codex v5.0 R1 P1-4 fix (2026-05-25): adjust OHLC for splits before
-    # computing technical indicators. Without this, the 0050 2025-06 1:4
-    # split corrupted ADX / SMA values for downstream regime classification,
-    # poisoning 2025 OOS regime contextual feature in v5.0 ML.
+    # Adjust OHLC for splits before computing technical indicators. Without
+    # this, the 0050 2025-06 1:4 split corrupted ADX / SMA values for
+    # downstream regime classification, poisoning the 2025 OOS regime
+    # contextual feature in v5.0 ML.
     benchmark_adjusted = adjust_splits_ohlc(benchmark_ohlcv)
     full = calculate_indicators(benchmark_adjusted.copy(), strategy_cfg)
     full_idx = full.index

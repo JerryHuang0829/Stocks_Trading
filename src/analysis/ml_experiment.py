@@ -60,7 +60,7 @@ class CellResult:
     oos_monthly_returns: list[float]
     oos_dates: list[str]
     n_oos_periods: int
-    # Codex v5.0 R6 P1 fix: persist actual holdings for realised turnover compute
+    # persist actual holdings for realised turnover compute
     oos_holdings: list[list[str]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -116,8 +116,8 @@ def train_best_on_is_and_predict_oos(
     """Retrain best hyperparameters on full IS, predict OOS, compute Sharpe.
 
     Returns (oos_sharpe, oos_monthly_returns_series, holdings_by_period).
-    Codex v5.0 R6 P1 fix: also return per-period selected stock IDs for
-    realised turnover computation in audit step.
+    Also returns per-period selected stock IDs for realised turnover
+    computation in audit step.
     """
     if model_name == "xgboost":
         model = XGBoostClassifierWrapper(**best_params)
@@ -134,7 +134,7 @@ def train_best_on_is_and_predict_oos(
     )
     sh = _sharpe_ratio(monthly_returns, annualization=12)
 
-    # Per-period holdings for realised turnover (Codex v5.0 R6 P1 fix)
+    # Per-period holdings for realised turnover
     holdings: list[list[str]] = []
     if symbol_oos is not None:
         df = pd.DataFrame({"score": scores, "as_of": as_of_oos, "symbol": symbol_oos})
@@ -156,7 +156,7 @@ def run_ml_cells(
 ) -> list[CellResult]:
     """For each (model, top_n) cell: Optuna → best → OOS → CellResult.
 
-    Per pre-reg §12 Option A + §9 CPCV LOCK (Codex v5.0 R6 P0 fix):
+    Per pre-reg §12 Option A + §9 CPCV LOCK:
     - Caller SHOULD pass cpcv_config (production default = CPCVConfig() per pre-reg LOCK)
     - If cpcv_config is None → legacy TimeSeriesSplit-only mode (testing only)
     """

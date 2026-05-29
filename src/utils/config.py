@@ -1,7 +1,8 @@
 """設定檔載入與合併"""
 
-import yaml
 from pathlib import Path
+
+import yaml
 
 
 def load_config(path: str = 'config/settings.yaml') -> dict:

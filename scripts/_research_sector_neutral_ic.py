@@ -1,4 +1,4 @@
-"""Sector-neutralized factor IC research (v5.0 Pro pre-step, 2026-05-25).
+"""Sector-neutralized factor IC research (v5.0 Pro pre-step).
 
 For Value (E/P) and PEAD (EPS surprise) — both fundamental factors that ride
 sector tilts heavily — we want to see if subtracting the industry-mean factor
@@ -10,7 +10,7 @@ Compares:
 
 Output: reports/factor_ic/<factor>_sn_ic.json (same schema as raw IC JSON).
 
-Sibling concept: v2.2 (formerly "Phase A3.1") tried sector-neutral COMPOSITE
+Sibling concept: a prior v2.2 attempt did sector-neutral COMPOSITE
 (failed — over-constrained alpha). This v5.0 step is FACTOR-LEVEL purification,
 a different intervention (clean signal vs constrained portfolio).
 """

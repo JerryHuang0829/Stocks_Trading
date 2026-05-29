@@ -1,7 +1,7 @@
-"""Phase A3.1.2 tests: regime-aware weighting in _rank_analyses.
+"""Regime-aware weighting in _rank_analyses.
 
 Covers:
-- Backward compat: market_view=None preserves Phase A2 behavior
+- Backward compat: market_view=None preserves prior flat-weight behavior
 - regime_score_weights present + matching regime -> use regime-specific weights
 - regime_score_weights present but unknown regime -> fallback to flat weights
 - regime_score_weights empty -> fallback to flat weights
@@ -94,8 +94,8 @@ def test_resolve_regime_unknown_falls_back_to_flat():
 # ---------------------------------------------------------------------------
 
 def test_rank_analyses_default_market_view_none_matches_phase_a2():
-    """_rank_analyses called without market_view must match Phase A2 behavior
-    (regression guard — existing tests call with 2 args)."""
+    """_rank_analyses called without market_view must match prior flat-weight
+    behavior (regression guard — existing tests call with 2 args)."""
     items = [
         _make_item("A1", "半導體業", pm=1, hp=10),
         _make_item("A2", "半導體業", pm=2, hp=20),

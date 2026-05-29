@@ -1,14 +1,13 @@
-"""V0.13 D-F industry_momentum (6m per MG1999) tests — Phase 2 S3.
+"""industry_momentum (6m per MG1999) tests.
 
 Verifies `src.features.industry_momentum.compute_industry_momentum_panel`:
-- 6m lookback enforced (NOT 12m; pre-commit #1 frozen)
+- 6m lookback enforced (NOT 12m; frozen design constraint)
 - PIT shift=1 strict-before-rebalance
 - Industry label aggregation (equal-weight within industry)
 - Cross-section z-score across symbols
 - Edge cases (empty / missing / insufficient data)
 
-Phase 2 S6 owner extends to real cache wire-up; S3 tests use synthetic OHLCV
-fixture (per V1.2 active_corr stub pattern).
+Tests use synthetic OHLCV fixture (per active_corr stub pattern).
 """
 from __future__ import annotations
 
@@ -64,7 +63,7 @@ def test_industry_momentum_basic_three_industries():
 
 
 def test_industry_momentum_lookback_must_be_6m():
-    """V0.13 enforcement: lookback_months != 6 raises ValueError (pre-commit #1 frozen)."""
+    """Enforcement: lookback_months != 6 raises ValueError (frozen design constraint)."""
     ohlcv = {"2330": _make_ohlcv("2024-01-01", "2024-12-31", 100.0, 120.0)}
     industry_map = {"2330": "Semi"}
     with pytest.raises(ValueError, match="lookback_months must be 6"):
@@ -74,7 +73,7 @@ def test_industry_momentum_lookback_must_be_6m():
 
 
 def test_industry_momentum_default_is_6():
-    """Sanity: DEFAULT_LOOKBACK_MONTHS = 6 per H_d_v6 V0.13 + MG1999."""
+    """Sanity: DEFAULT_LOOKBACK_MONTHS = 6 per MG1999."""
     assert DEFAULT_LOOKBACK_MONTHS == 6
 
 
@@ -163,13 +162,13 @@ def test_industry_momentum_zero_variance_returns_zero_zscores():
 
 
 def test_industry_momentum_short_horizon_symbol_dropped():
-    """M3 audit guard: a symbol with enough bars (>= min_trading_days) but whose
+    """Horizon guard: a symbol with enough bars (>= min_trading_days) but whose
     data starts well after cutoff_start has a <6m return horizon and must be
     dropped, so the industry average aggregates a consistent 6m horizon.
 
     cutoff_start for as_of 2024-07-15 = 2024-07-15 - 181d = 2024-01-16;
-    tolerance window end = 2024-02-05. pre-fix (no horizon guard) would include
-    the short-horizon symbol → this test FAILS on the old code (mutation guard)."""
+    tolerance window end = 2024-02-05. Without the horizon guard the
+    short-horizon symbol would be included → mutation guard: this must drop it."""
     ohlcv = {
         # Full 6m history (first bar ≈ cutoff_start) — kept
         "2330": _make_ohlcv("2024-01-01", "2024-07-01", 100.0, 120.0),
@@ -182,11 +181,11 @@ def test_industry_momentum_short_horizon_symbol_dropped():
         ohlcv, industry_map, pd.Timestamp("2024-07-15"),
     )
     assert "2330" in panel.index
-    assert "2454" not in panel.index  # short-horizon symbol dropped by M3 guard
+    assert "2454" not in panel.index  # short-horizon symbol dropped by horizon guard
 
 
 def test_industry_momentum_within_tolerance_symbol_kept():
-    """M3 guard must not over-drop: a symbol whose first bar lies within
+    """Horizon guard must not over-drop: a symbol whose first bar lies within
     horizon_tolerance_days of cutoff_start is still kept."""
     # cutoff_start for as_of 2024-07-15 = 2024-01-16; +20d tolerance = 2024-02-05
     ohlcv = {

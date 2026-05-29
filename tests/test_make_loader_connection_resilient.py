@@ -1,10 +1,10 @@
-"""V0.17 connection-resilient _make_loader tests.
+"""Connection-resilient _make_loader tests.
 
-Trigger: V0.15 hot-swap pulled `socks5://104.200.152.30:4145` from backup
-pool, but proxy was TCP-alive yet HTTPS-dead → loader.login_by_token() raised
-uncaught ConnectionError → process crash at 16:16:23.
+Trigger: hot-swap pulled a proxy from the backup pool that was TCP-alive yet
+HTTPS-dead → loader.login_by_token() raised uncaught ConnectionError →
+process crash.
 
-V0.17 fix:
+Fix:
 - _make_loader wraps login_by_token in try/except
 - On connection failure, drains backup_proxies and retries
 - If all backups exhausted, raises ConnectionError → caller rotates token
@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -78,7 +78,7 @@ def test_make_loader_original_proxy_works(rotator, monkeypatch):
 def test_make_loader_falls_over_to_backup_on_connection_error(rotator, monkeypatch):
     """Original proxy ConnectionError → fall over to first backup.
 
-    V0.17 core test: this is exactly the 16:16:23 crash scenario.
+    Core test: reproduces the original crash scenario.
     """
     rotator._slots[0] = ("tok1", "socks5://dead:1080")
     rotator._backup_proxies = ["socks5://alive_backup:1080", "socks5://backup2:1080"]
@@ -102,8 +102,8 @@ def test_make_loader_falls_over_to_backup_on_connection_error(rotator, monkeypat
 def test_make_loader_all_proxies_fail_raises(rotator, monkeypatch):
     """If original + all backups + Direct fallback all fail → raise.
 
-    V0.19 (2026-05-05) added Direct (None) fallback after all proxies fail,
-    so we mock 4 attempts: 3 proxies + Direct, all dead.
+    A Direct (None) fallback runs after all proxies fail, so we mock 4
+    attempts: 3 proxies + Direct, all dead.
     """
     rotator._slots[0] = ("tok1", "socks5://dead1:1080")
     rotator._backup_proxies = ["socks5://dead2:1080", "socks5://dead3:1080"]
@@ -113,18 +113,17 @@ def test_make_loader_all_proxies_fail_raises(rotator, monkeypatch):
                    ConnectionError("dead 1"),
                    ConnectionError("dead 2"),
                    ConnectionError("dead 3"),
-                   ConnectionError("Direct also dead"),  # V0.19 Direct fallback
+                   ConnectionError("Direct also dead"),  # Direct fallback
                ])):
         with pytest.raises(ConnectionError, match="all .* proxy attempts failed"):
             rotator._make_loader()
 
 
 def test_make_loader_direct_fallback_when_all_proxies_ssl_fail(rotator, monkeypatch):
-    """V0.19: if all proxies fail (e.g. SSL self-signed cert pool), fall back to Direct.
+    """If all proxies fail (e.g. SSL self-signed cert pool), fall back to Direct.
 
-    User explicit request 2026-05-05 22:05: "掛掉時請用本機IP". Trade-off
-    accepted: 3 tokens sharing workstation IP risks throttling but beats
-    smart_sleep cycle on unusable Proxifly pool.
+    Trade-off accepted: 3 tokens sharing the workstation IP risks throttling
+    but beats a smart_sleep cycle on an unusable proxy pool.
     """
     rotator._slots[0] = ("tok1", "socks5://dead_ssl:1080")
     rotator._backup_proxies = ["socks5://dead_backup1:1080"]
@@ -143,7 +142,7 @@ def test_make_loader_direct_fallback_when_all_proxies_ssl_fail(rotator, monkeypa
 
 
 def test_make_loader_max_retry_error_treated_as_connection_failure(rotator):
-    """Max retries / Timeout / SSL errors all trigger fall-over (V0.17 broad catch)."""
+    """Max retries / Timeout / SSL errors all trigger fall-over (broad catch)."""
     rotator._slots[0] = ("tok1", "socks5://orig:1080")
     rotator._backup_proxies = ["socks5://backup:1080"]
 
@@ -158,7 +157,7 @@ def test_make_loader_max_retry_error_treated_as_connection_failure(rotator):
 
 
 def test_make_loader_non_connection_exception_reraised(rotator):
-    """V0.17 invariant: real bugs (not connection issues) must NOT be swallowed."""
+    """Invariant: real bugs (not connection issues) must NOT be swallowed."""
     rotator._slots[0] = ("tok1", "socks5://orig:1080")
     rotator._backup_proxies = []
 
@@ -174,7 +173,7 @@ def test_make_loader_non_connection_exception_reraised(rotator):
 
 
 def test_get_loader_catches_make_loader_connection_error(rotator, monkeypatch):
-    """V0.17: when _make_loader raises ConnectionError on first call,
+    """When _make_loader raises ConnectionError on first call,
     get_loader force-advances to next slot via QUOTA_PER_SLOT trick.
     """
     rotator._slots[0] = ("tok1", "socks5://dead:1080")

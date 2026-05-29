@@ -1,11 +1,11 @@
-"""V0.22 FinMindTransientError classification + V0.16 neg-cache exclusion tests.
+"""FinMindTransientError classification + neg-cache exclusion tests.
 
 Verifies:
 - _maybe_raise_transient classifies "ip banned" / "unexpected response" / "rate limit"
   / "503" / "502" / "504" → raise FinMindTransientError
 - Non-transient exceptions (KeyError, ConnectionError without keyword) → no raise
 - cache_fill_new_factors.py rebuild_dataset catches FinMindTransientError and does
-  NOT add symbol to done_set (V0.16 invariant for transient errors)
+  NOT add symbol to done_set (neg-cache invariant for transient errors)
 
 Mocks the FinMindSource fetch method to inject specific exception types.
 """
@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -70,7 +69,7 @@ def test_maybe_raise_transient_case_insensitive():
 
 
 # ---------------------------------------------------------------------------
-# cache_fill_new_factors.py: V0.22 — transient errors do NOT mark done
+# cache_fill_new_factors.py: transient errors do NOT mark done
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def mock_cache_setup(tmp_path, monkeypatch):
@@ -94,10 +93,10 @@ def mock_cache_setup(tmp_path, monkeypatch):
 
 
 def test_transient_error_does_NOT_mark_done(mock_cache_setup, monkeypatch):
-    """V0.22 critical invariant: ip banned / transient errors do NOT add to
+    """Critical invariant: ip banned / transient errors do NOT add to
     done_set.
 
-    Reproduces the 2026-05-06 bug where TSMC was falsely neg-cached due to
+    Reproduces the bug where TSMC was falsely neg-cached due to
     "ip banned" being treated as legitimate empty data.
     """
     cache_dir = mock_cache_setup

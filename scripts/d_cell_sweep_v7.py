@@ -1,31 +1,29 @@
-"""V0.13 d_cell_sweep_v7 — 18-cell sweep generic engine entrypoint (S4 stub).
+"""d_cell_sweep_v7 — 18-cell sweep generic engine entrypoint (stub).
 
-Phase 2 Session 4 (2026-05-05) — H_d_v6 V0.13 §"Code-level enforcement"
-Assertion 2 (D-A guard) + Assertion 3 (DSR n_trials=18 verify) 落地。
+Assertion 2 (D-A guard) + Assertion 3 (DSR n_trials=18 verify) enforcement.
 
 Spec source:
-- H_d_v6:51-58 — 6 candidate factor sets (D-B/C/D/E/F/G); D-A pre-disqualified
-- H_d_v6:118-130 — Assertion 2: `assert "D-A" not in CANDIDATE_FACTOR_SETS`
-- H_d_v6:142 — Assertion 3 (cell-level): `assert EXPECTED_N_TRIALS == 18`
-  (= 6 candidates × 3 top_n; deflated_sharpe_ratio level enforce 已 V1.1b 落地)
-- V0.13 §"Cell sweep adjust pipeline" — d_cell_sweep_v7 必經 BacktestEngine
-  (real wire-up @ Phase 2 Session 6 cache fresh-rerun + 18 cell sweep run)
+- 6 candidate factor sets (D-B/C/D/E/F/G); D-A pre-disqualified
+- Assertion 2: `assert "D-A" not in CANDIDATE_FACTOR_SETS`
+- Assertion 3 (cell-level): `assert EXPECTED_N_TRIALS == 18`
+  (= 6 candidates × 3 top_n; deflated_sharpe_ratio level enforce in ic_analysis)
+- d_cell_sweep_v7 必經 BacktestEngine (real wire-up @ cache fresh-rerun +
+  18 cell sweep run)
 
-S4 stub-level scope (per V1.2 active_corr stub pattern):
+Stub-level scope (active_corr stub pattern):
 - 6 yaml configs at `config/d_v7/D-{B,C,D,E,F,G}.yaml` 已建
 - CANDIDATE_FACTOR_SETS module-level constant + Assertion 2 module-level enforce
 - TOP_N_VALUES module-level constant + Assertion 3 enforce (EXPECTED_N_TRIALS=18)
 - `load_candidate_config(candidate_id)` yaml loader stub
-- `run_cell_sweep_stub()` placeholder — real BacktestEngine wire-up @ S6
+- `run_cell_sweep_stub()` placeholder — real BacktestEngine wire-up pending
 
-Phase 2 Session 6 owner: extend `run_cell_sweep_stub()` to:
+Real-run owner: extend `run_cell_sweep_stub()` to:
 1. Load each candidate yaml + each top_n combination
 2. Instantiate `BacktestEngine(config=settings.yaml + factor_overrides)`
-3. Run backtest per cell; aggregate via `d_cell_aggregate_v7.py` (S6 owns)
+3. Run backtest per cell; aggregate via `d_cell_aggregate_v7.py`
 4. Pre-flight 3 件 gate (cache coverage / lookback prereq / smoke 1-fold)
-   per V0.13 P1 #18
 
-Usage (Phase 2 S6 wire-up):
+Usage:
     python scripts/d_cell_sweep_v7.py --output-dir reports/phase_d/cell_sweep_v6_<date>/
 """
 from __future__ import annotations
@@ -47,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# V0.13 Assertion 2 — D-A pre-disqualification guard (module-level enforce)
+# Assertion 2 — D-A pre-disqualification guard (module-level enforce)
 # ---------------------------------------------------------------------------
 CANDIDATE_FACTOR_SETS: tuple[str, ...] = ("D-B", "D-C", "D-D", "D-E", "D-F", "D-G")
 
@@ -60,7 +58,7 @@ assert "D-A" not in CANDIDATE_FACTOR_SETS, (
 
 
 # ---------------------------------------------------------------------------
-# V0.14 Assertion 2 強化 (R25-mid 獨立 audit P0-1 fix, 2026-05-05):
+# Assertion 2 強化：
 # D-A pre-disqualification 不僅 string-level (CANDIDATE_FACTOR_SETS check)，
 # 更要 composition-level — 防 candidate id 換名字但 factor weights 仍等價 D-A。
 # ---------------------------------------------------------------------------
@@ -70,7 +68,7 @@ D_A_FORBIDDEN_COMPOSITIONS: tuple[dict[str, float], ...] = (
 
 
 def _composition_equals_forbidden(factors: dict[str, float]) -> bool:
-    """V0.14 Assertion 2 helper: check if factors dict matches any D-A forbidden
+    """Assertion 2 helper: check if factors dict matches any D-A forbidden
     composition (rounded to 4 decimals to handle float weight 0.5000001 edge).
 
     Catches the regression where a candidate (e.g. D-C 50/50) is mathematically
@@ -85,7 +83,7 @@ def _composition_equals_forbidden(factors: dict[str, float]) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# V0.13 Assertion 3 — DSR n_trials = 18 verify (cell-level)
+# Assertion 3 — DSR n_trials = 18 verify (cell-level)
 # ---------------------------------------------------------------------------
 TOP_N_VALUES: tuple[int, ...] = (8, 12, 16)
 
@@ -101,19 +99,18 @@ assert EXPECTED_N_TRIALS == 18, (
 
 
 # ---------------------------------------------------------------------------
-# Yaml config loader (S4 stub level)
+# Yaml config loader (stub level)
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
-# Phase 2 Session 5 — Cell Sweep CLI 3 件 pre-flight gate
-# (per V1.1c P1 #18 + V1.2 §"L5 active_corr binding")
+# Cell Sweep CLI 3 件 pre-flight gate
 # ---------------------------------------------------------------------------
-# 3 gates 防 18 cell sweep 開跑前未準備好就 full run；S6 cache fresh-rerun
-# 階段 owner enforce real numbers，S5 是 spec lock + scaffolding。
+# 3 gates 防 18 cell sweep 開跑前未準備好就 full run；real fresh-rerun
+# 階段 enforce real numbers，本層是 spec lock + scaffolding。
 
 # Maximum factor lookback in trading days (高_proximity 252d max dominates)
 MAX_FACTOR_LOOKBACK_DAYS: int = 252
 
-# Cache coverage threshold per V0.13 §"S6 fresh-rerun 範圍與時程"
+# Cache coverage threshold for fresh-rerun
 DEFAULT_CACHE_COVERAGE_THRESHOLD: float = 0.95
 
 
@@ -122,11 +119,11 @@ def check_cache_coverage_gate(
     top_n_universe_size: int = 80,
     threshold: float = DEFAULT_CACHE_COVERAGE_THRESHOLD,
 ) -> tuple[bool, dict[str, Any]]:
-    """V1.1c P1 #18 pre-flight gate 1: cache coverage ≥ 95% before cell sweep run.
+    """Pre-flight gate 1: cache coverage ≥ 95% before cell sweep run.
 
     Counts existing OHLCV pkls in cache vs top-N universe size; raises if
-    coverage < threshold. S6 fresh-rerun owner enforces this gate's TRUE
-    return value before invoking cell sweep.
+    coverage < threshold. Fresh-rerun must enforce this gate's TRUE return
+    value before invoking cell sweep.
 
     Returns: (passed: bool, diagnostic: dict)
     """
@@ -156,7 +153,7 @@ def check_lookback_prereq_gate(
     backtest_start: pd.Timestamp,
     required_lookback_days: int = MAX_FACTOR_LOOKBACK_DAYS,
 ) -> tuple[bool, dict[str, Any]]:
-    """V1.1c P1 #18 pre-flight gate 2: lookback prereq before cell sweep run.
+    """Pre-flight gate 2: lookback prereq before cell sweep run.
 
     Verifies OHLCV cache extends ≥ required_lookback_days BEFORE backtest_start
     (high_proximity 52W needs 252d; idio_vol_max 60d / industry_momentum 6m ≈
@@ -209,12 +206,11 @@ def check_smoke_1_fold_gate(
     candidate_id: str = "D-C",
     top_n: int = 8,
 ) -> tuple[bool, dict[str, Any]]:
-    """V1.1c P1 #18 pre-flight gate 3: smoke 1-fold gate.
+    """Pre-flight gate 3: smoke 1-fold gate.
 
-    S5 stub-level: validate yaml load + Assertion 2 composition check + cell
-    descriptor emission for the smoke candidate. NOT a real backtest run (S6
-    owns real backtest). Catches catastrophic failure modes before triggering
-    18-cell ~10 hr sweep.
+    Stub-level: validate yaml load + Assertion 2 composition check + cell
+    descriptor emission for the smoke candidate. NOT a real backtest run.
+    Catches catastrophic failure modes before triggering 18-cell ~10 hr sweep.
 
     Returns: (passed: bool, diagnostic: dict)
     """
@@ -247,9 +243,9 @@ def run_pre_flight_gates(
     cache_dir: pathlib.Path,
     backtest_start: pd.Timestamp,
 ) -> tuple[bool, dict[str, Any]]:
-    """Phase 2 S5 cell sweep CLI pre-flight orchestration: run 3 gates and
-    return aggregated verdict. S6 cell sweep entrypoint MUST call this before
-    18-cell run; abort if any gate fails."""
+    """Cell sweep CLI pre-flight orchestration: run 3 gates and return
+    aggregated verdict. Cell sweep entrypoint MUST call this before 18-cell
+    run; abort if any gate fails."""
     coverage_ok, coverage_diag = check_cache_coverage_gate(cache_dir)
     lookback_ok, lookback_diag = check_lookback_prereq_gate(cache_dir, backtest_start)
     smoke_ok, smoke_diag = check_smoke_1_fold_gate()
@@ -301,14 +297,14 @@ def load_candidate_config(candidate_id: str) -> dict[str, Any]:
             f"yaml {candidate_id} factor weights sum {total_weight} ≠ 1.0 "
             f"(tolerance ±0.01)"
         )
-    # top_n_values must equal [8, 12, 16] per V0.13 #7
+    # top_n_values must equal [8, 12, 16] (frozen)
     if list(cfg["top_n_values"]) != list(TOP_N_VALUES):
         raise ValueError(
             f"yaml {candidate_id} top_n_values {cfg['top_n_values']} ≠ "
             f"{list(TOP_N_VALUES)} (pre-commit #7 frozen)"
         )
-    # V0.14 Assertion 2 強化 (R25-mid 獨立 audit P0-1): composition-level
-    # D-A pre-disqualification check; catches D-C 50/50 ≡ D-A regression.
+    # Assertion 2 強化: composition-level D-A pre-disqualification check;
+    # catches D-C 50/50 ≡ D-A regression.
     if _composition_equals_forbidden(dict(cfg["factors"])):
         raise ValueError(
             f"V0.14 Assertion 2 FAIL: candidate {candidate_id} composition "
@@ -326,15 +322,15 @@ def load_all_candidate_configs() -> dict[str, dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Cell sweep stub (S4 placeholder; S6 owns real BacktestEngine wire-up)
+# Cell sweep stub (placeholder; real BacktestEngine wire-up pending)
 # ---------------------------------------------------------------------------
 def run_cell_sweep_stub(output_dir: pathlib.Path | None = None) -> dict[str, Any]:
-    """S4 stub: validates 18-cell config grid; emits cell descriptors only.
+    """Stub: validates 18-cell config grid; emits cell descriptors only.
 
-    Phase 2 S6 expansion (real run):
+    Real-run expansion:
     - Load each (candidate, top_n) cell as BacktestEngine config
     - Run backtest per cell + aggregate via d_cell_aggregate_v7.py
-    - DSR n_trials=18 explicit pass per V1.1b enforcement
+    - DSR n_trials=18 explicit pass enforcement
     - Pre-flight 3 件 gate (cache coverage / lookback prereq / smoke 1-fold)
     """
     cells: list[dict[str, Any]] = []

@@ -4,7 +4,7 @@ Before this helper, backtest.universe hard-coded
 ``os.environ.get("DATA_CACHE_DIR", "/app/data/cache")`` with no project-root
 fallback. On a Windows workstation without DATA_CACHE_DIR set, the OHLCV
 cache-sym lookup would read zero files and silently degrade the universe to
-stock_info order — the exact "alpha illusion" path that 2026-04-15 flagged.
+stock_info order — the exact "alpha illusion" path this guards against.
 twse_scraper already had the fallback; only universe.py was asymmetric.
 """
 
@@ -59,7 +59,7 @@ def test_universe_uses_shared_resolver(monkeypatch, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Phase 0 V0.2 (R24 P0-2 fix, 2026-05-04) — Windows priority regression
+# Windows priority regression
 # ---------------------------------------------------------------------------
 # Previously: resolve_cache_dir() unconditionally consulted ``/app/data/cache``
 # before the repo fallback. On Windows that path resolves to the current drive
@@ -67,7 +67,7 @@ def test_universe_uses_shared_resolver(monkeypatch, tmp_path):
 # existed there, IC research silently used a partial cache missing 4 of the
 # 11 panels (institutional_v2 / issued_capital / margin_short / quarterly_eps).
 #
-# V0.2 fix: gate the Docker default behind ``platform.system() != "Windows"``.
+# Fix: gate the Docker default behind ``platform.system() != "Windows"``.
 # These tests ensure:
 #   • on Windows we ALWAYS fall through to repo even if /app/data/cache exists
 #   • on POSIX we still honour /app/data/cache (Docker compatibility)
@@ -134,11 +134,10 @@ def test_env_override_wins_on_windows(monkeypatch, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Phase 1 V1.4 (R25-mid Pro Review A12 attacker test, 2026-05-05) — env vs
-# Docker-mount priority hardening
+# env vs Docker-mount priority hardening
 # ---------------------------------------------------------------------------
-# Existing V0.2 trio covers (Windows, no-env, /app artefact) and (POSIX,
-# no-env, Docker mount) and (Windows, env, no-/app). V1.4 補 2 件:
+# The Windows-priority trio above covers (Windows, no-env, /app artefact) and
+# (POSIX, no-env, Docker mount) and (Windows, env, no-/app). These add 2 cases:
 #   • POSIX, env set, /app/data/cache real → env priority (step 1) MUST win
 #     Docker mount (step 2) per resolve_cache_dir() resolution order.
 #   • Windows, env set, \app\data\cache real artefact → env priority (step 1)
@@ -147,7 +146,7 @@ def test_env_override_wins_on_windows(monkeypatch, tmp_path):
 
 
 def test_posix_env_override_beats_docker_mount(monkeypatch, tmp_path):
-    """V1.4 A12 attacker: POSIX + DATA_CACHE_DIR set + /app/data/cache also
+    """Attacker test: POSIX + DATA_CACHE_DIR set + /app/data/cache also
     exists → env priority (resolution step 1) MUST win Docker mount (step 2).
 
     Mutation: if env check moved to AFTER _is_posix() Docker block, POSIX
@@ -175,7 +174,7 @@ def test_posix_env_override_beats_docker_mount(monkeypatch, tmp_path):
 
 
 def test_windows_env_override_beats_app_data_artefact(monkeypatch, tmp_path):
-    """V1.4 A12 attacker: Windows + DATA_CACHE_DIR set + \\app\\data\\cache
+    """Attacker test: Windows + DATA_CACHE_DIR set + \\app\\data\\cache
     real artefact (e.g. stale drive-root Docker mount) → env priority MUST
     win regardless of platform.
 

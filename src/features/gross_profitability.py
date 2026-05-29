@@ -51,7 +51,6 @@ from src.utils.constants import (
     QUARTERLY_EPS_LAG_DAYS_Q4,
 )
 
-
 DEFAULT_MIN_QUARTERS = 4   # for TTM GP
 
 

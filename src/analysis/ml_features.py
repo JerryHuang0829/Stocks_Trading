@@ -1,12 +1,12 @@
-"""v5.0 Step 4a-2 — PIT-aware 5-feature panel provider.
+"""v5.0 PIT-aware 5-feature panel provider.
 
 Pre-registration reference: `reports/phase_d_v5/H_v5_0_ml_oddlot_preregistration.md`
   §4 Locked feature set (5 features)
   §13 conditions 1, 4, 12 (5 features LOCKED, 2025 strict OOS, PIT 護欄)
 
 This module is the **PIT-aware upstream provider** that produces the per-as_of
-feature panels consumed by `ml_pooling.build_training_matrix()`. Per Codex
-v5.0 R2 P0/P1 fix, pooling stays pure (join + label + guard) and feature
+feature panels consumed by `ml_pooling.build_training_matrix()`. Pooling
+stays pure (join + label + guard) and feature
 computation lives here, where PIT is enforced by delegating to each factor
 function's own `as_of` truncation logic (each factor has its own unit tests
 covering PIT correctness).
@@ -84,8 +84,8 @@ def compute_feature_panel(
         Used by value_ep / pead_eps (which feed value_ep_sn / pead_eps_sn).
     market_returns : pd.Series
         Daily market returns (typically 0050) used by idio_vol_max.
-        Caller should pass SPLIT-ADJUSTED returns (post Codex v5.0 R1 P1-4 fix
-        — `adjust_splits_ohlc` before computing returns).
+        Caller should pass SPLIT-ADJUSTED returns
+        (`adjust_splits_ohlc` before computing returns).
     industry_map : {symbol: industry_label}
         Used by sector_neutralize for value_ep_sn + pead_eps_sn. KNOWN PIT
         caveat: industry labels typically static snapshot (Option B in
@@ -99,8 +99,8 @@ def compute_feature_panel(
     -------
     pd.DataFrame indexed by symbol with columns matching LOCKED_FEATURE_NAMES.
     Symbols missing on ANY feature are kept with NaN in that column; the
-    downstream pooling builder does complete-case drop (per Codex feedback:
-    don't impute here — let the consumer decide).
+    downstream pooling builder does complete-case drop
+    (don't impute here — let the consumer decide).
     """
     # 1. idio_vol_max (panel, needs market_returns)
     idio_panel = compute_idio_vol_max_panel(

@@ -1,25 +1,23 @@
-"""V0.13 quality_v3 (D-E candidate factor): PIT-correct profitability composite.
+"""quality_v3 candidate factor: PIT-correct profitability composite.
 
-Phase 2 Session 2 (2026-05-05) — H_d_v6 V0.13 §"3 New factor PIT lag spec":
 quality_v3 = weighted composite of cross-section z-scored {ROE, gross_margin,
 Δassets}, PIT-truncated per (Q4 90d / Q1-3 45d income statement + 60d balance
 sheet) lag.
 
-Definition (per H_d_v6:56 D-E row):
+Definition:
     quality_v3 = w_roe × z(ROE_TTM) + w_gm × z(gross_margin_TTM) + w_da × z(Δassets_YoY)
     weights default (0.4, 0.4, 0.2)
 
 **NOT full QMJ**: covers ONLY profitability sub-component (ROE + gross_margin)
 + investment proxy (Δassets, FF investment factor — mislabeled as QMJ
-profitability per multi-perspective Q7 P1 caveat). Growth / safety / payout
-sub-components NOT included. Per R24 §設計-4 + V1.1c review: D-E spec
+profitability). Growth / safety / payout sub-components NOT included. Spec
 acknowledged as "QMJ profitability sub-component, NOT full QMJ".
 
 **Supersedes quality_v2.py** (single-snapshot lookahead bias). quality_v2.py
-retained for B0-Lite spike historical reference but DEPRECATED — DO NOT use
-in PIT backtest context per V1.2 §"L5 binding" series紀律.
+retained for historical reference but DEPRECATED — DO NOT use in PIT backtest
+context.
 
-Caller wires (Phase 2 S6 cache fresh-rerun + S5 cell sweep CLI):
+Caller wires:
     from src.features.quality_v3 import compute_quality_v3_panel
     panel = compute_quality_v3_panel(
         financial_history=fhist_df,      # see schema below
@@ -39,9 +37,9 @@ financial_history schema:
         - 'assets_yoy_pct' (float): YoY asset growth (1.0 = +100%)
     Each row = one (symbol, quarter) observation.
 
-Phase 2 S6 owner: wire to FinMind cache (extend `cache_fill_new_factors.py`
-to fetch `taiwan_stock_financial_statements` full + `taiwan_stock_balance_sheet`
-history; aggregate to quality_v3 schema). V1.2 active_corr stub pattern.
+Cache wiring: extend `cache_fill_new_factors.py` to fetch
+`taiwan_stock_financial_statements` full + `taiwan_stock_balance_sheet`
+history; aggregate to quality_v3 schema.
 """
 from __future__ import annotations
 
@@ -53,7 +51,6 @@ from src.utils.constants import (
     QUARTERLY_EPS_LAG_DAYS_OTHER,
     QUARTERLY_EPS_LAG_DAYS_Q4,
 )
-
 
 DEFAULT_ROE_CLIP: tuple[float, float] = (-0.50, 0.50)
 DEFAULT_GROSS_MARGIN_CLIP: tuple[float, float] = (0.0, 1.0)
@@ -96,7 +93,7 @@ def compute_quality_v3_panel(
     Raises:
         ValueError: if weights don't sum to 1.0.
 
-    PIT semantics (per H_d_v6 V0.13 §"3 New factor PIT lag spec"):
+    PIT semantics:
         - ROE / gross_margin: per quarter use respective income lag
           (Q4=income_lag_days_q4=90d / Q1-Q3=income_lag_days_other=45d)
         - Δassets: balance_lag_days=60d (later than income statement)

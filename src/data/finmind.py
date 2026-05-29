@@ -10,15 +10,14 @@ and today) is fetched from the API.
 from __future__ import annotations
 
 import logging
-import os
 import pathlib
 import time as _time
 from datetime import datetime, timedelta
 
 import pandas as pd
 
-from .base import DataSource
 from ..utils.constants import TW_TZ, to_utc_ts
+from .base import DataSource
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +53,9 @@ class _BacktestCacheMissError(RuntimeError):
 
 
 class FinMindTransientError(RuntimeError):
-    """V0.22 (2026-05-06): raised on TRANSIENT FinMind API errors that should
-    NOT be confused with "real empty data" (which legitimately marks done in
-    V0.16 negative cache logic).
+    """Raised on TRANSIENT FinMind API errors that should NOT be confused
+    with "real empty data" (which legitimately marks done in negative cache
+    logic).
 
     Transient errors include:
     - "ip banned" / "ip blocked" — IP-based throttle, usually 1-24 hr
@@ -65,19 +64,18 @@ class FinMindTransientError(RuntimeError):
     - "service unavailable" / 503 / 502
 
     Caller (cache_fill_new_factors.py) MUST NOT mark these stocks as done in
-    progress JSON — V0.16 negative cache only applies to legitimate empty
+    progress JSON — negative cache only applies to legitimate empty
     DataFrame returns (small cap / preferred / delisted with no quarterly
     statements).
 
-    Trigger: 2026-05-06 audit found 1421 stocks (incl. TSMC 2330, 鴻海 2317,
-    聯發科 2454, 台達 2308) falsely negative-cached in balance_sheet because
-    FinMind returned "ip banned" during 00:38-00:57 IP ban window — V0.16
-    `if df is None: api_call_succeeded_no_data = True` mistakenly classified
-    transient error as legitimate empty data.
+    Without this, a transient "ip banned" during a fetch window gets the
+    `if df is None: api_call_succeeded_no_data = True` treatment and mistakenly
+    classifies a transient error as legitimate empty data, permanently
+    negative-caching large caps that actually have full quarterly statements.
     """
 
 
-# V0.22: keywords that indicate transient FinMind API failure (not real empty)
+# keywords that indicate transient FinMind API failure (not real empty)
 _TRANSIENT_KEYWORDS: tuple[str, ...] = (
     "ip banned",
     "ip blocked",
@@ -93,7 +91,7 @@ _TRANSIENT_KEYWORDS: tuple[str, ...] = (
 
 
 def _maybe_raise_transient(exc: Exception, symbol: str, dataset: str) -> None:
-    """V0.22: classify exception → raise FinMindTransientError if transient.
+    """Classify exception → raise FinMindTransientError if transient.
 
     Caller must invoke after logger.warning(...) and before return None.
     Side effect: if msg matches transient keyword, raise FinMindTransientError;
@@ -364,7 +362,6 @@ class FinMindSource(DataSource):
             # With _WIDE_LOOKBACK_DAYS=4000, any first fetch already covers 11 years.
             # For existing symbols cached before this setting, 1000+ rows is sufficient
             # for any 3Y+ backtest — the slicer truncates to the actual backtest window.
-            cached_in_range = cached[cached.index >= to_utc_ts(want_start)]
             if len(cached) < 252 and c_min > req_start + pd.Timedelta(days=1):
                 old = self._api_fetch_ohlcv(
                     symbol,
@@ -1036,7 +1033,7 @@ class FinMindSource(DataSource):
         multiplies by historical close prices from the OHLCV disk cache to
         produce a full historical market_value DataFrame.
 
-        ⚠️ **NOT FULLY PIT** (R30 finding 2, 2026-05-11)：
+        ⚠️ **NOT FULLY PIT**：
             shares 是 cache build 時 fetch_twse_issued_capital() 的 latest
             snapshot；historical close 是真歷史。所以每個 (stock_id, date) row：
               - close: PIT-correct ✅
@@ -1045,7 +1042,7 @@ class FinMindSource(DataSource):
 
             台股 shares 變動少（除權息 / 減增資）→ ratio approximation 仍可用，
             但嚴格 pro 標準 (factor 用 market_value 當分母) 仍是 substance-level
-            caveat。完整修法（P1 backlog）：寫新 TWSE OpenAPI scraper 抓歷史
+            caveat。完整修法：寫新 TWSE OpenAPI scraper 抓歷史
             shares snapshots 取代 latest fetch_twse_issued_capital().
 
             詳見 `reports/factor_ic/_closeout/old_vs_new_comparison_2026-05-10.md`
@@ -1184,7 +1181,6 @@ class FinMindSource(DataSource):
         使用 FinMind TaiwanStockFinancialStatements + TaiwanStockBalanceSheet。
         快取 90 天（季報每季才更新）。
         """
-        cache_key = f"quality:{symbol}"
         cached = self._disk.load("quality", symbol, strict=self._backtest_mode)
 
         # Backtest mode: quality snapshots must come from cache only — the
@@ -1251,12 +1247,11 @@ class FinMindSource(DataSource):
             logger.debug("Failed to fetch financial quality for %s: %s", symbol, exc)
             return None
 
-    # ----------------------------------------- quarterly_financial_full (V0.14 P-B)
-    # S6.1 Path B (R25-mid 獨立 audit P-B fix, 2026-05-05): full quarterly
-    # income statement history (Revenue / GrossProfit / IncomeAfterTaxes / EPS
-    # / etc) for D-E quality_v3 PIT-correct TTM ROE + gross_margin computation.
-    # Existing fetch_quarterly_eps stores EPS-only subset (per finmind.py:674
-    # "EPS-only subset to keep cache compact"); this method preserves all rows.
+    # ----------------------------------------- quarterly_financial_full
+    # Full quarterly income statement history (Revenue / GrossProfit /
+    # IncomeAfterTaxes / EPS / etc) for quality_v3 PIT-correct TTM ROE +
+    # gross_margin computation. Existing fetch_quarterly_eps stores an
+    # EPS-only subset to keep its cache compact; this method preserves all rows.
     def fetch_quarterly_financial_full(
         self, symbol: str, start_date: str = "2016-01-01",
     ) -> pd.DataFrame | None:
@@ -1311,12 +1306,11 @@ class FinMindSource(DataSource):
 
         return cached.sort_values("date") if "date" in cached.columns else cached
 
-    # ----------------------------------------- balance_sheet (V0.14 P-B)
-    # S6.1 Path B (R25-mid 獨立 audit P-B fix): quarterly balance sheet
-    # history (Equity / TotalAssets / TotalLiabilities / etc) for D-E
-    # quality_v3 Δassets YoY + ROE Equity 分母. Existing fetch_financial_quality
-    # cached single-snapshot dict (line 1112-1183); this method stores full
-    # history per symbol for PIT-correct quarterly rolling.
+    # ----------------------------------------- balance_sheet
+    # Quarterly balance sheet history (Equity / TotalAssets /
+    # TotalLiabilities / etc) for quality_v3 Δassets YoY + ROE Equity 分母.
+    # Existing fetch_financial_quality caches a single-snapshot dict; this
+    # method stores full history per symbol for PIT-correct quarterly rolling.
     def fetch_balance_sheet_history(
         self, symbol: str, start_date: str = "2016-01-01",
     ) -> pd.DataFrame | None:

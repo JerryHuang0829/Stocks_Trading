@@ -31,18 +31,16 @@ import pandas as pd
 
 from src.utils.constants import REVENUE_LAG_DAYS
 
-
 DEFAULT_MIN_MONTHS = 15  # need ≥ 13 for YoY + 6 for accel; 15 is a safe floor
 DEFAULT_PERCENTILE_LOOKBACK_MONTHS = 24
 DEFAULT_SEASONAL_LOOKBACK_MONTHS = 24
 
-# 2026-05-11 R32 finding fix: SUBSIGNAL_WEIGHTS is now a FALLBACK DEFAULT.
-# The live source of truth is `config/factor_thresholds.yaml ::
-# factor_specific.revenue_momentum_v2.weights`, read at call time via
-# `_subsignal_weights()` (same pattern as foreign_investor_v2 R31-4 fix).
-# Editing the yaml changes behaviour without touching code. The constant is
-# kept (a) as a fallback if the yaml lookup fails validation, and (b) as a
-# stable import target for tests/test_revenue_momentum_v2.py.
+# SUBSIGNAL_WEIGHTS is a FALLBACK DEFAULT. The live source of truth is
+# `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2.weights`,
+# read at call time via `_subsignal_weights()` (same pattern as
+# foreign_investor_v2). Editing the yaml changes behaviour without touching code.
+# The constant is kept (a) as a fallback if the yaml lookup fails validation, and
+# (b) as a stable import target for tests/test_revenue_momentum_v2.py.
 SUBSIGNAL_WEIGHTS = {
     "yoy": 0.50,
     "accel": 0.20,
@@ -54,10 +52,9 @@ SUBSIGNAL_WEIGHTS = {
 def _subsignal_weights() -> dict[str, float]:
     """Resolve sub-signal weights from yaml (fallback to SUBSIGNAL_WEIGHTS).
 
-    2026-05-11 R32 finding fix: was hardcoded SUBSIGNAL_WEIGHTS only and
     `config/factor_thresholds.yaml :: factor_specific.revenue_momentum_v2.weights`
-    used mismatched keys (accel_3m3m / pct_24m vs module accel / percentile). The
-    yaml keys are now renamed to match; this helper reads them with the module
+    must use keys matching the module (accel / percentile, not accel_3m3m /
+    pct_24m) to avoid silent config drift; this helper reads them with the module
     constant as fallback.
 
     Falls back to the module constant if the yaml section is missing or fails
@@ -118,7 +115,7 @@ def _normalise_revenue_frame(
 def _yoy_growth(frame: pd.DataFrame) -> float | None:
     """Latest revenue vs same calendar month one year earlier.
 
-    P1-新6: strict year/month match. The previous ±45-day tolerance could silently
+    Strict year/month match. A looser ±45-day tolerance could silently
     substitute an adjacent month when the exact prior-year observation was
     missing, contaminating the YoY signal with seasonal drift. Fallback is None,
     so the symbol is dropped that period rather than given a misleading score.
@@ -201,9 +198,9 @@ def _seasonal_zscore(frame: pd.DataFrame, lookback_months: int) -> float | None:
             return None
         mu = float(peers["revenue"].mean())
         sd = float(peers["revenue"].std(ddof=1))
-        # R6-3: mirror ic_analysis.py R5-2 — `sd == 0` exact compare is
-        # brittle against float noise; near-constant revenue series can yield
-        # sd ~ 1e-14 and produce seasonal_z values like 7e13. Use tolerance.
+        # `sd == 0` exact compare is brittle against float noise; near-constant
+        # revenue series can yield sd ~ 1e-14 and produce seasonal_z values like
+        # 7e13. Use tolerance.
         if sd < 1e-12 or pd.isna(sd):
             return None
         zs.append((float(target_row["revenue"]) - mu) / sd)
@@ -216,8 +213,8 @@ def _seasonal_zscore(frame: pd.DataFrame, lookback_months: int) -> float | None:
 def _composite_score(subsignals: dict[str, float | None]) -> float | None:
     """Weighted average over non-None sub-signals. Weights renormalized.
 
-    2026-05-11 R32 finding fix: weights now resolved from yaml via
-    `_subsignal_weights()` (was `SUBSIGNAL_WEIGHTS[name]` hardcoded).
+    Weights resolved from yaml via `_subsignal_weights()` so they stay in sync
+    with `config/factor_thresholds.yaml`.
     """
     weights = _subsignal_weights()
     paired = [

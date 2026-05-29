@@ -1,4 +1,4 @@
-"""V0.13 P1 #10 / Phase 2 Session 1 cross-frequency alignment tests.
+"""Cross-frequency alignment tests.
 
 Verifies `src.utils.cross_frequency.align_factor_to_rebalance_date` correctly
 handles daily / monthly / quarterly factor publication frequencies with PIT

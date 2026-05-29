@@ -57,12 +57,12 @@ def _generate_windows(
       test:  [test_start, test_end)
 
     Windows slide forward by ``step_months`` each step. If None, defaults
-    to ``test_months`` (Phase A2 behavior — non-overlapping windows).
+    to ``test_months`` (non-overlapping windows).
 
-    Phase A3.1.3 (2026-04-22): `step_months=1` gives monthly-stride rolling
-    windows that overlap, producing ~48 slices for 2019-2025 / 36mo train /
-    12mo test — enough statistical power for bootstrap CI vs the previous
-    4-slice non-overlapping scheme.
+    `step_months=1` gives monthly-stride rolling windows that overlap,
+    producing ~48 slices for 2019-2025 / 36mo train / 12mo test — enough
+    statistical power for bootstrap CI vs the previous 4-slice
+    non-overlapping scheme.
     """
     if step_months is None:
         step_months = test_months
@@ -289,7 +289,7 @@ def main():
             sig_str = "✅ 顯著（CI 不含 0）" if sig else "⚠️ 不顯著（CI 包含 0）"
             print(f"  Bootstrap 95% CI: [{ci_lo:.2f}, {ci_hi:.2f}]  {sig_str}")
 
-        print(f"\n  --- 各視窗明細 ---")
+        print("\n  --- 各視窗明細 ---")
         for r in results:
             if "sharpe" in r and r["sharpe"] is not None:
                 print(f"  W{r['window']:2d}: {r['test_start']} → {r['test_end']}  "
@@ -300,7 +300,7 @@ def main():
                 print(f"  W{r['window']:2d}: {r.get('test_start','?')} → {r.get('test_end','?')}  ERROR: {r.get('error','?')}")
 
         # 判定
-        print(f"\n  --- 判定 ---")
+        print("\n  --- 判定 ---")
         if agg["mean_sharpe"] >= 0.7 and agg["win_rate"] >= 0.7:
             print("  ✅ 通過：平均 Sharpe ≥ 0.7 且勝率 ≥ 70%")
         elif agg["mean_sharpe"] >= 0.5:

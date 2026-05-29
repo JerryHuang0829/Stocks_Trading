@@ -20,15 +20,11 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.analysis.ml_models import LOCKED_TOP_N_VALUES  # noqa: E402
 from src.analysis.ml_optuna import (  # noqa: E402
-    DEFAULT_INNER_CV_N_SPLITS,
-    DEFAULT_N_TRIALS,
     OptunaConfig,
     _inner_cv_indices_by_as_of,
     _portfolio_monthly_returns_from_scores,
     _sharpe_ratio,
-    evaluate_cell_sharpe,
     run_optuna_for_cell,
 )
 
@@ -118,7 +114,7 @@ def _make_optuna_input(n_as_ofs: int = 8, n_stocks: int = 30, seed: int = 0):
     rows = []
     for i in range(n_as_ofs):
         as_of = pd.Timestamp(f"2024-{i+1:02d}-15") if i < 12 else \
-                pd.Timestamp(f"2024-12-15")
+                pd.Timestamp("2024-12-15")
         # Generate features with some predictive power
         for j in range(n_stocks):
             f1 = rng.randn()

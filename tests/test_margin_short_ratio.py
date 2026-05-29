@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from src.features.margin_short_ratio import (
     compute_margin_short_ratio_universe,
@@ -142,7 +141,7 @@ def test_score_wrapper_returns_dict_with_icon():
 
 
 def test_partial_coverage_symbols_excluded_via_intersection():
-    """P1-3: symbols missing one sub-signal must be dropped, not fillna(0.0)'d.
+    """Symbols missing one sub-signal must be dropped, not fillna(0.0)'d.
 
     Simulates 5 symbols where 2 lack enough history for margin_change_20d. Under
     the old union-based reindex they received change_z=0.0 and therefore a
@@ -181,20 +180,19 @@ def test_score_wrapper_insufficient_returns_none():
     assert res["detail"] == "insufficient"
 
 
-# R8-1 mutation-proof test ----------------------------------------------
+# mutation-proof test ----------------------------------------------
 
 
 def test_zscore_with_tolerance_fires_on_sub_tolerance_std():
-    """R8-1 (rewrite after external audit Round 7 showed R7-2 wasn't mutation-proof):
-    directly verify that `_zscore_with_tolerance` fires on std that is
+    """Directly verify that `_zscore_with_tolerance` fires on std that is
     **greater than zero but below 1e-12** — the exact failure mode the
-    R6-3 fix was supposed to catch.
+    tolerance-band guard is supposed to catch.
 
-    external audit's R7 mutation showed the previous R7-2 test's input (`1e-17`
-    symbol offset on 10000.0 base) was silently flattened to *identical*
-    values because 1e-17 is below float epsilon at 1e4 scale. Std was
-    exactly 0, even the old `std == 0` exact-compare guard fired, so
-    the test passed under mutation — i.e. was useless.
+    A prior version used a `1e-17` symbol offset on a 10000.0 base, which was
+    silently flattened to *identical* values because 1e-17 is below float
+    epsilon at 1e4 scale. Std was exactly 0, so even the old `std == 0`
+    exact-compare guard fired and the test passed under mutation — i.e. it
+    was useless.
 
     This version uses `1e-13` step at scale 1.0 (cross-section std
     ≈ 1.00e-13, strictly > 0 and strictly < 1e-12). Old guard would NOT

@@ -1,9 +1,9 @@
-"""quality_v3 history aggregator — TTM rolling + Δassets YoY (Path B S6.1).
+"""quality_v3 history aggregator — TTM rolling + Δassets YoY.
 
-R25-mid 獨立 audit P-B fix (2026-05-05): D-E quality_v3 needs full income
-statement + balance sheet history (NOT EPS-only existing cache + NOT
-single-snapshot fetch_financial_quality). This module aggregates raw FinMind
-quarterly data into the schema expected by `src.features.quality_v3.compute_quality_v3_panel`:
+quality_v3 needs full income statement + balance sheet history (NOT EPS-only
+existing cache + NOT single-snapshot fetch_financial_quality). This module
+aggregates raw FinMind quarterly data into the schema expected by
+`src.features.quality_v3.compute_quality_v3_panel`:
     - 'symbol' / 'period_end' / 'quarter' / 'roe_ttm' / 'gross_margin_ttm' / 'assets_yoy_pct'
 
 TTM (Trailing Twelve Months) rolling: sum of last 4 quarterly values
@@ -12,7 +12,7 @@ TTM (Trailing Twelve Months) rolling: sum of last 4 quarterly values
     - assets_yoy_pct = (total_assets_current_quarter - total_assets_4Q_ago) /
                       total_assets_4Q_ago
 
-Caller (S6.1 cell sweep) typically:
+Caller typically:
     fs_full = finmind.fetch_quarterly_financial_full(symbol)
     bs_history = finmind.fetch_balance_sheet_history(symbol)
     history_df = aggregate_quality_v3_history(symbol, fs_full, bs_history)

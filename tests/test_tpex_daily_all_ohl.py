@@ -7,10 +7,7 @@ open/high/low，同時保留 fallback-to-close 邏輯應對舊格式。
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.data.twse_scraper import fetch_twse_daily_all
-
 
 # 共用的 TWSE mock response
 # TWSE 有 retry loop（_MAX_RETRY_DAYS=7），若回空會重試 7 次

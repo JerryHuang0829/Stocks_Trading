@@ -1,18 +1,18 @@
-"""Audit 2026-05-02 A.1 fix tests — verify silent 0.5 imputation removed.
+"""Verify silent 0.5 imputation removed from metric-rank scoring.
 
 Background:
     Pre-fix: `_metric_ranks` filled missing factor values with 0.5 (median
     percentile), so a stock missing factor X silently competed in `top_n`
-    with a "neutral" score on X. This was a Pattern 6 silent fallback that
-    masked data-quality issues, particularly visible in Phase A3.1
-    sector_neutral runs where small-sector stocks routinely lacked factor
-    data and still claimed median rank.
+    with a "neutral" score on X. This was a silent fallback that
+    masked data-quality issues, particularly visible in sector_neutral
+    runs where small-sector stocks routinely lacked factor data and still
+    claimed median rank.
 
 Post-fix: missing factor → `None` sentinel; `_rank_analyses` per-symbol
     re-normalizes weight_sum and forces score=0 when factor coverage falls
     below `min_factor_coverage_per_symbol` (default 0.6).
 
-Each test corresponds to one Pattern 0 attacker from the audit pre-design:
+Each test targets one failure mode:
     1. All-NaN row should NOT win top_n on synthetic 0.5 score.
     2. Partial-NaN row scored fairly via per-symbol re-normalization.
     3. Cross-sectional path returns None for missing symbols (mutation test).
@@ -39,11 +39,11 @@ from tests.conftest import make_analysis
 
 
 class TestMetricRanksReturnsNoneForMissing:
-    """Pattern 11 mutation test: revert 0.5 → None and confirm caller
+    """Mutation test: revert 0.5 → None and confirm caller
     behavior diverges (i.e. the test would fail under the old code)."""
 
     def test_cross_sectional_missing_symbol_is_none(self):
-        """Attacker #3: factor None on one stock → _metric_ranks output[sym] is None."""
+        """Factor None on one stock → _metric_ranks output[sym] is None."""
         items = [
             make_analysis("2330", pm=80),
             make_analysis("2317", pm=70),
@@ -59,7 +59,7 @@ class TestMetricRanksReturnsNoneForMissing:
         assert ranks["2317"] is not None
 
     def test_sector_neutral_missing_symbol_is_none(self):
-        """Attacker #5: sector_neutral path also returns None for missing stocks."""
+        """Sector_neutral path also returns None for missing stocks."""
         items = [
             make_analysis("2330", industry="半導體業", pm=80),
             make_analysis("2317", industry="電子工業", pm=70),
@@ -73,7 +73,7 @@ class TestMetricRanksReturnsNoneForMissing:
         )
 
     def test_all_universe_nan_returns_unreliable(self):
-        """Attacker #3-extreme: 100% NaN → has_real_data=False, all None."""
+        """100% NaN → has_real_data=False, all None."""
         items = [
             make_analysis("2330", pm=None),
             make_analysis("2317", pm=None),
@@ -83,7 +83,7 @@ class TestMetricRanksReturnsNoneForMissing:
         assert all(v is None for v in ranks.values())
 
     def test_more_than_50pct_nan_returns_unreliable(self):
-        """Attacker #4-corner: 60% NaN crosses the 50% guard → unreliable."""
+        """60% NaN crosses the 50% guard → unreliable."""
         items = [
             make_analysis("2330", pm=80),
             make_analysis("2317", pm=None),
@@ -98,10 +98,10 @@ class TestMetricRanksReturnsNoneForMissing:
 
 
 class TestRankAnalysesPerSymbolNormalization:
-    """A.1 fix integration tests: _rank_analyses uses per-symbol weight_sum."""
+    """Integration tests: _rank_analyses uses per-symbol weight_sum."""
 
     def test_partial_factor_coverage_uses_per_symbol_weight(self, portfolio_config):
-        """Attacker #2: stock missing 1/3 active factors should be scored only
+        """Stock missing 1/3 active factors should be scored only
         on the 2 factors it has, with weight_sum re-normalized per symbol."""
         # Use 3 active factors: pm=0.55, rev=0.25, tq=0.20 (default config)
         analyses = [
@@ -122,7 +122,7 @@ class TestRankAnalysesPerSymbolNormalization:
         assert 0 < target["portfolio_score"] <= 100
 
     def test_all_factors_missing_forces_zero_score(self, portfolio_config):
-        """Attacker #1: stock with all factors NaN gets portfolio_score=0
+        """Stock with all factors NaN gets portfolio_score=0
         and score_below_coverage=True (cannot win top_n on synthetic 0.5)."""
         analyses = [
             make_analysis("2330", pm=80, tq=0.9, rev=0.15),
@@ -188,8 +188,8 @@ class TestRankAnalysesPerSymbolNormalization:
         assert target["score_below_coverage"] is True
 
     def test_zero_coverage_attacker_does_not_win_top_n(self, portfolio_config):
-        """Attacker #1 hard variant: ensure missing-everywhere stock ranks AFTER
-        any partial-coverage stock (was the actual silent-bug payload pre-fix)."""
+        """Ensure missing-everywhere stock ranks AFTER any partial-coverage
+        stock (was the actual silent-bug payload pre-fix)."""
         analyses = [
             make_analysis("9999", pm=None, tq=None, rev=None),  # all-missing
             make_analysis("2330", pm=20, tq=0.2, rev=0.01),  # weak but present
@@ -206,12 +206,12 @@ class TestRankAnalysesPerSymbolNormalization:
 
 
 class TestSilentRenormalizeGuardStillRaises:
-    """Attacker #6: ensure existing silent-renormalize guard still raises in
+    """Ensure existing silent-renormalize guard still raises in
     backtest_context when an entire factor is unreliable."""
 
     def test_full_universe_nan_factor_raises_in_backtest(self, portfolio_config):
-        """Pattern 17(c) integration: A.1 fix must NOT regress the existing
-        Phase A2 Step 1.5.4 silent-renormalize raise behavior."""
+        """Must NOT regress the existing silent-renormalize raise behavior
+        when an entire weighted factor is unreliable."""
         config = dict(portfolio_config)
         config["_backtest_context"] = True
         # All revenue None → factor unreliable, must raise (not silently rebalance)

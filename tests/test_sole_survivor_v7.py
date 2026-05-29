@@ -20,14 +20,12 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.d_cell_sweep_v7 import CANDIDATE_FACTOR_SETS  # noqa: E402
 from scripts.sole_survivor_v7 import (  # noqa: E402
     DA_PREDISQUALIFIED_ID,
     emit_phase_d_v7_complete_tag_command,
     lock_sole_survivor,
     write_sole_survivor,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

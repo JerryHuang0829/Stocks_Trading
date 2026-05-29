@@ -1,6 +1,6 @@
-"""V0.16 negative cache test — empty FinMind responses still mark done_set.
+"""Negative cache test — empty FinMind responses still mark done_set.
 
-Verifies the post-V0.16 invariant: if FinMind API call succeeds (no exception)
+Verifies the invariant: if FinMind API call succeeds (no exception)
 but returns None or empty DataFrame for a stock_id, that stock is added to
 done_set AS IF data were saved. This prevents wasteful re-fetch on restart for
 stocks that genuinely have no quarterly_financial_statements data (small cap /
@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pandas as pd
 import pytest
@@ -60,7 +59,7 @@ def mock_cache_setup(tmp_path, monkeypatch):
 
 
 def test_empty_dataframe_marks_done_set(mock_cache_setup, monkeypatch):
-    """V0.16 core: empty fetch result still adds to done_set (negative cache)."""
+    """Core: empty fetch result still adds to done_set (negative cache)."""
     cache_dir = mock_cache_setup
 
     # Mock fetch_fn to return empty DataFrame (FinMind has no data)
@@ -115,12 +114,12 @@ def test_empty_dataframe_marks_done_set(mock_cache_setup, monkeypatch):
     progress_path = cache_dir.parent / "cache_fill_quarterly_financial_full_progress.json"
     assert progress_path.exists(), "Progress JSON should be written"
     done = set(json.loads(progress_path.read_text(encoding="utf-8")))
-    assert "1107" in done, "Empty-fetch stock 1107 must be in done_set (V0.16 neg cache)"
-    assert "2330" in done, "Empty-fetch stock 2330 must be in done_set (V0.16 neg cache)"
+    assert "1107" in done, "Empty-fetch stock 1107 must be in done_set (neg cache)"
+    assert "2330" in done, "Empty-fetch stock 2330 must be in done_set (neg cache)"
 
 
 def test_none_return_marks_done_set(mock_cache_setup, monkeypatch):
-    """V0.16: None return (per finmind.py empty branch) also marks done."""
+    """None return (per finmind.py empty branch) also marks done."""
     cache_dir = mock_cache_setup
 
     class MockSource:
@@ -174,7 +173,7 @@ def test_none_return_marks_done_set(mock_cache_setup, monkeypatch):
 
 
 def test_proxy_error_does_NOT_mark_done(mock_cache_setup, monkeypatch):
-    """V0.16 invariant: proxy/network exception is transient — must retry next run."""
+    """Invariant: proxy/network exception is transient — must retry next run."""
     cache_dir = mock_cache_setup
 
     class MockSource:
@@ -231,7 +230,7 @@ def test_proxy_error_does_NOT_mark_done(mock_cache_setup, monkeypatch):
 
 
 def test_short_dataframe_below_min_rows_marks_done(mock_cache_setup, monkeypatch):
-    """V0.16: df with < min_rows is also negative-cached (treated as no usable data)."""
+    """df with < min_rows is also negative-cached (treated as no usable data)."""
     cache_dir = mock_cache_setup
 
     # min_rows for quarterly_financial_full = 12 (per DATASET_CONFIG)

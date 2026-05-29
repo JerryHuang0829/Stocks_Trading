@@ -1,40 +1,28 @@
-"""S6.1 wire-up — real BacktestEngine-equivalent 18-cell sweep runner.
+"""Real BacktestEngine-equivalent 18-cell sweep runner.
 
-Phase 2 Session 6.1 (2026-05-06) — H_d_v6 V0.13 §"Cell sweep adjust pipeline"
-+ Plan v7.1 Step 1 sequencing: replace `run_cell_sweep_stub` with real
-production-factor-based monthly composite engine.
-
-Architecture decision (per Plan agent design 2026-05-06): lightweight composite
-extending `composite_backtest.py` pattern, NOT BacktestEngine wrap. Reuses
-composite_backtest.py:81/198/207/212 helpers + production factor modules.
+Production-factor-based monthly composite engine. Lightweight composite
+extending `composite_backtest.py` pattern, NOT a BacktestEngine wrap, to reuse
+its helpers + production factor modules without the heavier engine path.
 
 Reused helpers:
-- `composite_backtest.py:_load_canonical_round_trip_cost` (V0.13 Assertion 1)
+- `composite_backtest.py:_load_canonical_round_trip_cost` (cost from settings.yaml)
 - `composite_backtest.py:_load_universe_ohlcv` (universe filter)
 - `composite_backtest.py:_month_end_dates` (rebalance schedule)
 - `composite_backtest.py:_next_month_return` (forward return)
 - `src/features/{high_proximity,pead_eps,margin_short_ratio,quality_v3,
   industry_momentum,idio_vol_max}.py::compute_*_universe/panel`
-- `src/analysis/active_correlation.py::active_corr` (L5(a) per V0.14)
+- `src/analysis/active_correlation.py::active_corr` (active_corr gate)
 - `src/backtest/metrics.py::adjust_dividends` (0050 total return benchmark)
 
-Output schema (per d_cell_aggregate_v7.aggregate_cell_results expectation):
+Output schema (consumed by d_cell_aggregate_v7.aggregate_cell_results):
 - ir / mean_alpha_monthly / te / max_dd_diff_vs_0050 / active_corr /
   beta_adj_alpha_t / sharpe_for_dsr (7 keys per cell metrics dict)
 
-13 pre-commit disciplines enforced:
-- #1 L1-L7 thresholds frozen (read by aggregator, not this module)
-- #2 DSR n_trials=18 (aggregator enforces)
-- #3 Sample period 2019-2024 (caller passes)
-- #4 Universe top-80 close × volume (caller filters or accepts default)
-- #5 6 candidate factor sets locked (CANDIDATE_FACTOR_SETS)
-- #6 Monthly frequency only (BME schedule)
-- #7 3 top_n {8, 12, 16} (TOP_N_VALUES)
-- #8 Foreign_v2 / Revenue_v2 exclusion (yaml configs already exclude)
-- #9 Sole_survivor tie-break IR > α (S8 enforces)
-- #11 D-A pre-disqualification (Assertion 2 enforced)
-- #12 IC canonical n=71 (factor IC step, not this module)
-- #13 L6 80% CI lower > 0 (S7 walk_forward enforces)
+Pre-commit disciplines this module participates in:
+- Candidate factor sets locked (CANDIDATE_FACTOR_SETS)
+- Monthly frequency only (BME schedule)
+- top_n values {8, 12, 16} (TOP_N_VALUES)
+- D-A pre-disqualification (Assertion enforced in run_cell_sweep_real)
 """
 from __future__ import annotations
 
@@ -75,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# V0.13 Assertion 1: cost from settings.yaml (NOT hardcoded)
+# Assertion: cost from settings.yaml (NOT hardcoded)
 # ---------------------------------------------------------------------------
 TW_ROUND_TRIP_COST, TW_ROUND_TRIP_COST_BPS = _load_canonical_round_trip_cost()
 
@@ -98,8 +86,8 @@ class CellSweepContext:
         *,
         require_dividend_adjust: bool = True,
     ) -> None:
-        """V0.24: require_dividend_adjust=True (default) → hard fail if 0050
-        dividends not present (per H_d_v6 spec total-return benchmark required).
+        """require_dividend_adjust=True (default) → hard fail if 0050
+        dividends not present (spec requires a total-return benchmark).
         Set False ONLY for non-formal smoke/dev runs.
         """
         self.cache_dir = cache_dir
@@ -114,7 +102,6 @@ class CellSweepContext:
         # Lazy-loaded cross-cell shared resources
         self._eps_by_symbol: dict[str, pd.DataFrame] | None = None
         self._margin_by_symbol: dict[str, pd.DataFrame] | None = None
-        # 2026-05-11 R30 4-path PIT cleanup (R29 finding 1):
         # was `_issued_by_symbol: dict | None`, replaced by panel cache for
         # PIT-asof lookup per rebalance date via `issued_by_symbol_at()`.
         self._issued_capital_panel: pd.DataFrame | None = None
@@ -146,15 +133,14 @@ class CellSweepContext:
     def issued_capital_panel(self) -> pd.DataFrame:
         """PIT-able issued_capital panel via single source-of-truth helper.
 
-        2026-05-11 R30 4-path PIT cleanup (R29 finding 1): replaces
-        the old ``issued_by_symbol`` dict property which used latest snapshot
-        for all rebalance dates (PIT violation). Uses
-        ``src.data.pit_helpers._load_issued_capital_panel`` shared with IC
+        Replaces the old ``issued_by_symbol`` dict property which used the
+        latest snapshot for all rebalance dates (PIT violation). Uses
+        ``src.data.pit_helpers._load_issued_capital_panel`` shared with the IC
         pipeline + portfolio path.
 
         Caveat: when cache lacks date column, fallback returns static panel
-        dated 1970-01-01 (R28-1 / R29-4 documented limitation; same
-        fallback behavior as IC pipeline for cross-path consistency).
+        dated 1970-01-01 (documented limitation; same fallback behavior as
+        the IC pipeline for cross-path consistency).
         """
         if self._issued_capital_panel is None:
             from src.data.pit_helpers import _load_issued_capital_panel
@@ -187,7 +173,7 @@ class CellSweepContext:
 
     @property
     def industry_label_map(self) -> dict[str, str]:
-        """Option B (per V0.14 R14): use current stock_info snapshot industry_category."""
+        """Use current stock_info snapshot industry_category (no PIT history)."""
         if self._industry_label_map is None:
             self._industry_label_map = _build_industry_label_map(self.cache_dir)
         return self._industry_label_map
@@ -203,7 +189,7 @@ class CellSweepContext:
     def benchmark_monthly_returns(self) -> pd.Series:
         """0050 dividend-adjusted total-return monthly returns aligned to month_ends.
 
-        V0.24: hard-fail if dividends not present unless require_dividend_adjust=False.
+        Hard-fail if dividends not present unless require_dividend_adjust=False.
         """
         if self._benchmark_monthly_returns is None:
             self._benchmark_monthly_returns = _build_benchmark_monthly_returns(
@@ -275,11 +261,9 @@ def _build_financial_history(cache_dir: pathlib.Path) -> pd.DataFrame:
                 qfin_wide["revenue_ttm"] = qfin_wide["Revenue"].rolling(4).sum()
             if "GrossProfit" in qfin_wide.columns:
                 qfin_wide["gross_profit_ttm"] = qfin_wide["GrossProfit"].rolling(4).sum()
-            # V0.26 (2026-05-06) bugfix: NetIncome column exists in q_fin pivoted
-            # output but FinMind cache for many stocks (e.g. TSMC 2330 from 2020+)
-            # has NaN in NetIncome — true value lives in IncomeAfterTaxes instead.
-            # re-audit 2026-05-06 confirmed: V0.25 fix made financial_history
-            # non-empty, but all rows had period_end ≤ 2019-12-31 because
+            # NetIncome column exists in q_fin pivoted output but FinMind cache
+            # for many stocks (e.g. TSMC 2330 from 2020+) has NaN in NetIncome —
+            # true value lives in IncomeAfterTaxes instead. Without the fillna,
             # net_income_ttm = rolling(4).sum() of NetIncome → NaN for any window
             # touching 2020+ → roe_ttm NaN → row dropped silently. Fix: fillna
             # NetIncome with IncomeAfterTaxes (synonym in FinMind schema; "稅後
@@ -299,13 +283,12 @@ def _build_financial_history(cache_dir: pathlib.Path) -> pd.DataFrame:
             if "TotalAssets" in bs_wide.columns:
                 bs_wide["assets_yoy_pct"] = bs_wide["TotalAssets"].pct_change(periods=4)
 
-            # V0.25 (2026-05-06) bugfix: q_fin & bs both contain
-            # EquityAttributableToOwnersOfParent + NoncontrollingInterests
-            # → pd.DataFrame.join() raised ValueError "columns overlap" silently
-            # caught in outer try/except → entire financial_history empty (external audit
-            # pre-run audit P0 found D-E quality_v3 完全死). Fix: use rsuffix to
-            # disambiguate; we access only computed columns (revenue_ttm /
-            # equity_avg / etc.) which don't overlap.
+            # q_fin & bs both contain EquityAttributableToOwnersOfParent +
+            # NoncontrollingInterests → pd.DataFrame.join() raised ValueError
+            # "columns overlap" silently caught in outer try/except → entire
+            # financial_history empty (quality_v3 universe goes empty). Fix: use
+            # rsuffix to disambiguate; we access only computed columns
+            # (revenue_ttm / equity_avg / etc.) which don't overlap.
             merged = qfin_wide.join(bs_wide, how="inner", rsuffix="_bs")
             for date_idx, row in merged.iterrows():
                 rev = row.get("revenue_ttm", np.nan)
@@ -333,8 +316,8 @@ def _build_financial_history(cache_dir: pathlib.Path) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame()
     df_out = pd.DataFrame(rows).set_index("symbol")
-    # V0.26 sanity log: warn if period coverage suspicious (silent dropping is
-    # how the V0.25→V0.26 bug hid for 2 audit rounds — surface period stats).
+    # Sanity log: warn if period coverage suspicious (silent dropping is how
+    # the NetIncome/IncomeAfterTaxes bug stayed hidden — surface period stats).
     if not df_out.empty:
         period_max = df_out["period_end"].max()
         period_min = df_out["period_end"].min()
@@ -359,7 +342,7 @@ def _build_financial_history(cache_dir: pathlib.Path) -> pd.DataFrame:
 
 
 def _build_industry_label_map(cache_dir: pathlib.Path) -> dict[str, str]:
-    """Option B (V0.14 R14 caveat): use current stock_info snapshot industry_category."""
+    """Use current stock_info snapshot industry_category (no PIT history)."""
     csv_path = cache_dir / "stock_info" / "stock_info_snapshot.csv"
     if not csv_path.exists():
         logger.warning("stock_info_snapshot.csv missing — industry_label_map empty")
@@ -374,12 +357,11 @@ def _build_industry_label_map(cache_dir: pathlib.Path) -> dict[str, str]:
 def _build_market_returns(cache_dir: pathlib.Path) -> pd.Series:
     """0050 price-only daily returns for IdioVol regression.
 
-    2026-05-24 (v5.0 prerequisite): apply `adjust_splits` BEFORE `pct_change`.
-    0050 did a ~1:4 split in 2025-06; raw cache holds unadjusted prices, so a
-    naive pct_change produces a spurious ~-75% return on the split date that
-    contaminates IdioVol regression / regime detection for any v5.x run
-    extending into 2025.  adjust_splits' Fix2 calendar-gap guard does NOT
-    suppress this split (it occurs on consecutive trading days).
+    Apply `adjust_splits` BEFORE `pct_change`. 0050 did a ~1:4 split in 2025-06;
+    raw cache holds unadjusted prices, so a naive pct_change produces a spurious
+    ~-75% return on the split date that contaminates IdioVol regression / regime
+    detection for any run extending into 2025.  adjust_splits' calendar-gap guard
+    does NOT suppress this split (it occurs on consecutive trading days).
     """
     from src.backtest.metrics import adjust_splits
     pkl = cache_dir / "ohlcv" / "0050.pkl"
@@ -399,13 +381,13 @@ def _build_benchmark_monthly_returns(
 ) -> pd.Series:
     """0050 dividend-adjusted monthly returns aligned to month_ends.
 
-    V0.24 (2026-05-06) hard-fail fix: previous V0.14 silent fallback to
-    price-only when `dividends/0050.pkl` not found violated H_d_v6 spec
-    "total-return required". Now reads `dividends/_global.pkl` (list[dict]
-    schema covering all stocks) and calls `adjust_dividends(close, divs,
-    "0050")` — internal filter handles 0050 rows.
+    Hard-fail behavior: an earlier silent fallback to price-only when
+    `dividends/0050.pkl` was not found violated the "total-return required"
+    spec. Now reads `dividends/_global.pkl` (list[dict] schema covering all
+    stocks) and calls `adjust_dividends(close, divs, "0050")` — internal filter
+    handles 0050 rows.
 
-    If `require_dividend_adjust=True` (default per H_d_v6 spec):
+    If `require_dividend_adjust=True` (default per spec):
     - 0050 dividends not present in _global.pkl → raise FileNotFoundError
     - adjust_dividends fails → re-raise
     Set `require_dividend_adjust=False` only for non-formal smoke / dev runs.
@@ -421,15 +403,15 @@ def _build_benchmark_monthly_returns(
         return pd.Series(dtype=float)
     df = pd.read_pickle(pkl)
     df.index = pd.to_datetime(df.index).tz_localize(None) if df.index.tz else pd.to_datetime(df.index)
-    # 2026-05-24 (v5.0 prerequisite): split-adjust 0050 BEFORE dividend-adjust.
-    # 0050 did a ~1:4 split in 2025-06; raw cache prices have a ~-75% jump on
-    # the split date that would corrupt monthly benchmark returns and Alpha for
-    # any v5.x run extending into 2025.  Split first → divide cleanly (the
-    # adjust_dividends formula is scale-invariant, so order is safe).
+    # Split-adjust 0050 BEFORE dividend-adjust. 0050 did a ~1:4 split in 2025-06;
+    # raw cache prices have a ~-75% jump on the split date that would corrupt
+    # monthly benchmark returns and Alpha for any run extending into 2025.
+    # Split first → divide cleanly (the adjust_dividends formula is
+    # scale-invariant, so order is safe).
     from src.backtest.metrics import adjust_splits
     close = adjust_splits(df["close"])
 
-    # V0.24: read dividends from _global.pkl (list[dict] schema), filter by symbol
+    # Read dividends from _global.pkl (list[dict] schema), filter by symbol
     div_pkl = cache_dir / "dividends" / "_global.pkl"
     if not div_pkl.exists():
         if require_dividend_adjust:
@@ -493,8 +475,8 @@ def _compute_factor_panel(
     if factor_name == "pead_eps":
         return compute_pead_eps_universe(ctx.eps_by_symbol, as_of=as_of)
     if factor_name == "margin_short_ratio":
-        # 2026-05-11 R30: per-rebalance PIT-asof lookup (was using latest dict
-        # across all rebalance dates — R29 finding 1 PIT violation).
+        # Per-rebalance PIT-asof lookup (was using latest dict across all
+        # rebalance dates, a PIT violation).
         return compute_margin_short_ratio_universe(
             ctx.margin_by_symbol, ctx.issued_by_symbol_at(as_of), as_of=as_of
         )
@@ -572,7 +554,7 @@ def _compute_cell_metrics(
     Returns dict with: ir / mean_alpha_monthly / te / max_dd_diff_vs_0050 /
         active_corr / beta_adj_alpha_t / sharpe_for_dsr
     """
-    # Align all 3 Series to common index (V0.14 active_corr requires)
+    # Align all 3 Series to common index (active_corr requires it)
     common_idx = (
         monthly_active_returns.index
         .intersection(monthly_port_returns.index)
@@ -601,9 +583,10 @@ def _compute_cell_metrics(
     a_std_monthly = float(a.std())
     te_annualized = a_std_monthly * float(np.sqrt(12))
     ir_annualized = (mean_alpha * 12) / te_annualized if te_annualized > 0 else 0.0
-    sharpe_active = mean_alpha * float(np.sqrt(12)) / a_std_monthly if a_std_monthly > 0 else 0.0
+    # Per-period SR (no annualization) — must match n_obs unit fed to DSR.
+    sharpe_active = mean_alpha / a_std_monthly if a_std_monthly > 0 else 0.0
 
-    # active_corr per V0.14 P0-4 fix (index alignment enforced internally)
+    # active_corr enforces index alignment internally
     try:
         ac = active_corr(p, b)
     except ValueError:
@@ -644,7 +627,8 @@ def run_cell_sweep_real(
     Returns:
         (cell_metrics_dict, monthly_active_returns_list)
         - cell_metrics_dict: 7 metrics per d_cell_aggregate_v7 schema
-        - monthly_active_returns_list: list of floats per month_end (for S7 walk_forward)
+        - monthly_active_returns_list: list of floats per month_end (for the
+          downstream walk_forward step)
     """
     if candidate_id not in CANDIDATE_FACTOR_SETS:
         raise ValueError(
@@ -656,7 +640,7 @@ def run_cell_sweep_real(
             f"top_n {top_n} not in TOP_N_VALUES {TOP_N_VALUES} (pre-commit #7 frozen)"
         )
 
-    cfg = load_candidate_config(candidate_id)  # raises if D-A composition (V0.14)
+    cfg = load_candidate_config(candidate_id)  # raises if D-A composition
     weights: dict[str, float] = dict(cfg["factors"])
 
     if ctx is None:
@@ -698,7 +682,7 @@ def run_cell_sweep_real(
             monthly_active_rets.append(0.0)
             continue
 
-        # V0.23 PIT-safe MIN_PRICE filter (replaces forward-looking
+        # PIT-safe MIN_PRICE filter (replaces forward-looking
         # composite_backtest._load_universe_ohlcv mean filter):
         # only stocks with close >= MIN_PRICE on or before rebal_ts qualify.
         common_syms = {
@@ -777,7 +761,7 @@ def run_full_18_cell_sweep(
 
     Outputs:
         <output_dir>/cell_metrics.json — dict["<candidate>|<top_n>" → metrics_dict]
-        <output_dir>/cell_monthly_active_returns.json — for S7 walk_forward
+        <output_dir>/cell_monthly_active_returns.json — for the walk_forward step
     """
     from src.utils.paths import resolve_cache_dir
 

@@ -18,7 +18,7 @@ PIT discipline
 - Price: shift=1 — uses close on or before (as_of - 1 day). Mirrors
   value_ep / high_proximity semantics.
 - issued_shares: PIT lookup via _issued_capital_asof helper. KNOWN
-  caveat (R28-1 / R29-4): if cache lacks 'date' column, falls back to
+  caveat: if cache lacks 'date' column, falls back to
   static-snapshot (pit_helpers warns at load time). Effect on Size
   factor is small because issued_shares moves slowly (few corporate
   actions per year per symbol).

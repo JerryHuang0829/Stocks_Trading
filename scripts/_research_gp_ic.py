@@ -1,4 +1,4 @@
-"""Gross Profitability factor IC research (v5.0 Candidate 2, 2026-05-25).
+"""Gross Profitability factor IC research (v5.0 Candidate 2).
 
 Novy-Marx (2013) GP/Assets quality factor. Bypasses run_factor_ic.py
 because GP needs two caches (quarterly_financial_full + balance_sheet)

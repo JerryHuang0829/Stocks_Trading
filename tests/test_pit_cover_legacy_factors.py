@@ -140,7 +140,7 @@ class TestWeightZeroNoFetch:
             reference_now=datetime(2026, 4, 30),
         )
         slicer.set_as_of(datetime(2026, 4, 30))
-        result = _analyze_symbol(
+        _analyze_symbol(
             {"symbol": "2330", "name": "TSMC", "industry": "半導體業"},
             slicer,
             default_strategy={},

@@ -1,14 +1,14 @@
-"""Phase 0 audit: B3 score Spearman divergence root-cause (FAST version).
+"""B3 score Spearman divergence root-cause audit (FAST version).
 
-R1 reported (latest mv vs as-of mv ranking Spearman):
-    2020-01-13: 0.9675
-    2025-11-12: 0.9945
+Two prior reference numbers exist for the latest-mv vs as-of-mv ranking Spearman:
+    reference A:
+        2020-01-13: 0.9675
+        2025-11-12: 0.9945
+    reference B:
+        2020-01-13: 0.9633  (diff -0.0042)
+        2025-11-12: 0.9914  (diff -0.0031)
 
-R2 reported:
-    2020-01-13: 0.9633  (diff -0.0042)
-    2025-11-12: 0.9914  (diff -0.0031)
-
-Both rounds reportedly used a cum_foreign / mv simulator (no full composite
+Both references used a cum_foreign / mv simulator (no full composite
 pipeline since rank_stability sub-signal would add O(n^2) cost). The diff
 ~0.003-0.004 most likely comes from universe-filter handling.
 
@@ -70,7 +70,7 @@ def mv_asof_dict(target_date: pd.Timestamp) -> dict[str, float]:
     return dict(zip(latest["stock_id"], latest["market_value"]))
 
 
-print(f"[2/5] Loading institutional_v2 cache ...", flush=True)
+print("[2/5] Loading institutional_v2 cache ...", flush=True)
 inst_by_symbol: dict[str, pd.DataFrame] = {}
 for fp in INST_DIR.glob("*.pkl"):
     sym = fp.stem
@@ -86,7 +86,7 @@ print(f"      Loaded {len(inst_by_symbol)} symbols", flush=True)
 
 
 def cum_only(target_date: pd.Timestamp, mv_dict: dict, *, require_min_history: bool = True) -> pd.Series:
-    """Hand-written cum_foreign / mv simulator (R1 + R2 method)."""
+    """Hand-written cum_foreign / mv simulator (reference method)."""
     rows: dict[str, float] = {}
     for sym, df in inst_by_symbol.items():
         wide = _pivot_long_to_wide(df)
@@ -211,8 +211,8 @@ with OUT_PATH.open("w", encoding="utf-8") as f:
     for d in ["2020-01-13", "2025-11-12"]:
         f.write(f"| {d} | {impl_a[d]:.4f} | {impl_b[d]:.4f} | {impl_a[d] - impl_b[d]:+.4f} |\n")
     f.write("\n## Results\n\n")
-    f.write(f"| Date | Variant | n_common | Spearman | Δ vs R1 | Δ vs R2 | Match |\n")
-    f.write(f"|---|---|---:|---:|---:|---:|---|\n")
+    f.write("| Date | Variant | n_common | Spearman | Δ vs R1 | Δ vs R2 | Match |\n")
+    f.write("|---|---|---:|---:|---:|---:|---|\n")
     for r in results:
         if r.get("skip"):
             f.write(f'| {r["date"]} | {r["variant"]} | n={r["n_common"]} | SKIP | - | - | - |\n')
@@ -231,8 +231,8 @@ with OUT_PATH.open("w", encoding="utf-8") as f:
         )
 
     f.write("\n## Top10 / Bot10 Jaccard (universe overlap diagnostic)\n\n")
-    f.write(f"| Date | Variant | top10 J | bot10 J |\n")
-    f.write(f"|---|---|---:|---:|\n")
+    f.write("| Date | Variant | top10 J | bot10 J |\n")
+    f.write("|---|---|---:|---:|\n")
     for r in results:
         if r.get("skip"):
             continue

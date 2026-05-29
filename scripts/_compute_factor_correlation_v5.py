@@ -1,4 +1,4 @@
-"""v5.0 7-feature correlation matrix (2026-05-25).
+"""v5.0 7-feature correlation matrix.
 
 Computes cross-feature Spearman correlation for the locked ML feature set:
   5 raw : idio_vol_max, high_proximity, pead_eps, value_ep, reversal_1m
@@ -33,7 +33,7 @@ V5_FEATURES = [
     "pead_eps",
     "value_ep",
     "reversal_1m",
-    # 2 sector-neutralized (Option X — additional features, not replacements)
+    # 2 sector-neutralized (additional features, not replacements)
     "value_ep_sn",
     "pead_eps_sn",
 ]

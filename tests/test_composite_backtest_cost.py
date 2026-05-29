@@ -1,8 +1,7 @@
-"""V0.13 Assertion 1 enforcement test: composite_backtest cost dual-model.
+"""Cost dual-model enforcement test: composite_backtest cost.
 
-Phase 2 Session 1 落地 (2026-05-05) — H_d_v6 V0.13 §"Assertion 1 — Cost
-dual-model check" 強制 composite_backtest.py 讀 config/settings.yaml,
-不可 hardcode TW_ROUND_TRIP_COST_BPS=57.0 (Phase A1 legacy)。
+強制 composite_backtest.py 讀 config/settings.yaml,
+不可 hardcode TW_ROUND_TRIP_COST_BPS=57.0 (legacy)。
 
 Mutation tests:
 1. test_canonical_cost_reads_settings_yaml — happy path: settings.yaml current
@@ -12,7 +11,7 @@ Mutation tests:
 3. test_canonical_cost_revert_to_57bps_hardcoded_caught — revert mutation:
    if module-level constant reverted to hardcoded 57.0 (= 0.0057 decimal),
    the loaded value would NOT equal 0.0067 → assert raise. Catches the
-   regression where Phase A1 legacy 57bps creeps back.
+   regression where legacy 57bps creeps back.
 4. test_friction_uses_canonical_cost_not_hardcoded — integration mutation:
    verify that downstream `friction = turnover * TW_ROUND_TRIP_COST` uses
    the loaded canonical value, NOT a stale module-level constant.
@@ -30,7 +29,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 
 def test_canonical_cost_reads_settings_yaml():
-    """V0.13 Assertion 1: composite_backtest cost MUST equal settings.yaml derived 0.0067."""
+    """composite_backtest cost MUST equal settings.yaml derived 0.0067."""
     # Re-import to ensure fresh module-level computation
     import scripts.composite_backtest as cb
     importlib.reload(cb)
@@ -52,7 +51,6 @@ def test_canonical_cost_assertion_catches_yaml_drift(monkeypatch, tmp_path):
     )
     # Patch the module-level constant load function to use drifted yaml
     import scripts.composite_backtest as cb_mod
-    original = cb_mod._load_canonical_round_trip_cost
 
     def drifted_loader():
         from src.utils.config import load_config
@@ -72,7 +70,7 @@ def test_canonical_cost_assertion_catches_yaml_drift(monkeypatch, tmp_path):
 def test_canonical_cost_revert_to_57bps_hardcoded_caught():
     """Mutation: revert to hardcoded TW_ROUND_TRIP_COST_BPS = 57.0 → 0.0057 ≠ 0.0067 → catches regression.
 
-    Demonstrates that V0.13 Assertion 1 catches the Phase A1 legacy regression:
+    Demonstrates that the cost assertion catches the legacy regression:
     if module-level constant is hardcoded back to 57.0 instead of loaded from
     settings.yaml, the discrepancy with current settings.yaml (which sums to
     0.0067) would be caught by the runtime assertion.

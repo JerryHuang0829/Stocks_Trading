@@ -15,7 +15,7 @@ Design notes
   Carries survivorship bias since delisted tickers are absent from cache.
 - Forward return: `close[next_rebalance] / close[rebalance] - 1` (price only,
   no dividend adjustment). Acknowledged bias: under-estimates alpha on high
-  dividend-yield names. A2 integration will upgrade to total return.
+  dividend-yield names. Total-return integration is a future upgrade.
 - Regime: computed from `0050` ADX + SMA via `src.strategy.regime.detect_regime`.
 - IC pipeline: `src.analysis.ic_analysis.factor_ic_report`.
 """
@@ -28,57 +28,53 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Sequence
 
 import pandas as pd
 from dotenv import load_dotenv
 
+# 12 helpers extracted to scripts/_factor_ic_helpers.py to enable cross-script
+# reuse (p5_smart_beta_tilt.py and future scripts).
+# Re-export here for backward-compat with /factor-ic skill + manual CLI.
+from scripts._factor_ic_helpers import (  # noqa: F401
+    DEFAULT_MAX_GAP_DAYS,
+    DEFAULT_MIN_OBS_PER_SYMBOL,
+    MIN_UNIVERSE_SIZE,
+    PANEL_DIRS_FOR_INTERSECTION,
+    REGIME_SYMBOL,
+    _compute_intersection_universe,
+    _compute_regimes,
+    _forward_return,
+    _issued_capital_asof,  # as-of lookup
+    _load_industry_labels,
+    _load_issued_capital,  # DEPRECATED — see _load_issued_capital_panel
+    _load_issued_capital_panel,  # PIT panel loader
+    _load_market_value,  # DEPRECATED — see _load_market_value_panel
+    _load_market_value_panel,  # PIT panel loader
+    _load_ohlcv,
+    _load_universe_ohlcv,
+    _load_universe_revenue,
+    _load_universe_timeseries,
+    _market_value_asof,  # as-of lookup
+    _normalise_index,
+    _resolve_price_asof,
+)
 from src.analysis.ic_analysis import factor_ic_report
 from src.backtest.engine import BacktestEngine
 from src.features.foreign_investor_v2 import compute_foreign_investor_v2_universe
 from src.features.high_proximity import compute_high_proximity_universe
 from src.features.margin_short_ratio import compute_margin_short_ratio_universe
 from src.features.pead_eps import compute_pead_eps_universe
-from src.features.reversal_1m import compute_reversal_1m_universe
 from src.features.revenue_momentum_v2 import compute_revenue_momentum_v2_universe
+from src.features.reversal_1m import compute_reversal_1m_universe
 from src.features.value_ep import compute_value_ep_universe
-# DROPPED imports (Codex v5.0 R1 Extra-3 demote, 2026-05-25):
+
+# DROPPED imports (IC fail):
 #   from src.features.size_factor import compute_size_universe  # IC p=0.76 fail
 #   from src.features.momentum_12_1 import compute_momentum_12_1_universe  # IC p=0.97 fail
 # src/features/ + tests/ 保留供 audit trail / future re-evaluation;客製 IC script 可用。
 from src.utils.config import load_config
 from src.utils.paths import resolve_cache_dir
 from src.utils.thresholds import get_threshold
-
-# Phase P5 Session 1 / R21 finding F6 fix (2026-05-03):
-# 12 helpers extracted to scripts/_factor_ic_helpers.py to enable cross-script
-# reuse (phase_b0_lite_spike.py — cleaned up 2026-05-04 — p5_smart_beta_tilt.py,
-# future P5+ / Phase D scripts).
-# Re-export here for backward-compat with /factor-ic skill + manual CLI.
-from scripts._factor_ic_helpers import (  # noqa: F401
-    REGIME_SYMBOL,
-    MIN_UNIVERSE_SIZE,
-    PANEL_DIRS_FOR_INTERSECTION,
-    DEFAULT_MIN_OBS_PER_SYMBOL,
-    DEFAULT_MAX_GAP_DAYS,
-    _normalise_index,
-    _load_ohlcv,
-    _load_universe_ohlcv,
-    _load_universe_revenue,
-    _load_universe_timeseries,
-    _load_issued_capital,            # DEPRECATED — see _load_issued_capital_panel
-    _load_issued_capital_panel,      # 2026-05-10 P1-A: PIT panel loader
-    _issued_capital_asof,            # 2026-05-10 P1-A: as-of lookup
-    _load_industry_labels,
-    _load_market_value,              # DEPRECATED — see _load_market_value_panel
-    _load_market_value_panel,        # 2026-05-10 P0-A: PIT panel loader
-    _market_value_asof,              # 2026-05-10 P0-A: as-of lookup
-    _resolve_price_asof,
-    _forward_return,
-    _compute_intersection_universe,
-    _compute_regimes,
-)
-
 
 # Each factor declares:
 #   panel_type: which primary per-symbol cache to load (ohlcv/revenue/margin/
@@ -117,7 +113,7 @@ FACTOR_REGISTRY: dict[str, dict] = {
         "aux_panel": None,
         "default_min_history": 12,    # quarters
     },
-    # v5.0 new factors (2026-05-24) — Fama-French Value gap fix + DeBondt-Thaler
+    # v5.0 new factors — Fama-French Value gap fix + DeBondt-Thaler
     # short-horizon reversal complement to high_proximity.
     "value_ep": {
         "fn": compute_value_ep_universe,
@@ -133,7 +129,7 @@ FACTOR_REGISTRY: dict[str, dict] = {
     },
 }
 
-# v5.0 candidate research (2026-05-25) — Codex v5.0 R1 Extra-3 demote (2026-05-25):
+# v5.0 candidate research — demoted candidates:
 # size_factor + momentum_12_1 + gross_profitability 全 IC fail (p ≥ 0.76);
 # 從 FACTOR_REGISTRY 拿掉避免誤用,但保留 src/features/ 程式 + tests 作為
 # audit trail / reproducibility 證據 + 未來 v5.x 重評可重跑 IC。
@@ -273,9 +269,9 @@ def main() -> None:
         )
         sys.exit(1)
 
-    # Optional aux panel — 2026-05-10 P0-A / P1-A: load PIT panel, build
-    # as-of dict per rebalance date inside the loop instead of taking latest
-    # once outside (which violated PIT discipline; see R26 audit).
+    # Optional aux panel — load PIT panel, build as-of dict per rebalance
+    # date inside the loop instead of taking latest once outside (which
+    # violated PIT discipline).
     aux_mv_panel: pd.DataFrame | None = None
     aux_issued_panel: pd.DataFrame | None = None
     if aux_panel_kind == "issued_capital":
@@ -312,9 +308,9 @@ def main() -> None:
         log.error("Benchmark %s OHLCV missing — cannot compute regime", REGIME_SYMBOL)
         sys.exit(1)
 
-    # P1-新1 + follow-up-4: compute cross-factor intersection universe when
-    # requested. When `per_factor` is set, `universe_filter` stays None and
-    # the factor sees its native panel universe (legacy behaviour).
+    # Compute cross-factor intersection universe when requested. When
+    # `per_factor` is set, `universe_filter` stays None and the factor sees
+    # its native panel universe (legacy behaviour).
     universe_filter: set[str] | None = None
     min_universe_size = int(
         get_threshold("universe", "min_universe_size", default=MIN_UNIVERSE_SIZE)
@@ -363,13 +359,13 @@ def main() -> None:
             next_ts = next_ts.tz_convert(None)
 
         factor_kwargs: dict = {"as_of": as_of, "min_history": min_history}
-        # 2026-05-10 P0-A / P1-A: build as-of dict per rebalance date (PIT-correct).
+        # Build as-of dict per rebalance date (PIT-correct).
         # Replaces taking latest once outside the loop.
         if aux_mv_panel is not None:
             factor_kwargs["aux_panel"] = _market_value_asof(aux_mv_panel, as_of)
         elif aux_issued_panel is not None:
             factor_kwargs["aux_panel"] = _issued_capital_asof(aux_issued_panel, as_of)
-        # P0-B: foreign_investor_v2 cum_foreign 改金額制需要 close panel
+        # foreign_investor_v2 cum_foreign 改金額制需要 close panel
         if args.factor == "foreign_investor_v2":
             factor_kwargs["close_by_symbol"] = close_by_symbol
         # v5.0: value_ep needs close panel (E/P = TTM_EPS / price)
@@ -426,8 +422,7 @@ def main() -> None:
 
     # factor_ic_report auto-appends standard boilerplate (survivorship +
     # price-only + bootstrap/permutation/DSR/effective_n notes). We only
-    # supply caller-specific run-time facts here to avoid duplicate wording
-    # (external audit C5 / Round 3.5).
+    # supply caller-specific run-time facts here to avoid duplicate wording.
     biases = [
         "regime computed from 0050 benchmark (not per-stock)",
     ]

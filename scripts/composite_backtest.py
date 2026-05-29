@@ -1,4 +1,4 @@
-"""Lightweight backtest for Phase A1 new-factor composite (52W High + PEAD + Margin Short).
+"""Lightweight backtest for new-factor composite (52W High + PEAD + Margin Short).
 
 Scope: simplified vs BacktestEngine — monthly rebalance, top-N equal-weight,
 no regime exposure, no drift-aware daily returns, no hold_buffer.
@@ -12,7 +12,7 @@ Known simplifications (impact in report):
   - No regime-aware exposure (Sharpe possibly overstated ~5-10%)
   - No drift-aware daily returns (uses month-end to month-end; vol understated)
   - No hold_buffer / turnover_threshold (turnover inflated = friction upper bound)
-  - Split adjustment: OHLCV pkls are already split-adjusted per P4.5
+  - Split adjustment: OHLCV pkls are already split-adjusted
   - No dividend re-investment (benchmark comparison uses raw price; 0050 tests
     should compare to similar raw-price benchmark)
   - Survivorship bias: reads only existing pkls (does NOT include fully
@@ -47,16 +47,12 @@ logger = logging.getLogger(__name__)
 
 
 def _load_canonical_round_trip_cost() -> tuple[float, float]:
-    """V0.13 Assertion 1 enforcement (Phase 2 Session 1, 2026-05-05): read cost
-    from config/settings.yaml — NOT hardcoded.
+    """Read round-trip cost from config/settings.yaml — NOT hardcoded.
 
     Returns (cost_decimal, cost_bps). Raises AssertionError if settings.yaml
-    drift detected. Phase A1 legacy 57bps (47bps fee+tax + 10bps single-side
-    slippage) replaced by V0.4 baseline canonical 67bps (47bps fee+tax + 20bps
-    round-trip slippage = 10bps × 2 sides) post-`0d31572` engine.py 5→10 bps fix.
-
-    Per H_d_v6 V0.13 §"Assertion 1 — Cost dual-model check" + R24 §"設計-1":
-    composite_backtest.py 必讀 settings.yaml，不可繼續 hardcode 57.0。
+    drift detected. Canonical 67bps = 47bps fee+tax + 20bps round-trip slippage
+    (10bps × 2 sides); reading from settings.yaml avoids silent config drift
+    against the engine.
     """
     cfg = load_config(str(PROJECT_ROOT / "config" / "settings.yaml"))
     portfolio = cfg.get("portfolio", {})
@@ -81,13 +77,12 @@ MIN_PRICE = 10.0
 def _load_universe_ohlcv(cache_dir: pathlib.Path, start: datetime, end: datetime) -> dict[str, pd.DataFrame]:
     """Load OHLCV for all 4-digit tradeable stocks in [start, end].
 
-    V0.23 (2026-05-06): REMOVED forward-looking `df["close"].mean() < MIN_PRICE`
-    filter — at each rebal date in `start..end`, the entire-period mean uses
-    future prices (e.g. 2020-01 rebal sees 2020-2024 prices). Caller MUST apply
-    per-rebal-date MIN_PRICE filter using `df[df.index <= rebal]["close"].iloc[-1]`.
-
-    Trigger: 2026-05-06 獨立 audit found this look-ahead bug. Filter is now
-    PIT-safe by being applied at rebalance time (see d_cell_sweep_v7_real.py).
+    REMOVED forward-looking `df["close"].mean() < MIN_PRICE` filter — at each
+    rebal date in `start..end`, the entire-period mean uses future prices
+    (e.g. 2020-01 rebal sees 2020-2024 prices), a look-ahead bias. Caller MUST
+    apply per-rebal-date MIN_PRICE filter using
+    `df[df.index <= rebal]["close"].iloc[-1]` so the filter is PIT-safe by being
+    applied at rebalance time (see d_cell_sweep_v7_real.py).
     """
     ohlcv_dir = cache_dir / "ohlcv"
     universe = {}
@@ -102,7 +97,7 @@ def _load_universe_ohlcv(cache_dir: pathlib.Path, start: datetime, end: datetime
             df = df[mask]
             if len(df) < 20:
                 continue
-            # V0.23 PIT fix: NO mean() price filter here (forward-looking).
+            # NO mean() price filter here (forward-looking / look-ahead bias).
             # Caller applies per-rebal-date filter via _is_above_min_price_at().
             universe[sid] = df
         except Exception:
@@ -113,7 +108,7 @@ def _load_universe_ohlcv(cache_dir: pathlib.Path, start: datetime, end: datetime
 
 def _is_above_min_price_at(df: pd.DataFrame, rebal_ts: pd.Timestamp,
                             min_price: float = 10.0) -> bool:
-    """V0.23 PIT-safe price filter: check close on or before `rebal_ts` ≥ min_price.
+    """PIT-safe price filter: check close on or before `rebal_ts` ≥ min_price.
 
     Use this in caller's rebalance loop instead of forward-looking mean filter.
     """
@@ -309,7 +304,7 @@ def run_backtest(start: datetime, end: datetime, weight_mode: str,
         # Friction: turnover × cost
         new_set = set(top)
         turnover = len(new_set.symmetric_difference(held_prev)) / (2 * TOP_N) if held_prev else 1.0
-        friction = turnover * TW_ROUND_TRIP_COST  # V0.13 Assertion 1: settings.yaml-driven, not hardcoded
+        friction = turnover * TW_ROUND_TRIP_COST  # settings.yaml-driven, not hardcoded
         net_ret = gross_ret - friction
         portfolio_rets.append(net_ret)
         selections.append(top)

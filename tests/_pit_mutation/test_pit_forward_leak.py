@@ -17,7 +17,6 @@ from __future__ import annotations
 from datetime import datetime
 
 import pandas as pd
-import pytest
 
 from src.backtest.engine import _DataSlicer
 

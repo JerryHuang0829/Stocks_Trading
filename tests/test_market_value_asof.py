@@ -10,10 +10,10 @@ import pandas as pd
 import pytest
 
 from scripts._factor_ic_helpers import (
+    _issued_capital_asof,
+    _load_issued_capital_panel,
     _load_market_value_panel,
     _market_value_asof,
-    _load_issued_capital_panel,
-    _issued_capital_asof,
 )
 
 

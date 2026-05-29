@@ -1,23 +1,22 @@
-"""Phase A2 Step 2 tests: 5 new factor batch integration.
+"""5 new factor batch integration tests.
 
 Covers:
 - Group A: regression (new factors weight=0 unchanged behavior / guard interaction)
 - Group B: per-factor functional (weight=1 dispatches correct batch entry)
-- Group C: integration + external audit Round 14 P0 fixes
+- Group C: integration fixes
   (fetch_market_value no-symbol-arg bulk / issued_capital dtype + coverage /
   _safe_fetch BacktestCacheMissError propagation / available_metrics structural)
 """
 
 from __future__ import annotations
 
-import copy
 import logging
-from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
+from src.data.finmind import _BacktestCacheMissError
 from src.portfolio.tw_stock import (
     DEFAULT_PORTFOLIO_CONFIG,
     _batch_precompute_and_analyze,
@@ -28,8 +27,6 @@ from src.portfolio.tw_stock import (
     _safe_fetch,
     get_portfolio_config,
 )
-from src.data.finmind import _BacktestCacheMissError
-
 
 _UNIVERSE = [
     {"symbol": f"{2330+i}", "name": f"Stock{i}", "industry": "半導體業"}
@@ -173,14 +170,14 @@ def test_margin_short_ratio_batch_with_issued_dict():
 
 def test_foreign_investor_v2_batch_with_market_value_dict():
     """foreign_investor_v2 batch must pass market_value_by_symbol dict from
-    bulk fetch (NOT per-symbol fetch — external audit Round 14 P0-1 regression guard)."""
+    bulk fetch (NOT per-symbol fetch — regression guard)."""
     source = MagicMock()
     config = {"score_weights": {"foreign_investor_v2": 1.0}}
     with patch("src.portfolio.tw_stock.compute_foreign_investor_v2_universe") as mock_batch, \
          patch("src.portfolio.tw_stock._bulk_fetch_latest_market_value") as mock_bulk:
         mock_bulk.return_value = {"2330": 1.5e13}
         mock_batch.return_value = pd.Series({"2330": 0.2})
-        out = _compute_universe_batch_factors(["2330"], source, config, _AS_OF)
+        _compute_universe_batch_factors(["2330"], source, config, _AS_OF)
     assert mock_bulk.called
     # Confirm market_value_by_symbol passed as kwarg (not positional)
     call_kwargs = mock_batch.call_args.kwargs
@@ -217,11 +214,11 @@ def test_batch_missing_symbol_injects_none_raw(factor_name):
 
 
 # ---------------------------------------------------------------------------
-# Group C: Integration + external audit Round 14 P0 fixes (6 tests)
+# Group C: Integration fixes (6 tests)
 # ---------------------------------------------------------------------------
 
 def test_bulk_fetch_market_value_calls_with_no_symbol_arg():
-    """external audit Round 14 P0-1 FIX regression: fetch_market_value must be called
+    """Regression: fetch_market_value must be called
     without a symbol argument (it takes days: int). Never per-symbol."""
     source = MagicMock()
     source.fetch_market_value.return_value = pd.DataFrame({
@@ -247,7 +244,7 @@ def test_bulk_fetch_market_value_groupby_latest():
 
 
 def test_load_issued_capital_dtype_cast_to_str_float(tmp_path, monkeypatch):
-    """external audit Round 14 P0-2 FIX: issued_capital pickle may have int64
+    """issued_capital pickle may have int64
     issued_shares; loader must cast stock_id→str, issued_shares→float."""
     # Build a small pickle with mixed dtypes mimicking the real cache
     df = pd.DataFrame({
@@ -270,7 +267,7 @@ def test_load_issued_capital_dtype_cast_to_str_float(tmp_path, monkeypatch):
 
 
 def test_load_issued_capital_coverage_warning(tmp_path, monkeypatch, caplog):
-    """external audit Round 14 P0-2 FIX: when universe has symbols not in cache
+    """When universe has symbols not in cache
     (e.g. ETFs), log warning with missing list sample."""
     df = pd.DataFrame({
         "stock_id": ["1101"],
@@ -293,7 +290,7 @@ def test_load_issued_capital_coverage_warning(tmp_path, monkeypatch, caplog):
 
 
 def test_safe_fetch_propagates_backtest_cache_miss():
-    """external audit Round 14 P1-1 FIX: _safe_fetch MUST re-raise
+    """_safe_fetch MUST re-raise
     _BacktestCacheMissError (callers MUST NOT catch). Catching would
     silently fall through to live API in backtest mode."""
     def raising_fetch(symbol):
@@ -364,8 +361,8 @@ def test_tw_3m_stable_profile_has_5_new_weight_zero():
 
 def test_tw_6m_defensive_profile_has_5_new_weight_zero():
     """Structural: PORTFOLIO_PROFILES['tw_6m_defensive'] also ships with all
-    5 new factors at weight=0. external audit Round 16 coverage gap fix — Step 2
-    originally only locked tw_3m_stable profile; parallel lock for 6m too."""
+    5 new factors at weight=0. Coverage gap fix — originally only the
+    tw_3m_stable profile was locked; this is the parallel lock for 6m too."""
     merged = get_portfolio_config({"portfolio": {"profile": "tw_6m_defensive"}})
     sw = merged["score_weights"]
     for factor in ["high_proximity", "pead_eps", "margin_short_ratio",

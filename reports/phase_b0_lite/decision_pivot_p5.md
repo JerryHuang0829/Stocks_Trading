@@ -1,5 +1,10 @@
 # Phase B0-Lite → P5 Pivot Decision
 
+> **⚠ DSR 數字 superseded(pre-2026-05-28 buggy formula)**
+> 本決策引用的 `DSR Ψ = 0.0` 來自 unit-mismatched formula;重算後該 case
+> Ψ ≈ 0.5286,仍 < 0.95,**pivot 決策邏輯不變**(L5 turnover FAIL +
+> DSR 仍未過 0.95 雙 binding)。詳見 `reports/phase_d_v5/H_v5_1_dsr_amendment.md`。
+
 **決策日期**：2026-05-03
 **Decided by**：user 拍板選 A（嚴格 hypothesis 解讀）
 **Anchor commit**：`27e5fe6` (tag `phase-b0-baseline`)

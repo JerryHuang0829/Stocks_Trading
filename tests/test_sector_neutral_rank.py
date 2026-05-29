@@ -1,7 +1,7 @@
-"""Phase A3.1.1 tests: sector-neutral factor ranking.
+"""Sector-neutral factor ranking tests.
 
 Covers:
-- Backward compat: sector_neutral=False preserves Phase A2 cross-sectional rank
+- Backward compat: sector_neutral=False preserves the cross-sectional rank
 - Within-industry rank when >= 3 members
 - Small industries pool into _OTHER
 - Unknown / empty industry maps to _UNKNOWN, pooled with other small groups
@@ -14,9 +14,9 @@ from __future__ import annotations
 import pytest
 
 from src.portfolio.tw_stock import (
+    _group_items_by_industry,
     _metric_ranks,
     _metric_ranks_sector_neutral,
-    _group_items_by_industry,
     _rank_analyses,
 )
 
@@ -147,19 +147,19 @@ def test_sector_neutral_high_nan_ratio_flagged_unreliable():
 
 
 # ---------------------------------------------------------------------------
-# Group 2b: Phase A3.1.4 second-pass pool (small-valid groups deferred)
+# Group 2b: second-pass pool (small-valid groups deferred)
 # ---------------------------------------------------------------------------
 
 def test_sector_neutral_large_group_low_valid_pooled_into_second_pass():
-    """Phase A3.1.4: a group with len(group) >= min_size but < 2 valid factor
-    values must NOT silently skip — items pool into a second-pass bucket.
+    """A group with len(group) >= min_size but < 2 valid factor values must
+    NOT silently skip — items pool into a second-pass bucket.
 
-    Phase A3.1.4: group skipped → items pooled into second-pass bucket so the
+    When a group is skipped, its items pool into the second-pass bucket so the
         intra-group invalid count does not trigger a false >50% NaN flag.
 
-    Audit 2026-05-02 A.1 fix: invalid items now get `None` (not 0.5 median
-        imputation), and the per-symbol `_rank_analyses` re-normalization
-        excludes them from that symbol's weight_sum."""
+    Invalid items get `None` (not 0.5 median imputation), and the per-symbol
+        `_rank_analyses` re-normalization excludes them from that symbol's
+        weight_sum."""
     items = [
         # 金融業: 3 valid (ranks independently)
         _make_item("C1", "金融業", 10.0),
@@ -182,18 +182,17 @@ def test_sector_neutral_large_group_low_valid_pooled_into_second_pass():
     # Pool (A1=100, D1=50): A1 max → 1.0, D1 min → 0.5
     assert ranks["A1"] == pytest.approx(1.0)
     assert ranks["D1"] == pytest.approx(0.5)
-    # Invalid items now sentinel None (was 0.5 pre-A.1-fix)
+    # Invalid items now sentinel None (not 0.5 median imputation)
     assert ranks["A2"] is None
     assert ranks["D3"] is None
 
 
 def test_sector_neutral_second_pass_pool_itself_too_small_returns_none():
-    """Phase A3.1.4: if pool itself has < 2 valid values, single-observation
-    items cannot rank meaningfully.
+    """If the pool itself has < 2 valid values, single-observation items
+    cannot rank meaningfully.
 
-    Audit 2026-05-02 A.1 fix: such items return `None` (not 0.5 median);
-    `_rank_analyses` per-symbol normalization drops them from that symbol's
-    factor weight."""
+    Such items return `None` (not 0.5 median); `_rank_analyses` per-symbol
+    normalization drops them from that symbol's factor weight."""
     items = [
         # 金融業 ranks fine (all valid)
         _make_item("C1", "金融業", 10.0),
@@ -208,7 +207,7 @@ def test_sector_neutral_second_pass_pool_itself_too_small_returns_none():
     # Pool has only A1 valid → can't rank with 1 observation
     # has_real_data: 3/6 = 50% NOT > 50% → False
     assert not has_real  # 3/6 = 50%, threshold is strict >
-    # A1 cannot rank from a single-element pool → None (was 0.5 pre-A.1-fix)
+    # A1 cannot rank from a single-element pool → None (not 0.5 median)
     assert ranks["A1"] is None
     # 金融業 items still ranked
     assert ranks["C3"] == pytest.approx(1.0)
@@ -220,7 +219,7 @@ def test_sector_neutral_regression_d1_v3_scenario_global_coverage_above_50pct():
     thin sectors with < 2 valid → old behavior false-flagged has_real=False
     and raised the >50% NaN guard in backtest context.
 
-    After A3.1.4 fix, pool aggregates the thin-sector items so has_real=True."""
+    With the second-pass pool, thin-sector items aggregate so has_real=True."""
     items = [
         # 半導體業: 3 valid
         _make_item("S1", "半導體業", 1.0),
@@ -256,12 +255,12 @@ def test_sector_neutral_regression_d1_v3_scenario_global_coverage_above_50pct():
 
 
 # ---------------------------------------------------------------------------
-# Group 3: backward compat — default path preserves Phase A2 behavior
+# Group 3: backward compat — default path preserves cross-sectional behavior
 # ---------------------------------------------------------------------------
 
 def test_metric_ranks_default_cross_sectional_unchanged():
-    """Default call (sector_neutral=False) must match Phase A2 exact behavior:
-    industry is ignored, rank is global."""
+    """Default call (sector_neutral=False) must match the cross-sectional
+    behavior: industry is ignored, rank is global."""
     items = [
         _make_item("A1", "半導體業", 1.0),
         _make_item("A2", "半導體業", 2.0),
@@ -337,7 +336,7 @@ def test_rank_analyses_sector_neutral_metrics_config_read():
 
 def test_rank_analyses_empty_sector_neutral_metrics_identical_to_phase_a2():
     """Default config (no sector_neutral_metrics key) must produce identical
-    rank_components as Phase A2 behavior — regression guard."""
+    rank_components as the cross-sectional behavior — regression guard."""
     items = [
         _make_ranked_item("X1", "半導體業", pm_raw=1, pead_raw=10),
         _make_ranked_item("X2", "金融業", pm_raw=2, pead_raw=20),

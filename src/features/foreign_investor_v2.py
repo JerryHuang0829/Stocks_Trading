@@ -1,10 +1,10 @@
 """Foreign investor factor v2 (外資法人 aggregate; 三大法人 no 分點).
 
-2026-05-11 rename (R30 misnomer fix): 舊名 foreign_broker_v2 → 改為
-foreign_investor_v2. 舊名 "broker" 字面對應 FinMind ``Foreign_Dealer_Self``
-（外資自營商），但因子實際讀 ``Foreign_Investor``（外國法人 / QFII），所以
-"investor" 更精準。Function / filename / config key / JSON factor_name 全
-sync rename（archived JSON 內 factor_name 保留舊名為歷史 evidence）。
+Renamed from foreign_broker_v2 → foreign_investor_v2. 舊名 "broker" 字面對應
+FinMind ``Foreign_Dealer_Self``（外資自營商），但因子實際讀 ``Foreign_Investor``
+（外國法人 / QFII），所以 "investor" 更精準。Function / filename / config key /
+JSON factor_name 全 sync rename（archived JSON 內 factor_name 保留舊名為歷史
+evidence）。
 
 Improves over legacy `src/features/institutional.py::score_institutional`
 (實測 IC = -0.053 failed) by combining four persistence-oriented sub-signals
@@ -19,69 +19,65 @@ Sub-signals (all higher = more bullish):
 
     1. foreign_cum_ratio (weight 0.50)
        20D cumulative foreign dollar net / market_value (percent of mcap
-       bought). 2026-05-10 P0-B: changed from shares/NTD (= 1/price; bad
-       cross-section bias) to dollar/NTD (dimensionless ratio) per external audit
-       R26 audit. Weight 0.40 → 0.50 after consistency drop (P1-D).
+       bought). Dollar-denominated: changed from shares/NTD (= 1/price; bad
+       cross-section bias) to dollar/NTD (dimensionless ratio). Weight 0.50
+       after consistency drop.
 
-    2. persistence (weight 0.25, was 0.20)
+    2. persistence (weight 0.25)
        Fraction of last 20 days where foreign_net > 0.
 
-    3. rank_stability (weight 0.25, was 0.20)
+    3. rank_stability (weight 0.25)
        Fraction of last 60 days the symbol ranked in the top-20% by daily
-       foreign DOLLAR net / market_value. 2026-05-10 P0-B: also dollar-
-       denominated (was shares/NTD). Weight 0.20 → 0.25 after consistency
-       drop (P1-D).
+       foreign DOLLAR net / market_value. Also dollar-denominated (was
+       shares/NTD). Weight 0.25 after consistency drop.
 
-    4. consistency (weight 0.0, was 0.20)
+    4. consistency (weight 0.0)
        Fraction of last 20 days where BOTH Foreign_Investor AND
-       Investment_Trust were on the same side (net positive). 2026-05-10
-       P1-D 修法: deprecated weight to 0 per R26 (78% symbols have
-       consistency=0, std 0.094 vs persistence 0.171; low SNR).
+       Investment_Trust were on the same side (net positive). Deprecated to
+       weight 0 (78% symbols have consistency=0, std 0.094 vs persistence
+       0.171; low SNR).
 
 Composite = z-score(each sub-signal cross-sectionally) × weight, summed,
-and rescaled by actual covered weight (P1-E). Symbols requiring < 50%
-effective weight covered are dropped.
+and rescaled by actual covered weight. Symbols requiring < 50% effective
+weight covered are dropped.
 
 PIT: rows with date > as_of - INSTITUTIONAL_LAG_DAYS dropped. Stale-data
-guard (P1-C): symbols whose last 20 trading rows span > 35 calendar days
-are dropped (R26 reported max stale span 1475 days under old code).
+guard: symbols whose last 20 trading rows span > 35 calendar days are
+dropped (observed max stale span 1475 days under old code).
 """
 
 from __future__ import annotations
 
 from typing import Mapping
 
-import numpy as np
 import pandas as pd
 
 from src.utils.constants import INSTITUTIONAL_LAG_DAYS
 
-
 DEFAULT_MIN_HISTORY = 60  # need at least 60 days for rank_stability
-# P1-新7 + follow-up-2: module fallback; actual default now yaml-driven via
+# module fallback; actual default now yaml-driven via
 # `_rank_stability_min_universe()` so `config/factor_thresholds.yaml` edits
 # change behaviour without code changes.
 MIN_UNIVERSE_FOR_RANK_STABILITY = 50
 
-# 2026-05-11 R31 finding 4 fix: these module-level constants are now
-# FALLBACK DEFAULTS only. The live source of truth is
-# `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2`,
+# These module-level constants are FALLBACK DEFAULTS only. The live source of
+# truth is `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2`,
 # read at call time via `_subsignal_weights()` / `_last20_max_calendar_span_days()`
 # / `_rank_stability_top_pct()` (same pattern as `_rank_stability_min_universe()`).
 # Editing the yaml changes behaviour without touching code. The constants below
 # are kept (a) as fallbacks if the yaml lookup fails, and (b) as stable import
 # targets for tests/test_foreign_investor_v2_dollar_ratio.py.
 SUBSIGNAL_WEIGHTS = {
-    "foreign_cum_ratio": 0.50,   # 0.40 → 0.50 (P1-D 2026-05-10: redistribute consistency weight)
-    "persistence": 0.25,         # 0.20 → 0.25
-    "rank_stability": 0.25,      # 0.20 → 0.25
-    "consistency": 0.0,          # 0.20 → 0.0 (P1-D 2026-05-10: deprecated; R26 78% zero, low SNR)
+    "foreign_cum_ratio": 0.50,   # redistribute consistency weight
+    "persistence": 0.25,
+    "rank_stability": 0.25,
+    "consistency": 0.0,          # deprecated; 78% zero, low SNR
 }
 
-# 2026-05-10 P1-C: stale-data guard. 20 trading days ≈ 28 calendar days
-# normally; allow 25% slack at 35d. Symbols whose last20 calendar span
-# exceeds this are dropped (R26 reported max span 1475 days under
-# old code, indicating delisted / very stale series).
+# stale-data guard. 20 trading days ≈ 28 calendar days normally; allow 25%
+# slack at 35d. Symbols whose last20 calendar span exceeds this are dropped
+# (observed max span 1475 days under old code, indicating delisted / very
+# stale series).
 LAST20_MAX_CALENDAR_SPAN_DAYS = 35
 
 # rank_stability "top-pct" cut fallback (yaml: rank_stability_top_pct)
@@ -91,12 +87,12 @@ RANK_STABILITY_TOP_PCT = 0.20
 def _zscore_with_tolerance(col: pd.Series, tolerance: float = 1e-12) -> pd.Series:
     """Cross-sectional z-score with float-noise tolerance guard.
 
-    R8-1 fix: previously a closure inside
-    `compute_foreign_investor_v2_universe`, which blocked direct unit testing
-    of the guard logic. Extracted to module level so a mutation-proof test
-    can import it and verify that `std` below `tolerance` (e.g. 1e-13 from
-    float-accumulation noise on a near-constant column) correctly collapses
-    to 0.0 rather than producing pathological z-scores.
+    Previously a closure inside `compute_foreign_investor_v2_universe`, which
+    blocked direct unit testing of the guard logic. Extracted to module level
+    so a mutation-proof test can import it and verify that `std` below
+    `tolerance` (e.g. 1e-13 from float-accumulation noise on a near-constant
+    column) correctly collapses to 0.0 rather than producing pathological
+    z-scores.
 
     Behaviour unchanged from the previous inline version:
     - n < 3 observations → all 0.0 (insufficient data)
@@ -128,9 +124,9 @@ def _rank_stability_min_universe() -> int:
 def _subsignal_weights() -> dict[str, float]:
     """Resolve sub-signal weights from yaml (fallback to SUBSIGNAL_WEIGHTS).
 
-    2026-05-11 R31 finding 4 fix: was hardcoded SUBSIGNAL_WEIGHTS only;
-    now reads `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2.weights`
-    so the H_a1 amendment (and any future re-weighting) lives in one place.
+    Reads `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2.weights`
+    so the H_a1 amendment (and any future re-weighting) lives in one place
+    rather than hardcoded SUBSIGNAL_WEIGHTS only.
 
     Falls back to the module constant if the yaml section is missing or fails
     validation: (a) must be a dict with exactly the 4 known sub-signal keys,
@@ -195,7 +191,7 @@ def _pivot_long_to_wide(frame: pd.DataFrame) -> pd.DataFrame | None:
             working[col] = pd.to_numeric(working[col], errors="coerce").fillna(0)
     working["net"] = working["buy"] - working["sell"]
 
-    # P1-4: drop duplicate (date, name) rows before pivot so upstream double
+    # drop duplicate (date, name) rows before pivot so upstream double
     # publications cannot silently double-count a day's net flow. Keep the last
     # occurrence, matching FinMind "latest revision wins" semantics.
     working = working.drop_duplicates(subset=["date", "name"], keep="last")
@@ -237,12 +233,11 @@ def _compute_symbol_signals(
 ) -> dict:
     """Return dict with three or four sub-signals (floats or None).
 
-    2026-05-10 changes:
-      - P0-B: foreign_cum_ratio dollar-denominated (requires ``close_panel``).
+      - foreign_cum_ratio dollar-denominated (requires ``close_panel``).
         Skipped if close_panel missing rather than falling back to legacy
         shares/NTD ratio (which is dimensionally incorrect).
-      - P1-C: drop symbol if last20 calendar span > LAST20_MAX_CALENDAR_SPAN_DAYS.
-      - P1-D: consistency still computed (for inspection) but weight=0 in
+      - drop symbol if last20 calendar span > LAST20_MAX_CALENDAR_SPAN_DAYS.
+      - consistency still computed (for inspection) but weight=0 in
         SUBSIGNAL_WEIGHTS so it won't contribute to composite.
     """
     if market_value is None or market_value <= 0 or pd.isna(market_value):
@@ -256,9 +251,9 @@ def _compute_symbol_signals(
 
     last20 = wide.tail(20)
 
-    # P1-C 2026-05-10: stale-data guard. last20 spanning > N calendar days
-    # (yaml-driven; default 35) indicates delisted / dormant ticker — its
-    # sub-signals should not pollute the cross-section.
+    # stale-data guard. last20 spanning > N calendar days (yaml-driven;
+    # default 35) indicates delisted / dormant ticker — its sub-signals
+    # should not pollute the cross-section.
     if len(last20) >= 2:
         span_days = (last20.index[-1] - last20.index[0]).days
         if span_days > _last20_max_calendar_span_days():
@@ -269,7 +264,7 @@ def _compute_symbol_signals(
 
     out: dict[str, float] = {}
 
-    # 1) foreign_cum_ratio — P0-B 2026-05-10: dollar-denominated.
+    # 1) foreign_cum_ratio — dollar-denominated.
     #    cum (foreign_net × close) / market_value. Both numerator & denominator
     #    in NTD → dimensionless ratio (was shares ÷ NTD = 1/price under
     #    legacy code, which biased low-price stocks high in cross-section).
@@ -283,14 +278,14 @@ def _compute_symbol_signals(
                 )
                 out["foreign_cum_ratio"] = cum_dollar / float(market_value)
         # close_panel missing: skip foreign_cum_ratio rather than use legacy
-        # shares/NTD ratio. Caller's covered-weight rescale (P1-E) handles
-        # missing sub-signals.
+        # shares/NTD ratio. Caller's covered-weight rescale handles missing
+        # sub-signals.
 
     # 2) persistence
     if len(foreign_last20) >= 10:
         out["persistence"] = float((foreign_last20 > 0).sum()) / len(foreign_last20)
 
-    # 3) consistency — P1-D weight=0; computation kept for inspection only.
+    # 3) consistency — weight=0; computation kept for inspection only.
     if len(foreign_last20) >= 10:
         same_side = ((foreign_last20 > 0) & (trust_last20 > 0)).sum()
         out["consistency"] = float(same_side) / len(foreign_last20)
@@ -316,19 +311,18 @@ def _compute_rank_stability(
     others are silently dropped (caller's per_signal will also drop them via
     its own min_history check).
 
-    2026-05-10 P0-B: ratio is now dollar-denominated (foreign_net × close ÷
-    market_value) instead of shares/NTD. Symbols missing close panel data
-    are silently dropped (NaN handling identical to mv missing). Per-day
-    universe shrinks to symbols with both mv > 0 AND close available on
-    that day.
+    Ratio is dollar-denominated (foreign_net × close ÷ market_value) instead
+    of shares/NTD. Symbols missing close panel data are silently dropped (NaN
+    handling identical to mv missing). Per-day universe shrinks to symbols
+    with both mv > 0 AND close available on that day.
 
     `min_universe_size=None` (default) resolves from
-    `config/factor_thresholds.yaml :: factor_ic.min_universe_size.rank_stability`
-    (follow-up-2 yaml wiring). Pass an int explicitly to pin for tests.
+    `config/factor_thresholds.yaml :: factor_ic.min_universe_size.rank_stability`.
+    Pass an int explicitly to pin for tests.
 
     `top_pct=None` (default) resolves from `config/factor_thresholds.yaml ::
-    factor_specific.foreign_investor_v2.rank_stability_top_pct` (2026-05-11
-    R31 finding 4 fix). Pass a float explicitly to pin for tests.
+    factor_specific.foreign_investor_v2.rank_stability_top_pct`. Pass a float
+    explicitly to pin for tests.
     """
     if min_universe_size is None:
         min_universe_size = _rank_stability_min_universe()
@@ -345,7 +339,7 @@ def _compute_rank_stability(
         truncated = _truncate_by_date(wide, as_of=as_of, lag_days=lag_days)
         if len(truncated) < min_history:
             continue
-        # P0-B 2026-05-10: dollar denominator requires close panel
+        # dollar denominator requires close panel
         if close_by_symbol is None:
             continue
         close_series = close_by_symbol.get(symbol)
@@ -371,8 +365,8 @@ def _compute_rank_stability(
         # Drop ties at zero — all-zero days give noise ranking that distorts
         # tie-break downstream; require strictly-positive net to count as "top".
         positive = {s: v for s, v in sym_map.items() if v > 0}
-        # P1-新7: skip days whose positive-net cross-section is too small to
-        # produce a reliable top-20% cut (early universe, low coverage, etc.).
+        # skip days whose positive-net cross-section is too small to produce a
+        # reliable top-20% cut (early universe, low coverage, etc.).
         if len(positive) < min_universe_size:
             continue
         series = pd.Series(positive).sort_values(ascending=False)
@@ -398,20 +392,19 @@ def compute_foreign_investor_v2_universe(
     """Cross-sectional composite score for foreign_investor_v2.
 
     Each sub-signal is z-scored across the eligible universe and weighted-
-    summed; composite is then rescaled by actual covered weight (P1-E).
+    summed; composite is then rescaled by actual covered weight.
 
-    2026-05-10 changes:
-      - P0-B: ``close_by_symbol`` required for dollar-denominated cum_ratio
-        and rank_stability ratios. Pass {symbol: close_series} from caller.
-        If omitted, foreign_cum_ratio + rank_stability sub-signals are
-        skipped (composite then driven by persistence + consistency, which
-        is degenerate — only useful for tests).
-      - P1-D: consistency weight=0 in SUBSIGNAL_WEIGHTS (computed but no
-        longer contributes to composite).
-      - P1-E: composite rescaled by covered-weight; symbols with < 50%
-        effective weight covered are dropped instead of relying on
-        fillna(0.0) without rescale (which biased symbols missing
-        rank_stability toward zero composite).
+      - ``close_by_symbol`` required for dollar-denominated cum_ratio and
+        rank_stability ratios. Pass {symbol: close_series} from caller. If
+        omitted, foreign_cum_ratio + rank_stability sub-signals are skipped
+        (composite then driven by persistence + consistency, which is
+        degenerate — only useful for tests).
+      - consistency weight=0 in SUBSIGNAL_WEIGHTS (computed but no longer
+        contributes to composite).
+      - composite rescaled by covered-weight; symbols with < 50% effective
+        weight covered are dropped instead of relying on fillna(0.0) without
+        rescale (which biased symbols missing rank_stability toward zero
+        composite).
     """
     if aux_panel is not None and market_value_by_symbol is None:
         market_value_by_symbol = aux_panel
@@ -434,14 +427,14 @@ def compute_foreign_investor_v2_universe(
         mv = market_value_by_symbol.get(symbol)
         if mv is None or mv <= 0:
             continue
-        # P0-B: extract per-symbol close series for dollar denominator
+        # extract per-symbol close series for dollar denominator
         close_panel = None
         if close_by_symbol is not None:
             cs = close_by_symbol.get(symbol)
             if cs is not None and len(cs) > 0:
                 close_panel = cs
         # Rebuild the long_df-equivalent wide via direct call to helper to
-        # leverage P1-C stale guard. Pass the wide we already have via a
+        # leverage the stale guard. Pass the wide we already have via a
         # one-symbol institutional dict.
         signals = _compute_symbol_signals(
             long_df=institutional_by_symbol.get(symbol),
@@ -454,7 +447,7 @@ def compute_foreign_investor_v2_universe(
         if signals:
             per_signal[symbol] = signals
 
-    # Rank stability (needs cross-symbol panel per day) — P0-B requires close panel
+    # Rank stability (needs cross-symbol panel per day) — requires close panel
     rank_stab = _compute_rank_stability(
         wide_by_symbol,
         market_value_by_symbol,
@@ -472,7 +465,7 @@ def compute_foreign_investor_v2_universe(
     # Build per-signal cross-sectional z-scored frame
     df = pd.DataFrame.from_dict(per_signal, orient="index")
 
-    # P1-E 2026-05-10: covered-weight rescale.
+    # covered-weight rescale.
     # Old code: composite += weight * z.fillna(0.0). Symbols missing a
     # sub-signal got weight worth of 0, biasing them toward "average". New
     # code tracks per-symbol effective weight and rescales, so a symbol

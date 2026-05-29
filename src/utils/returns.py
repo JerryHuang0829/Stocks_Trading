@@ -1,4 +1,4 @@
-"""Gap-aware return computation — single source of truth (v8 prep, 2026-05-22 audit).
+"""Gap-aware return computation — single source of truth.
 
 Problem
 -------
@@ -8,7 +8,7 @@ cache gap — produces a single "return" that actually spans weeks, silently
 corrupting any risk metric (vol / Sharpe / MDD / TE) derived from it.
 
 Before this module, five call sites each rolled their own raw ``pct_change`` /
-``diff`` with no gap awareness (audit forensic-sweep 2026-05-22):
+``diff`` with no gap awareness:
 
   - src/backtest/engine.py   ``_compute_daily_returns``  (per-stock daily returns)
   - src/backtest/engine.py   benchmark daily returns
@@ -19,8 +19,8 @@ Before this module, five call sites each rolled their own raw ``pct_change`` /
 This module centralises the gap *detection* primitive so every site shares one
 threshold and one definition.
 
-Policy (2026-05-22 audit decision: FLAG-ONLY)
----------------------------------------------
+Policy (FLAG-ONLY)
+------------------
 Return values are **never altered** here — no winsorise, no drop, no spread.
 ``gap_aware_returns`` hands back the plain ``pct_change`` / log-diff series plus
 a :class:`GapReport`; the caller decides how to surface it (warn, mark a period

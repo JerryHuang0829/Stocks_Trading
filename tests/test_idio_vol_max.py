@@ -1,9 +1,9 @@
-"""V0.13 D-G idio_vol_max (0.5/0.5 IdioVol + MAX lottery) tests — Phase 2 S3.
+"""idio_vol_max (0.5/0.5 IdioVol + MAX lottery) tests.
 
 Verifies `src.features.idio_vol_max.compute_idio_vol_max_panel`:
-- 60 trading days residual std lookback (V0.13 lock)
+- 60 trading days residual std lookback
 - 22 trading days MAX lottery lookback (top-5 daily returns)
-- 0.5/0.5 weight split per H_d_v6:58
+- 0.5/0.5 weight split
 - Negation: low residual / low MAX = high score (long-only "good")
 - PIT shift=1
 - Edge cases (insufficient data / NaN / weights validation)
@@ -46,17 +46,17 @@ def _make_market_series(start: str, n_days: int, daily_returns: list[float]) -> 
 
 
 def test_idio_vol_max_default_weights_50_50():
-    """Sanity: DEFAULT_WEIGHTS = (0.5, 0.5) per H_d_v6:58 D-G spec."""
+    """Sanity: DEFAULT_WEIGHTS = (0.5, 0.5) — 0.5/0.5 IdioVol + MAX split."""
     assert DEFAULT_WEIGHTS == (0.5, 0.5)
 
 
 def test_idio_vol_max_default_residual_lookback_60():
-    """Sanity: DEFAULT_RESIDUAL_LOOKBACK_DAYS = 60 per V0.13 lock."""
+    """Sanity: DEFAULT_RESIDUAL_LOOKBACK_DAYS = 60 (residual std lookback)."""
     assert DEFAULT_RESIDUAL_LOOKBACK_DAYS == 60
 
 
 def test_idio_vol_max_default_max_lookback_22():
-    """Sanity: DEFAULT_MAX_LOOKBACK_DAYS = 22 (~1 month) per V0.13."""
+    """Sanity: DEFAULT_MAX_LOOKBACK_DAYS = 22 (~1 month)."""
     assert DEFAULT_MAX_LOOKBACK_DAYS == 22
 
 

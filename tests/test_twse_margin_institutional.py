@@ -1,6 +1,6 @@
 """Tests for TWSE/TPEX margin + institutional fetchers and backfill logic.
 
-Coverage (Phase A1 R11):
+Coverage:
   - TWSE MI_MARGN parser: field mapping 16 → FinMind cols
   - TPEX margin parser:   field-order difference (券賣/券買 swap)
   - TWSE T86 parser:      wide → FinMind long format (5 rows/sym)
@@ -11,26 +11,21 @@ Coverage (Phase A1 R11):
 """
 from __future__ import annotations
 
-import json
-import pickle
 from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
 import pandas as pd
-import pytest
 
 from src.data.twse_scraper import (
-    FINMIND_INSTITUTIONAL_COLS,
     FINMIND_MARGIN_SHORT_COLS,
-    _parse_int,
     _is_four_digit_stock,
-    fetch_twse_margin_daily_all,
+    _parse_int,
+    fetch_tpex_institutional_daily_all,
     fetch_tpex_margin_daily_all,
     fetch_twse_institutional_daily_all,
-    fetch_tpex_institutional_daily_all,
+    fetch_twse_margin_daily_all,
 )
-
 
 # ---------- _parse_int / _is_four_digit_stock ----------
 
@@ -188,7 +183,7 @@ def test_twse_t86_fetcher_produces_finmind_long_format():
 
 
 def test_twse_t86_fallback_to_allbut0999_when_all_returns_empty():
-    """Regression: 2026-04-17 observed: selectType=ALL returns empty
+    """Regression: selectType=ALL returns empty
     but ALLBUT0999 returns valid data. Fetcher must try ALLBUT0999 first."""
     first_call = {"stat": "OK", "data": [["2330", "台積電"] + ["0"] * 17]}
     calls = []

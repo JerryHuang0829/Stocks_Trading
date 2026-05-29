@@ -51,13 +51,13 @@ INSTITUTIONAL_LAG_DAYS = 2
 # 台股季報法定公告期限：Q1/Q2/Q3 為下季結束後 45 天，Q4 年報為次年 3/31（= 90 天）。
 # 舊值 60 天統一 blanket 對 Q4 不夠：Q4 date=12-31, as_of=02-15 時 cutoff=12-17
 # 會納入尚未公告的 Q4 EPS → look-ahead bias。
-# P1-1 修正：per-quarter lag，Q4 使用 90 天、Q1-Q3 使用 45 天。
+# per-quarter lag：Q4 使用 90 天、Q1-Q3 使用 45 天。
 # QUARTERLY_EPS_LAG_DAYS 保留為向後相容 fallback（若呼叫端不給 quarter-aware lag）。
 QUARTERLY_EPS_LAG_DAYS = 60
 QUARTERLY_EPS_LAG_DAYS_Q4 = 90
 QUARTERLY_EPS_LAG_DAYS_OTHER = 45
 
-# Balance sheet (Δassets) look-ahead 延遲（Phase 2 S2 add per V0.13 lock）。
+# Balance sheet (Δassets) look-ahead 延遲。
 # 台股 balance sheet 公告通常晚於 income statement 數天到 2 週；保守 60d
 # blanket lag 確保 PIT — Q4 balance sheet 90d income lag + 額外 buffer 仍 OK。
 # 用法：quality_v3 (D-E) Δassets 計算 + 任何需 balance sheet 數據的 factor。

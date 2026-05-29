@@ -32,7 +32,6 @@ import logging
 import os
 import pathlib
 import sys
-import time
 from datetime import datetime
 
 import pandas as pd
@@ -218,7 +217,6 @@ def _daily_tpex_update(
 
     Returns: (updated_count, failed_count)
     """
-    import time as _time
     from scripts.validate_cache import FinMindRotator, _finmind_raw_to_df
 
     today = as_of or datetime.now()

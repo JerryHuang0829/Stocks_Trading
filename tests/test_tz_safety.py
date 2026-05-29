@@ -7,7 +7,7 @@ raises ValueError. All UTC conversions should go through to_utc_ts().
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pandas as pd
 import pytest

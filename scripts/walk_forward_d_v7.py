@@ -1,11 +1,10 @@
 """S7 walk-forward bootstrap CI shell for L6 80% CI gate.
 
-Phase 2 Session 7 (2026-05-05) — H_d_v6 13 pre-commit #13 + V0.13 §"L6 80% CI"
-- 80% CI lower bound > 0 → L6 PASS (per H_d_v6:204)
+- 80% CI lower bound > 0 → L6 PASS
 - Stationary block bootstrap on per-cell monthly active returns (Politis-Romano 1994)
 - alpha=0.20 (80% CI), avg_block_len=3.0, n=10000, seed=42
 
-Stub-real split (per Plan v7.1 + S6.1 Path B):
+Stub-real split:
 - S7 STUB: function shell + tests against synthetic monthly active return fixtures
   (no real BacktestEngine — relies on cell_metrics.json from S6.1 d_cell_sweep_v7
   real run as input)
@@ -42,9 +41,9 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# V0.13 + 13 pre-commit #13 LOCKED constants
+# LOCKED constants
 # ---------------------------------------------------------------------------
-L6_ALPHA: float = 0.20  # 80% CI per pre-commit #13 (H_d_v6:204)
+L6_ALPHA: float = 0.20  # 80% CI
 L6_BOOTSTRAP_N: int = 10000  # n_iterations for cell-level monthly active returns
 L6_AVG_BLOCK_LEN: float = DEFAULT_AVG_BLOCK_LEN  # = 3.0
 L6_SEED: int = DEFAULT_SEED  # = 42
@@ -198,9 +197,9 @@ def main() -> None:
         print(f"  L6 bootstrap n: {L6_BOOTSTRAP_N}")
         print(f"  L6 avg_block_len: {L6_AVG_BLOCK_LEN}")
         print(f"  L6 seed: {L6_SEED} (deterministic)")
-        print(f"  Method: stationary_block_bootstrap_ci (Politis-Romano 1994)")
-        print(f"  S7 stub: real input from d_cell_sweep_v7.run_cell_sweep_real()")
-        print(f"            cell_monthly_active_returns.json (S6.1 user 端 18-cell run)")
+        print("  Method: stationary_block_bootstrap_ci (Politis-Romano 1994)")
+        print("  S7 stub: real input from d_cell_sweep_v7.run_cell_sweep_real()")
+        print("            cell_monthly_active_returns.json (S6.1 user 端 18-cell run)")
         return
 
     logger.info("Loading monthly active returns from %s", args.input_monthly_returns)

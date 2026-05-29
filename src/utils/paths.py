@@ -8,7 +8,7 @@ fallback for local (Windows) development. That asymmetry caused
 was unset on a workstation — the universe then fell back to stock_info order
 and produced garbage rankings without any error.
 
-Phase 0 V0.2 (R24 獨立 audit P0-2 fix, 2026-05-04):
+Windows partial-cache hazard:
     On Windows, ``Path("/app/data/cache").exists()`` resolves to
     ``E:\\app\\data\\cache`` (current drive root) which may be a stale partial
     cache from prior Docker volume mounts. That partial cache historically
@@ -42,7 +42,7 @@ def resolve_cache_dir() -> pathlib.Path:
       3. Project-root fallback ``<repo>/data/cache`` (always preferred on
          Windows; canonical local-dev path that the repo creates on first run).
 
-    Phase 0 V0.2 fix: ``/app/data/cache`` is NOT consulted on Windows because
+    ``/app/data/cache`` is NOT consulted on Windows because
     Windows path semantics resolve ``/app/...`` to the current drive root
     (e.g. ``E:\\app\\data\\cache``), which may exist as a stale Docker-mount
     artefact missing 4 of the 11 cache panels. Returning that partial cache

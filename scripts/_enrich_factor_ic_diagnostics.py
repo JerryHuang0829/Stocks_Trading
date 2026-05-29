@@ -9,8 +9,6 @@ Adds (from saved period_factor_scores + OHLCV cache):
   - pit_violation: {violated: false, fresh_rerun_date: "2026-05-10"} (overwrites
     the contaminated flag if present from pre-rerun JSON)
 
-Plan reference: (internal plan) Phase 3.
-
 Usage:
     python scripts/_enrich_factor_ic_diagnostics.py reports/factor_ic/foreign_investor_v2_ic.json
 """
@@ -187,14 +185,12 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
                 "max": float(np.max(valid)),
                 "n_periods": len(valid),
             }
-    # 2026-05-10 R28-5 fix: per-factor differentiated fixes_applied (was
-    # hardcoded foreign_broker-specific list which was provenance-bug for the
-    # 4 non-foreign factors that don't use cum_ratio / last20 / consistency /
-    # covered-weight composite).
-    # 2026-05-11 R31 finding 1 fix: Phase D 3 factors (quality_v3 /
-    # industry_momentum / idio_vol_max) were enriched by this same script so
-    # their JSON has schema parity with the Phase A1 5; the fixes_applied list
-    # for them describes the 2026-05-11 single-IC 補測 (not a fresh-rerun fix).
+    # per-factor differentiated fixes_applied (a hardcoded foreign_broker-specific
+    # list would be a provenance-bug for the 4 non-foreign factors that don't use
+    # cum_ratio / last20 / consistency / covered-weight composite).
+    # The 3 financial-statement factors below are enriched by this same script so
+    # their JSON has schema parity with the original 5; their fixes_applied list
+    # describes the single-factor IC 補測 (not a fresh-rerun fix).
     PHASE_D_FACTORS = ("quality_v3", "industry_momentum", "idio_vol_max")
     factor_name = d.get("factor_name", "unknown")
     if factor_name == "foreign_investor_v2":
@@ -216,9 +212,9 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
         ]
         violated = False
     elif factor_name in PHASE_D_FACTORS:
-        # Phase D 3 factors: brand-new single-factor IC 跑於 2026-05-11 via
+        # These 3 factors come from a brand-new single-factor IC run via
         # scripts/run_phase_d_factor_ic.py (CellSweepContext data sources).
-        # Never contaminated; previously only appeared inside the v7 cell-sweep
+        # Never contaminated; previously only appeared inside the cell-sweep
         # aggregate, not as a stand-alone IC report.
         fixes_applied = [
             "2026-05-11: NEW single-factor IC 補測 via run_phase_d_factor_ic.py "
@@ -230,8 +226,8 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
         ]
         violated = False
     else:
-        # high_proximity / revenue_momentum_v2 / pead_eps: aux_panel=None, not
-        # affected by R26+R27 PIT-aux修法; baseline rerun for cross-factor
+        # high_proximity / revenue_momentum_v2 / pead_eps: aux_panel=None, so not
+        # affected by the PIT-aux fixes; baseline rerun for cross-factor
         # consistency + universe extension to 2025-11.
         fixes_applied = [
             "No PIT-violated aux_panel (factor uses None aux); baseline rerun for cross-factor consistency",
@@ -265,7 +261,7 @@ def enrich(json_path: Path, fresh_rerun_date: str = "2026-05-10") -> None:
     print(f"  ic_ir: {overall.get('ic_ir')}", flush=True)
     if decile_avg_dict:
         keys = sorted(decile_avg_dict.keys(), key=int)
-        print(f"  decile_avg D0..D9:", flush=True)
+        print("  decile_avg D0..D9:", flush=True)
         for k in keys:
             print(f"    D{k}: {decile_avg_dict[k]:.6f}", flush=True)
     print(f"  monotonicity_rho: {mono_rho}", flush=True)

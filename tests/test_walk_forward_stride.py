@@ -1,7 +1,7 @@
-"""Phase A3.1.3 tests: _generate_windows step_months parameter.
+"""Tests for _generate_windows step_months parameter.
 
 Covers:
-- Backward compat: step_months=None -> defaults to test_months (Phase A2 behavior)
+- Backward compat: step_months=None -> defaults to test_months (non-overlapping stride)
 - Monthly stride (step_months=1) -> ~48 windows for 2019-2025 / 36mo train / 12mo test
 - 6-month stride gives the expected count
 - Correct window boundaries (train/test non-overlap within a window)
@@ -16,7 +16,7 @@ from scripts.walk_forward import _generate_windows
 
 def test_generate_windows_default_step_matches_phase_a2():
     """step_months=None -> behavior identical to explicit step=test_months.
-    Regression guard: previous Phase A2 WF used non-overlapping stride."""
+    Regression guard: WF previously used non-overlapping stride."""
     start = datetime(2019, 1, 1)
     end = datetime(2025, 12, 31)
     default = _generate_windows(start, end, train_months=36, test_months=12)
@@ -30,7 +30,7 @@ def test_generate_windows_default_step_matches_phase_a2():
 def test_generate_windows_monthly_stride_produces_48_slices_for_2019_2025():
     """step_months=1 with 36mo train + 12mo test + 2019-2025 (7 years) should
     produce roughly 4 slices per year non-overlapping equivalent extended via
-    1-month stride — Phase A3.1.3 canonical 48-slice config."""
+    1-month stride — canonical 48-slice config."""
     start = datetime(2019, 1, 1)
     end = datetime(2025, 12, 31)
     windows = _generate_windows(

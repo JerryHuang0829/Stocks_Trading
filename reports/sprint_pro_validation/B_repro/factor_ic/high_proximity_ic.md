@@ -25,7 +25,7 @@
 
 | Metric | Value | Interpretation |
 |--------|-------|----------------|
-| **DSR** (Deflated Sharpe) | **0.0000** | BLdP 2014: ≥0.95 significant. FAIL (single-factor signal weakness) |
+| **DSR** (Deflated Sharpe) | **0.7316** | BLdP 2014: ≥0.95 significant. FAIL (single-factor signal weakness) |
 | n_trials (DSR haircut) | 5 | conservative |
 | effective_n | 270 | industry-clustered (Pre-sprint -3~-4 due to industry label cache 增量) |
 | FDR adjusted p | — | only set after /ic-aggregate |

@@ -1,6 +1,7 @@
 """統一技術指標計算模組"""
 
 import logging
+
 import pandas as pd
 import pandas_ta as ta
 
@@ -60,7 +61,6 @@ def calculate_indicators(df: pd.DataFrame, strategy: dict) -> pd.DataFrame:
         df = df.join(bb_result)
         # 動態取得欄位名，對應 lower / mid / upper / bandwidth / percent
         for col in bb_cols:
-            col_lower = col.lower()
             if col.startswith('BBL'):
                 df = df.rename(columns={col: 'bb_lower'})
             elif col.startswith('BBM'):

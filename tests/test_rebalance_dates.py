@@ -9,7 +9,6 @@ import pytest
 
 from src.backtest.engine import BacktestEngine
 
-
 _gen = BacktestEngine._generate_rebalance_dates
 
 

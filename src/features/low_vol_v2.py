@@ -25,10 +25,10 @@ BAB replication.
 
 Retail-tractable: requires only cached OHLCV.
 
-Phase B0-Lite (2026-05-03): exists for single-factor IC spike under
-H_lite_preregistration. PIT discipline relies entirely on shift=1 + caller
-passing as_of (no separate cache layer; ohlcv cache already PIT-truncated by
-_DataSlicer in backtest mode).
+Exists for single-factor IC spike under H_lite_preregistration. PIT
+discipline relies entirely on shift=1 + caller passing as_of (no separate
+cache layer; ohlcv cache already PIT-truncated by _DataSlicer in backtest
+mode).
 """
 
 from __future__ import annotations
@@ -77,10 +77,9 @@ def compute_low_vol_v2_universe(
     (caller-friendly direction; aligns with `compute_high_proximity_universe`
     convention where higher = better).
 
-    Phase P5 Session 1 / R21 finding F5 fix (2026-05-03):
-        Bad data handling: explicit `close > 0` filter applied within the
-        rolling window (some halted / delisted stocks have stray close=0
-        rows that produce log(0)=-inf). Diagnostics counts dropped by reason.
+    Bad data handling: explicit `close > 0` filter applied within the
+    rolling window (some halted / delisted stocks have stray close=0
+    rows that produce log(0)=-inf). Diagnostics counts dropped by reason.
 
     Args:
         return_diagnostics: if True, return tuple (scores, diagnostics_dict).
@@ -95,7 +94,7 @@ def compute_low_vol_v2_universe(
         as_of_ts = as_of_ts.tz_localize(None) if as_of_ts.tz is not None else as_of_ts
 
     results: dict[str, float] = {}
-    n_gap = 0  # symbols with a calendar gap in their vol window (2026-05-22 audit)
+    n_gap = 0  # symbols with a calendar gap in their vol window
     diagnostics = {
         "dropped_for_no_close": 0,
         "dropped_for_zero_close": 0,
@@ -112,7 +111,7 @@ def compute_low_vol_v2_universe(
         if valid.empty:
             diagnostics["dropped_for_no_close"] += 1
             continue
-        # F5: explicit close > 0 filter (halted/delisted stocks may have
+        # explicit close > 0 filter (halted/delisted stocks may have
         # close=0 rows that propagate as log(0)=-inf into the std calc;
         # the std_val<=0 guard catches it but we want explicit count).
         n_before_zero_filter = len(valid)
@@ -151,8 +150,8 @@ def compute_low_vol_v2_universe(
     diagnostics["bad_data_count"] = sum(
         v for k, v in diagnostics.items() if k != "bad_data_count"
     )
-    # 2026-05-22 audit: calendar-gap flag — added AFTER bad_data_count so it is
-    # not folded into that sum (a gap does not drop the symbol, only flags it).
+    # calendar-gap flag — added AFTER bad_data_count so it is not folded into
+    # that sum (a gap does not drop the symbol, only flags it).
     diagnostics["symbols_with_calendar_gap"] = n_gap
     if n_gap:
         logger.warning(

@@ -280,7 +280,7 @@ def cmd_close(month_key: str):
     print(f"  {emoji} 損益：{total_profit:+,.0f} 元（{total_return:+.1%}）")
 
     if paper_symbols:
-        print(f"\n  --- Paper Trading 比對 ---")
+        print("\n  --- Paper Trading 比對 ---")
         print(f"  Paper 建議持股：{', '.join(sorted(paper_symbols))}")
         print(f"  實盤持股：{', '.join(sorted(real_symbols))}")
         print(f"  重疊率：{overlap_ratio:.0%}（{len(overlap)}/{len(paper_symbols)}）")

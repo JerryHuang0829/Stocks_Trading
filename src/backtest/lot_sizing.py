@@ -1,4 +1,4 @@
-"""Whole-lot position sizing — single source of truth (v8.1 realism fix, 2026-05-22).
+"""Whole-lot position sizing — single source of truth (v8.1 realism fix).
 
 Problem
 -------
@@ -9,8 +9,8 @@ hundreds of thousands — so a large share of the top-80 universe simply cannot 
 held. v7's continuous-weight backtest therefore carried an un-modelled optimistic
 bias. This module models the whole-lot constraint so the impact can be measured.
 
-Policy (v8.1 design lock — see plan stock-swirling-elephant.md)
---------------------------------------------------------------
+Policy (v8.1 design lock)
+-------------------------
 - Fixed equal slice per name: ``slice_i = nav / top_n`` (caller supplies the
   target weights; v8.1 uses 1/top_n each).
 - Within a slice, buy ``floor(slice / (price * LOT_SIZE))`` whole lots.
@@ -26,7 +26,7 @@ keeps v8.1 to a single variable. Odd-lot is a separate v8.1b sensitivity.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # Taiwan stock board lot = 1,000 shares. Single definition point.
 LOT_SIZE = 1000

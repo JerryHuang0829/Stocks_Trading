@@ -1,7 +1,7 @@
 """Quality factor (single-snapshot, B0-Lite spike only).
 
-⚠️ **DEPRECATED (Phase 2 S2, 2026-05-05)**: use `src/features/quality_v3.py`
-for PIT-correct profitability composite per H_d_v6 V0.13 D-E candidate spec.
+⚠️ **DEPRECATED**: use `src/features/quality_v3.py`
+for PIT-correct profitability composite (D-E candidate spec).
 This module retained for B0-Lite spike historical reference only — DO NOT
 use in PIT backtest context (refusal gate `assert_not_in_pit_backtest`
 remains active).
@@ -27,19 +27,19 @@ does NOT vary with the caller's `as_of`. Therefore:
     * Backtest at as_of=2020-01-31 still sees the most recent quarter's
       ROE / gross_margin (e.g. 2024-Q3) → look-ahead bias.
     * IC results from this factor are INFLATED. Expect 30-50% IC degradation
-      after the PIT-correct rewrite (Phase B0 full version).
+      after the PIT-correct rewrite (full version).
 
 This module exists ONLY to:
     * Spike the IC magnitude before committing to the 8-12 hr PIT rewrite.
     * Confirm coverage / turnover / active-return characteristics.
 
-Phase B0-Lite reject criteria treat this factor's IC ≤ 0.02 as a strong
+B0-Lite reject criteria treat this factor's IC ≤ 0.02 as a strong
 signal that PIT-correct version will be ≤ 0 (no edge); IC > 0.02 only weakly
-suggests Phase B0 full version is worth attempting.
+suggests the PIT-correct full version is worth attempting.
 
 DO NOT enable this factor in live `_rank_analyses` with backtest_context=True.
-A `RuntimeError` refusal gate enforces this (mirrors R19 audit A.2 pattern
-applied to fetch_financial_quality in src/portfolio/tw_stock.py:691).
+A `RuntimeError` refusal gate enforces this (mirrors the refusal-gate pattern
+applied to fetch_financial_quality in src/portfolio/tw_stock.py).
 ============================================================================
 
 Motivation: Asness-Frazzini-Pedersen 2014 ("Quality Minus Junk") documents
@@ -57,7 +57,6 @@ from typing import Mapping
 
 import numpy as np
 import pandas as pd
-
 
 DEFAULT_ROE_CLIP = (-0.50, 0.50)
 DEFAULT_GROSS_MARGIN_CLIP = (0.0, 1.0)
@@ -157,8 +156,8 @@ def compute_quality_v2_universe(
 def assert_not_in_pit_backtest(portfolio_config: dict | None) -> None:
     """Refusal gate: forbid quality_v2 use inside `_backtest_context=True`.
 
-    Mirrors src/portfolio/tw_stock.py:691 R19 audit A.2 refusal gate pattern.
-    Phase B0-Lite spike runs as a standalone batch script (no
+    Mirrors the refusal-gate pattern in src/portfolio/tw_stock.py.
+    The B0-Lite spike runs as a standalone batch script (no
     `_backtest_context` marker), so the gate is informational here. If a
     future caller wires quality_v2 into `_rank_analyses` with backtest
     context, this guard MUST trigger because single-snapshot quality is

@@ -29,7 +29,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--slippage-bps",
         type=int,
-        default=10,  # 對齊 settings.yaml:72 (R19 fix 補；舊 default=5 造成 D1_v2 baseline cost 低估 ~17%)
+        default=10,  # 對齊 settings.yaml；舊 default=5 造成 baseline cost 低估 ~17%
         help="Per-trade slippage assumption in basis points",
     )
     return parser.parse_args()
@@ -89,7 +89,7 @@ def _preflight_check(source, benchmark_symbol: str = "0050") -> bool:
     except Exception as exc:
         print(f"  [WARN] MonthRevenue (2330): {exc} — revenue factor will be zero")
 
-    # 5. Market Value — 監控用（不影響選股，P7 改用 close×volume 排序）
+    # 5. Market Value — 監控用（不影響選股，改用 close×volume 排序）
     try:
         df = source.fetch_market_value(days=5)
         if df is not None and not df.empty:

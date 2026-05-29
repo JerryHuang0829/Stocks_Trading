@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.portfolio.tw_stock import _rank_analyses, _select_positions, _calculate_position_weights
+from src.portfolio.tw_stock import _calculate_position_weights, _rank_analyses, _select_positions
 from tests.conftest import make_analysis
 
 

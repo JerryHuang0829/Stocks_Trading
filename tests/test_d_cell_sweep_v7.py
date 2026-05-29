@@ -1,4 +1,4 @@
-"""V0.13 Assertion 2 + 3 enforcement tests + 6 yaml schema validation — Phase 2 S4.
+"""Assertion 2 + 3 enforcement tests + 6 yaml schema validation.
 
 Verifies `scripts.d_cell_sweep_v7`:
 - Assertion 2: D-A pre-disqualification guard (string mutation catches typo)
@@ -6,8 +6,7 @@ Verifies `scripts.d_cell_sweep_v7`:
 - 6 yaml configs (D-B/C/D/E/F/G) load + schema validate + weights sum
 - Stub cell grid emits 18 cells (Assertion 3 runtime verify)
 
-Phase 2 S6 owner extends to real BacktestEngine wire-up; S4 tests use yaml
-schema fixture (per V1.2 active_corr stub pattern).
+Tests use a yaml schema fixture; real BacktestEngine wire-up is out of scope here.
 """
 from __future__ import annotations
 
@@ -15,7 +14,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -31,10 +29,10 @@ from scripts.d_cell_sweep_v7 import (  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# V0.13 Assertion 2 — D-A pre-disqualification guard
+# Assertion 2 — D-A pre-disqualification guard
 # ---------------------------------------------------------------------------
 def test_assertion_2_d_a_not_in_candidate_factor_sets():
-    """V0.13 Assertion 2: D-A MUST NOT be in CANDIDATE_FACTOR_SETS."""
+    """Assertion 2: D-A MUST NOT be in CANDIDATE_FACTOR_SETS."""
     assert "D-A" not in CANDIDATE_FACTOR_SETS
     # Mutation: if "D-A" added → module-level assertion would have raised at
     # import time; test passes only if module imports cleanly
@@ -57,10 +55,10 @@ def test_assertion_2_load_d_a_raises():
 
 
 # ---------------------------------------------------------------------------
-# V0.13 Assertion 3 — EXPECTED_N_TRIALS = 18
+# Assertion 3 — EXPECTED_N_TRIALS = 18
 # ---------------------------------------------------------------------------
 def test_assertion_3_expected_n_trials_eq_18():
-    """V0.13 Assertion 3 (cell-level): EXPECTED_N_TRIALS = 18 = 6 × 3."""
+    """Assertion 3 (cell-level): EXPECTED_N_TRIALS = 18 = 6 × 3."""
     assert EXPECTED_N_TRIALS == 18
     assert len(CANDIDATE_FACTOR_SETS) == 6
     assert len(TOP_N_VALUES) == 3
@@ -68,7 +66,7 @@ def test_assertion_3_expected_n_trials_eq_18():
 
 
 def test_assertion_3_top_n_values_locked():
-    """V0.13 pre-commit #7: top_n_values = (8, 12, 16) frozen."""
+    """top_n_values = (8, 12, 16) frozen."""
     assert TOP_N_VALUES == (8, 12, 16)
 
 
@@ -101,7 +99,7 @@ def test_yaml_schema_required_keys():
 
 
 def test_yaml_factor_weights_sum_to_one():
-    """Per H_d_v6:51-58: each candidate factor weights sum to 1.0 (±0.01 tolerance)."""
+    """Each candidate's factor weights sum to 1.0 (±0.01 tolerance)."""
     for cid in CANDIDATE_FACTOR_SETS:
         cfg = load_candidate_config(cid)
         total = sum(float(w) for w in cfg["factors"].values())
@@ -109,7 +107,7 @@ def test_yaml_factor_weights_sum_to_one():
 
 
 def test_yaml_top_n_values_locked_per_candidate():
-    """All 6 candidates use same top_n_values = [8, 12, 16] (pre-commit #7)."""
+    """All 6 candidates use same top_n_values = [8, 12, 16]."""
     for cid in CANDIDATE_FACTOR_SETS:
         cfg = load_candidate_config(cid)
         assert list(cfg["top_n_values"]) == [8, 12, 16], (
@@ -118,14 +116,14 @@ def test_yaml_top_n_values_locked_per_candidate():
 
 
 def test_yaml_d_e_uses_quality_v3_not_v2():
-    """V1.1c P1 #5 + V0.13: D-E MUST use quality_v3 (NOT quality_v2 deprecated)."""
+    """D-E MUST use quality_v3 (NOT quality_v2 deprecated)."""
     cfg = load_candidate_config("D-E")
     assert "quality_v3" in cfg["factors"], "D-E must use quality_v3 (V0.13 spec)"
     assert "quality_v2" not in cfg["factors"], "D-E must NOT use deprecated quality_v2"
 
 
 def test_yaml_d_f_uses_industry_momentum_6m_spec_source():
-    """D-F yaml spec_source mentions 6m / MG1999 (R24 §設計-5 lock)."""
+    """D-F yaml spec_source mentions 6m / MG1999."""
     cfg = load_candidate_config("D-F")
     assert "industry_momentum" in cfg["factors"]
     spec_source = cfg.get("spec_source", "")
@@ -135,7 +133,7 @@ def test_yaml_d_f_uses_industry_momentum_6m_spec_source():
 
 
 def test_yaml_d_g_uses_idio_vol_max_split_spec():
-    """D-G yaml spec_source mentions 0.5/0.5 split (R24 §設計-6)."""
+    """D-G yaml spec_source mentions 0.5/0.5 split."""
     cfg = load_candidate_config("D-G")
     assert "idio_vol_max" in cfg["factors"]
     spec_source = cfg.get("spec_source", "")
@@ -151,9 +149,8 @@ def test_yaml_unknown_candidate_raises():
 
 
 def test_yaml_d_d_has_3_factors_v0_14_no_revenue_v2():
-    """V0.14 R25-mid 獨立 audit P0-2 fix: D-D redesigned from 4-factor to
-    3-factor IR-weighted normalize (revenue_momentum_v2 移除 per pre-commit #8
-    V0.14 clarify). Verifies D-D V0.14 contains exactly 3 factors AND
+    """D-D redesigned from 4-factor to 3-factor IR-weighted normalize
+    (revenue_momentum_v2 移除). Verifies D-D contains exactly 3 factors AND
     revenue_momentum_v2 NOT in factors."""
     cfg = load_candidate_config("D-D")
     assert len(cfg["factors"]) == 3, (
@@ -172,16 +169,16 @@ def test_yaml_d_d_has_3_factors_v0_14_no_revenue_v2():
 
 
 def test_yaml_d_c_has_2_factors():
-    """D-C is the minimum 2-factor baseline per H_d_v6:54 (D1_v2 50/50)."""
+    """D-C is the minimum 2-factor baseline (D1_v2 50/50)."""
     cfg = load_candidate_config("D-C")
     assert len(cfg["factors"]) == 2
 
 
 def test_yaml_d_b_has_3_factors():
-    """D-B is 3-factor IR-weighted with 20% Margin cap per H_d_v6:53."""
+    """D-B is 3-factor IR-weighted with 20% Margin cap."""
     cfg = load_candidate_config("D-B")
     assert len(cfg["factors"]) == 3
-    # Margin cap: margin_short_ratio weight ≈ 0.20 (per R24 §設計-3)
+    # Margin cap: margin_short_ratio weight ≈ 0.20
     assert abs(cfg["factors"]["margin_short_ratio"] - 0.20) < 1e-6
 
 
@@ -203,34 +200,34 @@ def test_cell_grid_stub_includes_all_top_n():
 
 
 def test_cell_grid_stub_no_d_a_in_cells():
-    """V0.13 Assertion 2 runtime verify: no cell has candidate_id == 'D-A'."""
+    """Assertion 2 runtime verify: no cell has candidate_id == 'D-A'."""
     summary = run_cell_sweep_stub()
     for cell in summary["cells"]:
         assert cell["candidate_id"] != "D-A", "D-A leaked into cell grid (Assertion 2 violation)"
 
 
 # ---------------------------------------------------------------------------
-# V0.14 Assertion 2 強化 — composition-level forbidden check (P0-1 fix)
+# Assertion 2 強化 — composition-level forbidden check
 # ---------------------------------------------------------------------------
-# R25-mid 獨立 audit P0-1: D-C 50/50 ≡ D-A composition; existing string-only
-# Assertion 2 cannot catch. V0.14 adds module-level _composition_equals_forbidden()
-# helper + caller-side check in load_candidate_config(). These tests verify
-# composition equivalence catch.
+# D-C 50/50 ≡ D-A composition; the string-only Assertion 2 cannot catch this.
+# A module-level _composition_equals_forbidden() helper + caller-side check in
+# load_candidate_config() close the gap. These tests verify composition
+# equivalence catch.
 
 
 def test_v0_14_composition_helper_blocks_d_a_50_50():
-    """V0.14 P0-1 fix: _composition_equals_forbidden() catches D-A composition."""
+    """_composition_equals_forbidden() catches D-A composition."""
     from scripts.d_cell_sweep_v7 import _composition_equals_forbidden
     # D-A 50/50 forbidden composition MUST be caught
     assert _composition_equals_forbidden({"high_proximity": 0.50, "pead_eps": 0.50}) is True
-    # D-C V0.14 redesigned 0.40/0.60 must NOT be caught (legitimate variant)
+    # D-C redesigned 0.40/0.60 must NOT be caught (legitimate variant)
     assert _composition_equals_forbidden({"high_proximity": 0.40, "pead_eps": 0.60}) is False
     # Other 2-factor combinations also pass through
     assert _composition_equals_forbidden({"pead_eps": 0.50, "margin_short_ratio": 0.50}) is False
 
 
 def test_v0_14_composition_helper_decimal_robust():
-    """V0.14 P0-1 fix: rounded comparison handles 0.5000001 edge cases."""
+    """rounded comparison handles 0.5000001 edge cases."""
     from scripts.d_cell_sweep_v7 import _composition_equals_forbidden
     # 0.5000001 rounds to 0.5 (4 decimal places) → should be caught
     assert _composition_equals_forbidden({"high_proximity": 0.5000001, "pead_eps": 0.5000001}) is True
@@ -239,11 +236,11 @@ def test_v0_14_composition_helper_decimal_robust():
 
 
 def test_v0_14_load_yaml_with_d_a_composition_raises(tmp_path, monkeypatch):
-    """V0.14 P0-1 fix: load_candidate_config() rejects yaml whose composition
-    matches D-A even if candidate_id differs. Mutation reverts the V0.14 check
-    → load returns silently with D-A-equivalent candidate."""
-    from scripts.d_cell_sweep_v7 import load_candidate_config, CANDIDATE_FACTOR_SETS
-    # Create a temp yaml file masquerading as D-C with 50/50 (the bug external audit caught)
+    """load_candidate_config() rejects yaml whose composition matches D-A even
+    if candidate_id differs. Mutation reverts the composition check → load
+    returns silently with D-A-equivalent candidate."""
+    from scripts.d_cell_sweep_v7 import load_candidate_config
+    # Create a temp yaml file masquerading as D-C with 50/50 (the composition bug)
     fake_yaml_dir = tmp_path / "fake_d_v7"
     fake_yaml_dir.mkdir()
     fake_yaml = fake_yaml_dir / "D-C.yaml"
@@ -260,18 +257,18 @@ def test_v0_14_load_yaml_with_d_a_composition_raises(tmp_path, monkeypatch):
     # Patch the path resolver to point to our fake yaml
     import scripts.d_cell_sweep_v7 as cs
     monkeypatch.setattr(cs, "_candidate_yaml_path", lambda cid: fake_yaml)
-    # Loading the bad D-C must now raise V0.14 Assertion 2 violation
+    # Loading the bad D-C must now raise the Assertion 2 composition violation
     with pytest.raises(ValueError, match="V0.14 Assertion 2 FAIL"):
         load_candidate_config("D-C")
 
 
 def test_v0_14_real_d_c_loads_with_pead_weighted_60_40():
-    """V0.14 P0-1 fix: D-C V0.14 redesigned (0.40/0.60 PEAD-weighted) loads
-    cleanly without composition violation."""
+    """D-C redesigned (0.40/0.60 PEAD-weighted) loads cleanly without
+    composition violation."""
     cfg = load_candidate_config("D-C")
     assert cfg["candidate_id"] == "D-C"
     assert len(cfg["factors"]) == 2
-    # Weights ≠ 50/50 (V0.14 redesign)
+    # Weights ≠ 50/50 (PEAD-weighted redesign)
     assert abs(cfg["factors"]["high_proximity"] - 0.40) < 0.005
     assert abs(cfg["factors"]["pead_eps"] - 0.60) < 0.005
     # NOT equivalent to D-A
@@ -280,7 +277,7 @@ def test_v0_14_real_d_c_loads_with_pead_weighted_60_40():
 
 
 def test_v0_14_assertion_3_dynamic_matches_actual():
-    """V0.14 fix per external audit 建議: EXPECTED_N_TRIALS computed dynamically from
+    """EXPECTED_N_TRIALS computed dynamically from
     len(CANDIDATE_FACTOR_SETS) × len(TOP_N_VALUES); not just hardcoded 18."""
     from scripts.d_cell_sweep_v7 import (
         CANDIDATE_FACTOR_SETS,
@@ -289,21 +286,21 @@ def test_v0_14_assertion_3_dynamic_matches_actual():
     )
     # Dynamic identity holds regardless of hardcode
     assert EXPECTED_N_TRIALS == len(CANDIDATE_FACTOR_SETS) * len(TOP_N_VALUES)
-    # And currently == 18 per pre-commit lock
+    # And currently == 18 per locked grid
     assert EXPECTED_N_TRIALS == 18
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 Session 5 — Cell Sweep CLI 3 件 pre-flight gate tests
-# (per V1.1c P1 #18 + V1.2 §"L5 active_corr binding")
+# Cell Sweep CLI 3 件 pre-flight gate tests (cache coverage / lookback prereq /
+# smoke 1-fold; orchestration aggregates them before the cell sweep run)
 # ---------------------------------------------------------------------------
 import pandas as pd  # noqa: E402
 
 
 def test_s5_pre_flight_cache_coverage_gate_passes_with_real_cache():
-    """V1.1c P1 #18 gate 1: cache coverage threshold ≥ 95%; passes if real cache
-    has ≥ 76 valid OHLCV pkls (95% of 80) — true on developer machine post-S6
-    fresh-rerun. Verifies algorithm structure, not the absolute pass/fail."""
+    """Gate 1: cache coverage threshold ≥ 95%; passes if real cache
+    has ≥ 76 valid OHLCV pkls (95% of 80) — true on a developer machine after a
+    fresh re-run. Verifies algorithm structure, not the absolute pass/fail."""
     from scripts.d_cell_sweep_v7 import check_cache_coverage_gate
     from src.utils.paths import resolve_cache_dir
     cache_dir = resolve_cache_dir()
@@ -328,9 +325,9 @@ def test_s5_pre_flight_cache_coverage_missing_dir_fails(tmp_path):
 
 
 def test_s5_pre_flight_lookback_prereq_gate_returns_diagnostic():
-    """V1.1c P1 #18 gate 2: lookback prereq verifies OHLCV cache extends ≥
-    252 trading days BEFORE backtest_start. S5 stub-level: structural check."""
-    from scripts.d_cell_sweep_v7 import check_lookback_prereq_gate, MAX_FACTOR_LOOKBACK_DAYS
+    """Gate 2: lookback prereq verifies OHLCV cache extends ≥
+    252 trading days BEFORE backtest_start. Stub-level structural check."""
+    from scripts.d_cell_sweep_v7 import MAX_FACTOR_LOOKBACK_DAYS, check_lookback_prereq_gate
     from src.utils.paths import resolve_cache_dir
     cache_dir = resolve_cache_dir()
     backtest_start = pd.Timestamp("2024-01-01")
@@ -342,9 +339,9 @@ def test_s5_pre_flight_lookback_prereq_gate_returns_diagnostic():
 
 
 def test_s5_pre_flight_smoke_1_fold_gate_passes_d_c():
-    """V1.1c P1 #18 gate 3: smoke 1-fold gate with default candidate D-C
-    + top_n=8. S5 stub: validate yaml load + Assertion 2 composition check
-    + cell descriptor emission. Real backtest run @ S6."""
+    """Gate 3: smoke 1-fold gate with default candidate D-C
+    + top_n=8. Stub validates yaml load + Assertion 2 composition check
+    + cell descriptor emission; the real backtest run is out of scope here."""
     from scripts.d_cell_sweep_v7 import check_smoke_1_fold_gate
     passed, diag = check_smoke_1_fold_gate(candidate_id="D-C", top_n=8)
     assert passed is True
@@ -362,7 +359,7 @@ def test_s5_pre_flight_smoke_invalid_candidate_fails():
 
 
 def test_s5_pre_flight_smoke_invalid_top_n_fails():
-    """Mutation: top_n not in (8, 12, 16) → smoke FAILS (pre-commit #7)."""
+    """Mutation: top_n not in (8, 12, 16) → smoke FAILS."""
     from scripts.d_cell_sweep_v7 import check_smoke_1_fold_gate
     passed, diag = check_smoke_1_fold_gate(candidate_id="D-C", top_n=10)
     assert passed is False
@@ -370,8 +367,8 @@ def test_s5_pre_flight_smoke_invalid_top_n_fails():
 
 
 def test_s5_pre_flight_orchestration_returns_aggregated_verdict():
-    """V1.1c P1 #18 orchestration: run_pre_flight_gates aggregates 3 gates
-    into single verdict. S6 cell sweep MUST call this before 18-cell run."""
+    """Orchestration: run_pre_flight_gates aggregates 3 gates
+    into a single verdict. The cell sweep MUST call this before the 18-cell run."""
     from scripts.d_cell_sweep_v7 import run_pre_flight_gates
     from src.utils.paths import resolve_cache_dir
     cache_dir = resolve_cache_dir()

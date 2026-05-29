@@ -1,9 +1,9 @@
 """S8 sole_survivor lock + tag emit shell.
 
-Phase 2 Session 8 (2026-05-05) — H_d_v6 §"Candidate factor sets" + 13 pre-commit #9
+Candidate factor sets + pre-commit #9
 - Sole-survivor tie-break: highest IR > highest mean α (per pre-commit #9)
 - D-A pre-disqualification: NOT a fallback (per pre-commit #11)
-- Tag `phase-d-v7-complete` emit on Outcome-1 lock (per Plan v7.1 closeout flow)
+- Tag `phase-d-v7-complete` emit on Outcome-1 lock (closeout flow)
 
 Stub-real split:
 - S8 STUB: function shell + tests against synthetic cell_summary fixtures
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# 13 pre-commit #11 LOCKED constant — D-A is NOT a fallback (re-enforce)
+# pre-commit #11 LOCKED constant — D-A is NOT a fallback
 # ---------------------------------------------------------------------------
 DA_PREDISQUALIFIED_ID: str = "D-A"
 
@@ -116,7 +116,7 @@ def write_sole_survivor(
     cell_summary_outcome: str,
     output_path: pathlib.Path,
 ) -> None:
-    """Persist sole_survivor lock result to JSON for R25-final 獨立 audit.
+    """Persist sole_survivor lock result to JSON for 獨立 audit.
 
     Output schema:
         {
@@ -181,9 +181,9 @@ def main() -> None:
         print("sole_survivor_v7 V0.13 + 13 pre-commit #9/#11 spec lock summary:")
         print(f"  CANDIDATE_FACTOR_SETS: {CANDIDATE_FACTOR_SETS}")
         print(f"  D-A pre-disqualified (pre-commit #11): {DA_PREDISQUALIFIED_ID}")
-        print(f"  Tie-break (pre-commit #9): highest IR > highest mean α")
-        print(f"  Tag emit (Plan v7.1 closeout): phase-d-v7-complete (user runs)")
-        print(f"  S8 stub: real input from d_cell_aggregate_v7.aggregate_cell_results()")
+        print("  Tie-break (pre-commit #9): highest IR > highest mean α")
+        print("  Tag emit (Plan v7.1 closeout): phase-d-v7-complete (user runs)")
+        print("  S8 stub: real input from d_cell_aggregate_v7.aggregate_cell_results()")
         return
 
     logger.info("Loading cell_summary from %s", args.cell_summary)

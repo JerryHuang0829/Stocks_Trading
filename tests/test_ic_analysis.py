@@ -1,4 +1,4 @@
-"""Unit tests for src.analysis.ic_analysis (Phase A1 Pro IC Infrastructure)."""
+"""Unit tests for src.analysis.ic_analysis (Pro IC Infrastructure)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,6 @@ from src.analysis.ic_analysis import (
     regime_conditional_ic,
     stationary_block_bootstrap_ci,
 )
-
 
 # ---------------------------- Spearman IC ----------------------------
 
@@ -108,9 +107,9 @@ def test_bootstrap_ci_insufficient_samples():
 
 
 def test_bootstrap_ci_clamps_lower_bound_for_small_n():
-    """P1-新3B: with small n_bootstrap, lo_idx = int(alpha/2 * n) floors to 0.
+    """With small n_bootstrap, lo_idx = int(alpha/2 * n) floors to 0.
 
-    external audit (follow-up-5) noted the previous version of this test only asserted
+    The previous version of this test only asserted
     `ci[0] <= ci[1]` which the un-fixed code would also satisfy. This version
     specifically exercises the under-flow scenario: n=20 bootstrap iterations
     with alpha=0.05 yields lo_idx = int(0.025*20) = 0, which happens to be a
@@ -152,7 +151,7 @@ def test_bootstrap_ci_clamps_upper_bound_for_tiny_n():
     assert ci[0] <= ci[1]
 
 
-# ---------------------------- Stationary block bootstrap (P1-新3A) ----------------------------
+# ---------------------------- Stationary block bootstrap ----------------------------
 
 
 def test_stationary_block_bootstrap_wider_than_iid_for_ar1():
@@ -274,7 +273,7 @@ def test_permutation_baseline_null_distribution():
 
 
 def test_permutation_per_period_independent_seed_reproducibility():
-    """P1-新4: same base seed must yield deterministic null; different seed must shift it."""
+    """Same base seed must yield deterministic null; different seed must shift it."""
     rng = np.random.default_rng(7)
     symbols = [f"s{i}" for i in range(20)]
     periods_factor = []
@@ -305,11 +304,11 @@ def test_permutation_baseline_strong_signal_flagged_significant():
     assert result["conclusion"] == "significant_positive"
 
 
-# R3-2 -----------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 
 def test_permutation_p_value_never_exactly_zero():
-    """R3-2: `(count + 1) / (n + 1)` gives a discrete lower floor, even when
+    """`(count + 1) / (n + 1)` gives a discrete lower floor, even when
     the real IC beats every null draw. JSON consumers were previously
     misreading p_value_empirical=0 as 'absolute zero'."""
     symbols = [f"s{i}" for i in range(40)]
@@ -329,7 +328,7 @@ def test_permutation_p_value_never_exactly_zero():
     assert result["p_value_empirical_floor"] == pytest.approx(2.0 / 51, abs=1e-4)
 
 
-# ---------------------------- DSR + effective_n (P1-新5) ----------------------------
+# ---------------------------- DSR + effective_n ----------------------------
 
 
 def test_deflated_sharpe_more_trials_lower_confidence():
@@ -348,12 +347,11 @@ def test_deflated_sharpe_degenerate_inputs_return_none():
 
 
 def test_dsr_n_trials_required_explicit_v0_13_v1_1b():
-    """V1.1b mutation test (Plan v7 H_d_v6 V0.13 Assertion 3): n_trials must be
-    explicit kwarg. Silent default DEFAULT_DSR_N_TRIALS=5 retired to prevent
-    over-claim in v7 cell sweep (n_trials越小 DSR越寬, silent default 5 用於
-    18-cell sweep會 false PASS)."""
+    """Mutation test: n_trials must be an explicit kwarg. Silent default
+    DEFAULT_DSR_N_TRIALS=5 retired to prevent over-claim in cell sweep
+    (n_trials越小 DSR越寬, silent default 5 用於 18-cell sweep會 false PASS)."""
     import pytest
-    # Reverting V1.1b enforcement (re-adding silent default = 5) → this test
+    # Re-adding the silent default = 5 → this test
     # would PASS without raise → catches the regression.
     with pytest.raises(ValueError, match="n_trials must be explicit"):
         deflated_sharpe_ratio(0.5, n_obs=60)  # type: ignore[call-arg]
@@ -367,56 +365,111 @@ def test_deflated_sharpe_golden_n12_gumbel_asymp():
 
     Mutation guard against silent form switch (e.g. to BLdP 2014 Eq.(6)
     quantile-mixture). For N=12:
-        Gumbel asymp (current): E[max SR_0] ≈ 1.8957
-        BLdP Eq.(6) quantile-mix: E[max SR_0] ≈ 1.6648
+        Gumbel asymp (current): z_max ≈ 1.8957 (in standard-normal units)
+        BLdP Eq.(6) quantile-mix: z_max ≈ 1.6648
 
-    Test design: pass observed_sr = 1.8957 (= Gumbel-form E[max]). Under
-    Gumbel form, z = (1.8957 - 1.8957) / σ ≈ 0 → Ψ ≈ 0.5. Under Eq.(6)
-    form, z ≈ +1.09 → Ψ ≈ 0.86 → test fails, alerting reviewer to update
-    both the formula AND this golden value together (no silent drift).
-
-    See ic_analysis.py docstring §"Formula choice" + review report
-    reports/_audit/dsr_low_vol_v2_review_2026-05-19.md.
+    Unit-mixing fix: formula now correctly multiplies z_max
+    by sigma_SR to convert to SR units. Test redesigned: pass observed_sr =
+    sigma_SR × z_max(N=12) so z = 0 → Ψ ≈ 0.5.
+    For n_obs=63, var_sr at SR=sigma×z_max ≈ (1 + 0.5×SR²)/62 ≈ 0.0173,
+    sigma_SR ≈ 0.131, sr_at_threshold ≈ 0.131 × 1.8957 ≈ 0.249.
+    Switching to Eq.(6) z_max (1.6648) would give Ψ ≈ 0.62 → test fails.
     """
+    import math
+    sigma_under_null = math.sqrt(1.0 / (63 - 1))
+    z_max_gumbel = 1.8957
+    sr_at_threshold = sigma_under_null * z_max_gumbel
     psi = deflated_sharpe_ratio(
-        observed_sr=1.8957, n_obs=63, n_trials=12,
+        observed_sr=sr_at_threshold, n_obs=63, n_trials=12,
         skewness=0.0, kurtosis=3.0,
     )
     assert psi is not None
-    assert 0.49 < psi < 0.51, (
-        f"Expected Ψ ≈ 0.5 for Gumbel asymp form (observed = E[max_gumbel]). "
-        f"Got Ψ = {psi}. If you switched to BLdP Eq.(6) quantile-mixture form, "
-        f"update the formula AND this golden value together — Eq.(6) form "
-        f"would give Ψ ≈ 0.86 for this input."
+    # Slight deviation from 0.5 because kurtosis correction inflates var at SR>0
+    assert 0.40 < psi < 0.50, (
+        f"Expected Psi near 0.5 for SR = sigma_SR × z_max(Gumbel form). "
+        f"Got Psi = {psi}. If you switched to BLdP Eq.(6) quantile-mixture "
+        f"(z_max ~1.665), Psi would be ~0.62 — update formula AND this "
+        f"golden value together."
     )
 
 
-def test_deflated_sharpe_golden_low_vol_v2_robustness():
-    """Golden test: lock DSR ≈ 0 for low_vol_v2 spike case.
+def test_deflated_sharpe_unit_consistency_mutation():
+    """Mutation guard: if formula reverts to mixing SR units with z-units
+    (the unit-mixing bug), Psi will collapse to ~0 for moderate SR with
+    small n_obs. This test asserts Psi is NOT near zero for a typical case.
 
-    This is the canonical case from B0-Lite spike (reports/phase_b0_lite/
-    spike_results.json): IC IR=0.256, n_obs=62, n_trials=12. The DSR comes
-    out 0.0 under any reasonable BLdP-style form (Gumbel asymp / Eq.(6)
-    quantile-mix / Monte Carlo true) because z ≈ -10.6 to -12.6 → Ψ ≈ 0.
+    The buggy version computed
+        z = (observed_sr - z_max_in_standard_normal_units) / sigma_sr
+    which is dimensionally inconsistent. Corrected: multiply z_max by
+    sigma_sr first, giving E[max SR_0] in SR units.
 
-    A 2026-05-19 external review claimed this case "should be DSR ≈ 0.5442
-    with correct sigma scaling". That claim was independently verified as
-    mathematically invalid (see reports/_audit/dsr_low_vol_v2_review_
-    2026-05-19.md). This test asserts the result stays < 0.01 — a mutation
-    guard against re-introducing the rejected fix.
+    Test case: SR=0.30 (moderate positive), T=20, N=10.
+    Buggy: Psi ≈ 0
+    Corrected: Psi >> 0 (around 0.4-0.5 depending on kurtosis adjustment)
+    """
+    psi = deflated_sharpe_ratio(
+        observed_sr=0.30, n_obs=20, n_trials=10,
+        skewness=0.0, kurtosis=3.0,
+    )
+    assert psi is not None
+    assert psi > 0.20, (
+        f"Psi collapsed to near-zero ({psi}) for SR=0.30 / T=20 / N=10. "
+        f"This indicates the unit-mixing bug "
+        f"has been re-introduced. Expected Psi > 0.20 under correct BLdP."
+    )
+
+
+def test_deflated_sharpe_golden_low_vol_v2_corrected():
+    """Golden test: low_vol_v2 spike case under CORRECTED BLdP formula
+    (unit-mixing fix).
+
+    Canonical case from B0-Lite spike: IC IR=0.256, n_obs=62, n_trials=12.
+
+    Under CORRECTED formula (sigma_SR × z_max for E[max SR_0]):
+        sigma_SR = sqrt((1 + 0.5×0.256²) / 61) ≈ 0.131
+        z_max(N=12) ≈ 1.8957
+        E[max SR_0] = 0.131 × 1.8957 ≈ 0.249
+        z = (0.256 - 0.249) / 0.131 ≈ 0.054
+        Psi = Phi(0.054) ≈ 0.52
+
+    Under PRIOR (buggy) formula: Psi ≈ 0 (always, due to unit mismatch).
+
+    This test locks the CORRECTED behavior so the unit-mixing bug cannot
+    silently return.
     """
     psi = deflated_sharpe_ratio(
         observed_sr=0.256, n_obs=62, n_trials=12,
         skewness=0.0, kurtosis=3.0,
     )
     assert psi is not None
-    assert psi < 0.01, (
-        f"Expected DSR ≈ 0 for low_vol_v2 case (IC IR=0.256, n=62, n_trials=12). "
-        f"Got DSR = {psi}. A 2026-05-19 external review claimed this should be "
-        f"0.5442 — that claim is mathematically invalid (any reasonable BLdP-form "
-        f"gives ~0). If you got DSR > 0.01, you've likely changed the formula in "
-        f"a way that re-introduces the rejected over-confidence. See review at "
-        f"reports/_audit/dsr_low_vol_v2_review_2026-05-19.md."
+    assert 0.45 < psi < 0.60, (
+        f"Expected Psi ~0.5 for low_vol_v2 case under CORRECTED BLdP "
+        f"(SR=0.256 just above E[max SR_0]≈0.249). Got Psi={psi}. "
+        f"If <0.01, you likely reverted to the buggy unit-mixed formula."
+    )
+
+
+def test_deflated_sharpe_accepts_int_coercible_n_trials():
+    """Floats like 400.0 are int-coerced silently (forgiving normalization);
+    non-numeric types raise ValueError with a helpful message."""
+    psi_int = deflated_sharpe_ratio(0.5, n_obs=12, n_trials=400)
+    psi_float = deflated_sharpe_ratio(0.5, n_obs=12, n_trials=400.0)
+    assert psi_int == psi_float, "int and int-equivalent float must give same Psi"
+
+    import pytest
+    with pytest.raises(ValueError, match="int-coercible"):
+        deflated_sharpe_ratio(0.5, n_obs=12, n_trials="not-a-number")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="int-coercible"):
+        deflated_sharpe_ratio(0.5, n_obs=12, n_trials=[400])  # type: ignore[arg-type]
+
+
+def test_deflated_sharpe_negative_sr_semantic_psi_near_zero():
+    """Negative observed_sr is mathematically valid (Ψ → 0 means worse than
+    null's best-of-N); guard against future refactor that might raise on it."""
+    psi = deflated_sharpe_ratio(-0.5, n_obs=12, n_trials=400)
+    assert psi is not None, "negative SR must compute (not error)"
+    assert 0.0 <= psi < 0.1, (
+        f"negative SR={-0.5} should yield Psi near zero, got {psi}"
     )
 
 
@@ -440,17 +493,17 @@ def test_effective_n_empty_universe_returns_zero():
     assert effective_n_cluster([]) == 0
 
 
-# ---------------------------- effective_n as metadata (external audit Round 3.5) ----------------------------
+# ---------------------------- effective_n as metadata ----------------------------
 
 
 def test_compute_period_ic_stats_df_is_always_n_minus_one():
-    """After external audit Round 3.5: df = n_periods - 1 always (no override).
+    """df = n_periods - 1 always (no override).
 
     Previously we wired `effective_n_override` into Student-t df but that
     mixed a cross-sectional symbol-cluster metric into a time-series t-test
     and, because effective_n > n_periods in practice, actually LOWERED the
-    p-value (wrong direction of conservatism). external audit caught this with an
-    8-period / effective_n=40 example: p dropped from 0.0331 to 0.0117.
+    p-value (wrong direction of conservatism). An 8-period / effective_n=40
+    example shows the harm: p dropped from 0.0331 to 0.0117.
 
     The correct policy is: df is always (n - 1). effective_n is recorded
     as JSON metadata only.
@@ -466,7 +519,7 @@ def test_compute_period_ic_stats_df_is_always_n_minus_one():
 def test_factor_ic_report_effective_n_is_metadata_only():
     """Industry-cluster shrinkage must NOT change the overall p-value.
 
-    This is the direct antidote to external audit's Round 3.5 finding: compute two
+    This is the direct antidote to the df-mixing finding: compute two
     factor reports on the same period ICs, one with a heavily-clustered
     industry map and one with scattered (near-iid) labels, and verify that
     `overall.p_value` is identical between the two. Only the JSON metadata
@@ -501,7 +554,7 @@ def test_factor_ic_report_effective_n_is_metadata_only():
     # JSON echoes the metadata for post-hoc interpretation
     d = r_clustered.to_dict()
     assert d["effective_n"] is not None
-    # R5-5: cross-sectional metadata is top-level only, not duplicated in overall
+    # cross-sectional metadata is top-level only, not duplicated in overall
     assert "effective_n_cross_sectional" not in d["overall"]
     assert d["effective_n"] is not None
     # known_biases says "metadata only"
@@ -514,7 +567,7 @@ def test_factor_ic_report_dsr_n_obs_is_time_series_n():
     """DSR `n_obs` must be the time-series period count, never effective_n.
 
     Mertens (2002) variance is parameterised by time-series observations;
-    swapping in a cross-sectional symbol count (as the pre-external audit-3.5 version
+    swapping in a cross-sectional symbol count (as an earlier version
     did) made var_SR shrink and DSR p drop — the same dimension confusion.
     """
     rng = np.random.default_rng(7)
@@ -547,11 +600,11 @@ def test_factor_ic_report_dsr_n_obs_is_time_series_n():
 
 
 def test_factor_ic_report_stores_per_period_factor_scores():
-    """Phase A2 Step 4-prep canonical fix: FactorICResult must retain
-    per-period factor scores (symbol -> score dict) so that /ic-aggregate
-    can compute cross-factor correlation downstream. Pre-fix Phase A1
-    discarded the score vectors and only kept the scalar rank IC per period
-    (documented as skipped in phase_a1_summary.md's correlation section)."""
+    """FactorICResult must retain per-period factor scores
+    (symbol -> score dict) so that /ic-aggregate can compute cross-factor
+    correlation downstream. An earlier version discarded the score vectors
+    and only kept the scalar rank IC per period, which blocked the
+    correlation computation."""
     from src.analysis.ic_analysis import factor_ic_report
 
     rng = np.random.default_rng(11)
@@ -583,8 +636,9 @@ def test_factor_ic_report_stores_per_period_factor_scores():
 def test_factor_ic_report_per_period_scores_round_trip_json():
     """Schema must serialize cleanly through JSON round-trip — critical
     for /ic-aggregate reading from reports/factor_ic/*.json."""
-    from src.analysis.ic_analysis import factor_ic_report
     import json
+
+    from src.analysis.ic_analysis import factor_ic_report
 
     rng = np.random.default_rng(13)
     symbols = [f"stk{i:03d}" for i in range(20)]
@@ -646,7 +700,7 @@ def test_factor_ic_report_end_to_end():
     assert d["factor_name"] == "synthetic_pos"
     assert d["return_basis"] == "price_only"
     assert len(d["period_ics"]) == 6
-    # Phase A1 methodology-layer fields must be present in JSON schema
+    # Methodology-layer fields must be present in JSON schema
     assert d["bootstrap_method"] == "stationary_block"
     assert d["bootstrap_avg_block_len"] == pytest.approx(3.0)
     assert "deflated_sharpe_ratio" in d
@@ -657,24 +711,24 @@ def test_factor_ic_report_end_to_end():
     biases_joined = " | ".join(d["known_biases"])
     assert "effective_n" in biases_joined
     assert "stationary block" in biases_joined
-    # R3-3 boilerplate must always be present
+    # survivorship + price-only boilerplate must always be present
     assert "survivorship bias" in biases_joined
     assert "price-only" in biases_joined
-    # R3-1 boilerplate: DSR moments announced (either empirical or fallback)
+    # DSR moments announced (either empirical or fallback)
     assert ("DSR uses empirical" in biases_joined) or ("Gaussian moments" in biases_joined)
-    # R3-4 / R3-5: per-period transparency fields present in serialised period_ics
+    # per-period transparency fields present in serialised period_ics
     for p in d["period_ics"]:
         assert "tie_ratio" in p
         assert "n_excluded" in p
-    # R3-1 DSR moments echoed in top-level JSON for reproducibility
+    # DSR moments echoed in top-level JSON for reproducibility
     assert "deflated_sharpe_skewness" in d
     assert "deflated_sharpe_kurtosis" in d
-    # external audit Round 3.5: new transparency fields
+    # transparency fields for time-series n
     assert "deflated_sharpe_n_obs" in d
     assert d["deflated_sharpe_n_obs"] == d["n_periods"]  # time-series n, NOT effective_n
     assert "deflated_sharpe_moments_estimated" in d
     assert d["overall"]["t_df"] == d["n_periods"] - 1  # time-series df
-    # R5-5: cross-sectional effective_n lives at top level only;
+    # cross-sectional effective_n lives at top level only;
     # `overall` is time-series metadata. No duplicate serialisation.
     assert "effective_n_cross_sectional" not in d["overall"]
     assert "effective_n" in d
@@ -683,11 +737,11 @@ def test_factor_ic_report_end_to_end():
     assert sum(1 for b in lowered if "survivorship" in b) == 1
 
 
-# R3-1 -----------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 
 def test_factor_ic_report_dsr_falls_back_to_gaussian_for_small_n():
-    """R3-1: fewer than 4 period IC samples must fall back to (skew=0, kurt=3)."""
+    """Fewer than 4 period IC samples must fall back to (skew=0, kurt=3)."""
     symbols = [f"s{i}" for i in range(40)]
     periods = []
     dates = pd.date_range("2024-01-15", periods=3, freq="ME")
@@ -712,7 +766,7 @@ def test_factor_ic_report_dsr_falls_back_to_gaussian_for_small_n():
 
 
 def test_factor_ic_report_dsr_uses_empirical_moments_when_available():
-    """R3-1: >= 4 period ICs must yield empirically-estimated skew/kurtosis.
+    """>= 4 period ICs must yield empirically-estimated skew/kurtosis.
 
     We insert extreme period ICs to inflate the empirical kurtosis so it
     differs measurably from the Gaussian fallback (3.0).
@@ -737,7 +791,7 @@ def test_factor_ic_report_dsr_uses_empirical_moments_when_available():
     r = factor_ic_report("leptokurtic", periods, n_permutation=20)
     # Kurtosis must differ from Gaussian fallback (3.0) — empirical moments were used
     assert r.deflated_sharpe_kurtosis != 3.0
-    # Explicit estimated flag so external audit-style mutation ("dsr_skew_used = 0.0")
+    # Explicit estimated flag so a mutation ("dsr_skew_used = 0.0")
     # and ("dsr_kurt_used = 3.0") are both detectable via a single assertion
     assert r.deflated_sharpe_moments_estimated is True
     biases = " | ".join(r.known_biases)
@@ -745,11 +799,11 @@ def test_factor_ic_report_dsr_uses_empirical_moments_when_available():
 
 
 def test_factor_ic_report_dsr_skew_mutation_caught(monkeypatch):
-    """external audit C2 follow-up: the skew branch must be independently verifiable.
+    """The skew branch must be independently verifiable.
 
     Constructs a strongly skewed period IC distribution so that
     `r.deflated_sharpe_skewness` is **unambiguously non-zero**. A mutation
-    like `dsr_skew_used = 0.0` (external audit's Round 3.5 attack) would make this
+    like `dsr_skew_used = 0.0` would make this
     assertion fail, closing the gap the earlier test left open.
     """
     symbols = [f"s{i}" for i in range(40)]
@@ -793,11 +847,11 @@ def test_factor_ic_report_dsr_skew_mutation_caught(monkeypatch):
     )
 
 
-# R3-4 / R3-5 ----------------------------------------------------------
+# ---------------------------------------------------------------------
 
 
 def test_factor_ic_report_records_tie_ratio_and_exclusion():
-    """R3-4 + R3-5: high tie period surfaces tie_ratio>0.3 and n_excluded reflects alignment losses."""
+    """High tie period surfaces tie_ratio>0.3 and n_excluded reflects alignment losses."""
     symbols = [f"s{i}" for i in range(20)]
     # Period 1: all returns tied at +1% (limit-up) — tie_ratio should be 1.0
     factor1 = pd.Series(range(20), index=symbols, dtype=float)
@@ -846,17 +900,17 @@ def test_factor_ic_report_respects_industry_labels_for_effective_n():
     assert clustered.effective_n < baseline.effective_n
 
 
-# ---------------------------- external audit Round 5 mutation-proof tests ----------------------------
+# ---------------------------- mutation-proof tests ----------------------------
 
 
 def test_zero_variance_guard_tolerates_float_noise():
-    """R5-2: a series of identical-value ICs must be flagged as zero-variance.
+    """A series of identical-value ICs must be flagged as zero-variance.
 
-    Pre-R5 used `sd == 0` exact comparison. external audit showed that [0.2,0.2,0.2]
+    An earlier version used `sd == 0` exact comparison, but [0.2,0.2,0.2]
     still produced ic_ir ≈ 5.88e15 because of accumulation noise. The fix
     uses `sd < 1e-12` so float round-off falls into the guard branch.
 
-    Self-audit note (self-audit Round 5.5): an earlier version of this test used
+    Note: an earlier version of this test used
     `step = 1e-18` which is below the float epsilon of 0.1 (~1e-17), so the
     Python runtime silently collapsed the list back to exact-constant. The
     test was only exercising the exact-zero branch — the tolerance branch
@@ -886,7 +940,7 @@ def test_zero_variance_guard_tolerates_float_noise():
 
 
 def test_std_ic_preserves_precision_when_sd_is_tiny():
-    """R6-2: `round(sd, 4)` would collapse sd=1.58e-10 to 0.0, creating
+    """`round(sd, 4)` would collapse sd=1.58e-10 to 0.0, creating
     a serialised contradiction (std_ic=0.0 next to ic_ir=6.3e8). The fix
     uses `round(sd, 10)` so microscopic-but-above-guard standard deviations
     remain visible and downstream readers can reconcile the statistics.
@@ -895,7 +949,7 @@ def test_std_ic_preserves_precision_when_sd_is_tiny():
     vals = [0.1 + i * 1e-10 for i in range(5)]
     r = compute_period_ic_stats(vals)
     assert r["ic_ir"] is not None
-    # std_ic must be non-zero (external audit's failure mode): rounding to 10 digits
+    # std_ic must be non-zero: rounding to 10 digits
     # preserves the 1.58e-10 scale instead of showing 0.0.
     assert r["std_ic"] != 0.0, (
         f"std_ic collapsed to 0.0 despite sd being above the guard threshold; "
@@ -912,7 +966,7 @@ def test_zero_variance_guard_allows_small_but_measurable_sd():
     This pins the upper end of the tolerance window so a future regression
     that widens the guard (e.g. `sd < 1e-6`) is caught.
 
-    Self-audit note: `std_ic` in the output dict is `round(sd, 4)`, so tiny
+    Note: `std_ic` in the output dict is `round(sd, 4)`, so tiny
     sd values (~1e-10) are DISPLAYED as 0.0 even when the guard does not
     fire. Correctness therefore lives in `ic_ir` and `p_value` being
     non-None (the guard branch sets them to None).
@@ -930,13 +984,13 @@ def test_zero_variance_guard_allows_small_but_measurable_sd():
 
 
 def test_dedup_preserves_caller_custom_survivorship_note():
-    """R5-3: caller's unrelated note containing 'survivorship' must NOT
+    """Caller's unrelated note containing 'survivorship' must NOT
     suppress the canonical boilerplate.
 
-    Pre-R5 used substring keyword match → "my custom survivorship note" would
-    swallow the standard boilerplate. Post-R5 dedup only triggers when BOTH
-    sides match a canonical phrase (e.g. 'universe drawn from local cache
-    scan').
+    An earlier version used substring keyword match → "my custom survivorship
+    note" would swallow the standard boilerplate. The dedup now only triggers
+    when BOTH sides match a canonical phrase (e.g. 'universe drawn from local
+    cache scan').
     """
     symbols = [f"s{i}" for i in range(20)]
     periods = []
@@ -958,7 +1012,7 @@ def test_dedup_preserves_caller_custom_survivorship_note():
 
 
 def test_dedup_suppresses_canonical_duplicate():
-    """R5-3 companion: if caller passes a canonical-phrase survivorship
+    """If caller passes a canonical-phrase survivorship
     string (copy-paste from older version of this module), the boilerplate
     version IS correctly suppressed."""
     symbols = [f"s{i}" for i in range(20)]
@@ -980,7 +1034,7 @@ def test_dedup_suppresses_canonical_duplicate():
 
 
 def test_tie_ratio_none_on_degenerate_input():
-    """R5-4: _estimate_tie_ratio returns None (not 0.0) on degenerate input.
+    """_estimate_tie_ratio returns None (not 0.0) on degenerate input.
 
     Previously empty / single-value / all-NaN inputs returned 0.0, silently
     masking 'unknown' as 'no ties'.
@@ -997,7 +1051,7 @@ def test_tie_ratio_none_on_degenerate_input():
 
 
 def test_per_panel_min_obs_yaml_dict_is_respected():
-    """R5-1: production YAML ships a per-panel dict under
+    """Production YAML ships a per-panel dict under
     universe.min_obs_per_symbol. Quarterly panels must get the intended
     small threshold (12) rather than the daily default (250)."""
     from src.utils import thresholds
@@ -1005,19 +1059,19 @@ def test_per_panel_min_obs_yaml_dict_is_respected():
     # Force a reload from the real repo yaml (not test monkeypatch)
     thresholds._cache = None
     thresholds._cache_source = None
-    data = thresholds.load_factor_thresholds(reload=True)
+    thresholds.load_factor_thresholds(reload=True)
     quarterly_bar = thresholds.per_panel_min_obs("quarterly_eps")
     revenue_bar = thresholds.per_panel_min_obs("revenue")
     ohlcv_bar = thresholds.per_panel_min_obs("ohlcv")
-    # Post-R5-1 per-panel values
+    # Expected per-panel values
     assert quarterly_bar == 12, f"quarterly_eps expected 12, got {quarterly_bar}"
     assert revenue_bar == 24, f"revenue expected 24, got {revenue_bar}"
     assert ohlcv_bar == 250
 
 
 def test_per_panel_min_obs_scalar_override_has_safety_net(monkeypatch):
-    """R5-1 defensive fallback: if someone writes
-    `universe.min_obs_per_symbol: 250` as a scalar (external audit-observed
+    """Defensive fallback: if someone writes
+    `universe.min_obs_per_symbol: 250` as a scalar (a known
     regression mode), per_panel_min_obs must still work and fall back to
     the scalar rather than raising."""
     from src.utils import thresholds
@@ -1038,3 +1092,28 @@ def test_per_panel_min_obs_scalar_override_has_safety_net(monkeypatch):
     assert thresholds.per_panel_min_obs("ohlcv") == 250
     assert thresholds.per_panel_min_obs("quarterly_eps") == 250
     assert thresholds.per_panel_min_obs("revenue") == 250
+
+
+def test_deflated_sharpe_n_trials_rejects_non_integer_and_non_finite():
+    """n_trials must be a whole positive integer family size.
+
+    Whole-valued floats are accepted (== their int); fractional floats, bool,
+    and non-finite values raise ValueError instead of silently truncating
+    (400.5 -> 400) or leaking a raw OverflowError (inf).
+    """
+    # whole-valued float accepted and equals the int result
+    assert (
+        deflated_sharpe_ratio(0.5, n_obs=120, n_trials=400.0)
+        == deflated_sharpe_ratio(0.5, n_obs=120, n_trials=400)
+    )
+    # fractional float -> ValueError (no silent truncation to 400)
+    with pytest.raises(ValueError):
+        deflated_sharpe_ratio(0.5, n_obs=120, n_trials=400.5)
+    # bool -> ValueError (int(True)=1 would silently give Psi=1.0)
+    with pytest.raises(ValueError):
+        deflated_sharpe_ratio(0.5, n_obs=120, n_trials=True)
+    # non-finite -> ValueError (inf previously leaked raw OverflowError)
+    with pytest.raises(ValueError):
+        deflated_sharpe_ratio(0.5, n_obs=120, n_trials=float("inf"))
+    with pytest.raises(ValueError):
+        deflated_sharpe_ratio(0.5, n_obs=120, n_trials=float("nan"))

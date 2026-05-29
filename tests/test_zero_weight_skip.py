@@ -7,9 +7,9 @@ This saves API quota and reduces failure surface.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -18,8 +18,8 @@ from src.portfolio.tw_stock import _analyze_symbol
 
 def _make_source(ohlcv_len=300):
     """Create a mock source with enough OHLCV data to pass history check."""
-    import pandas as pd
     import numpy as np
+    import pandas as pd
 
     source = MagicMock()
 
@@ -108,7 +108,7 @@ class TestQualityZeroWeight:
                 "revenue_momentum": 0.25,
             },
         }
-        result = _analyze_symbol(
+        _analyze_symbol(
             _make_sym_config(), source, {}, config,
             as_of=datetime(2024, 12, 31),
         )
@@ -149,7 +149,7 @@ class TestInstitutionalZeroWeight:
                 "institutional_flow": 0.10,
             },
         }
-        result = _analyze_symbol(
+        _analyze_symbol(
             _make_sym_config(), source, {}, config,
             as_of=datetime(2024, 12, 31),
         )

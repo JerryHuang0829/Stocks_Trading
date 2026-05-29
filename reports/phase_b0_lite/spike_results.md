@@ -1,5 +1,13 @@
 # Phase B0-Lite Spike Results — low_vol_v2
 
+> **⚠ SUPERSEDED — pre-2026-05-28 buggy DSR formula**
+> DSR values below were computed with the unit-mismatched
+> `ic_analysis.deflated_sharpe_ratio` (z 拿 standard-normal units 直接減 SR
+> units),systematically near-zero。已於 2026-05-28 修正(`expected_max_sr
+> = sigma_sr × z_max`);重算後 low_vol_v2 case Ψ ≈ 0.5286(non-trivial),
+> 仍 < 0.95 但 verdict 不變。L5 turnover FAIL 是 binding constraint,DSR
+> 非主因。詳見 `reports/phase_d_v5/H_v5_1_dsr_amendment.md`。
+
 **執行日期**：2026-05-03 17:51
 **Sample period**：2019-01-01 ~ 2024-12-31 (historical validation set)
 **Universe**：top-80 by close × volume per rebalance
@@ -10,10 +18,10 @@
 ## Reject Criteria 評估
 
 - **L1 (quality_v2 IC)** — DEFERRED to full B0 (cache 不存在 + lookahead bias)
-- **L2 (low_vol_v2 IC > 0.02)**：✅ PASS — mean IC = 0.0584, DSR = 0.0
+- **L2 (low_vol_v2 IC > 0.02)**：✅ PASS — mean IC = 0.0584, DSR = 0.0 *(superseded; 重算 ≈ 0.5286)*
 - **L4 (coverage ≥ 60%)**：✅ PASS — mean coverage = 96.4%
 - **L5 (turnover < 30%/月)**：❌ FAIL — mean monthly one-way turnover = 37.5%
-- **L_DSR (Ψ ≥ 0.95 per H_lite hypothesis line 28)**：❌ FAIL — DSR Ψ = 0.0
+- **L_DSR (Ψ ≥ 0.95 per H_lite hypothesis line 28)**：❌ FAIL — DSR Ψ = 0.0 *(superseded; 重算 ≈ 0.5286,仍 < 0.95)*
 
 ---
 

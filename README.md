@@ -21,7 +21,7 @@
 
 ## 結論（誠實揭露）
 
-最終的多因子 long-only 驗證階段（**v3.3**，舊代號 Phase D v7；新舊代號對照見 [docs/版本對照表.md](docs/版本對照表.md)）：
+最終的多因子 long-only 驗證階段（**v3.3**，舊代號 Phase D v7；新舊代號對照見 [docs/CHANGELOG.md 附錄](docs/CHANGELOG.md)）：
 
 - **18 種策略** = 6 個候選因子組合 × 3 種持股數 {8, 12, 16}
 - 每種跑 **6 道事前鎖定的 hard gate**：IR / 月超額 α / Tracking Error / Max Drawdown 偏離 / A1 主動性 aggregate gate / 80% stationary block bootstrap CI 下界
@@ -36,7 +36,7 @@
 
 - external audit anchor `aba7459` + 18-cell run → audit 最終回合 verdict CONFIRM-NO-GO；self-audit 獨立確認：evaluator JSON 0 mismatch / L6 bootstrap CI lowers re-compute match stored / DSR=0 by design（n=60、k=18 trials、90% trial penalty）/ `_build_financial_history` period 從 2019-12-31 推到 2026-03-31（v3.3.5 修法後）/ no new P0
 - 5 個 P0 silent bug 修法（**v3.3.1–v3.3.5**，舊代號 V0.22–V0.26）：FinMind transient error 分類 / universe build PIT-safe filter / 0050 dividend 強制 / `_build_financial_history` join overlap / TSMC NetIncome 2020+ NaN（FinMind schema change）→ `NetIncome.fillna(IncomeAfterTaxes)`
-- 完整迭代鏈見 [docs/CHANGELOG.md](docs/CHANGELOG.md)，新舊代號對照見 [docs/版本對照表.md](docs/版本對照表.md)
+- 完整迭代鏈見 [docs/CHANGELOG.md](docs/CHANGELOG.md)，新舊代號對照見 [docs/CHANGELOG.md 附錄](docs/CHANGELOG.md)
 
 </details>
 
@@ -124,7 +124,7 @@ docs/                          研究文件
 ## 名詞速查（看到代號不迷路）
 
 **版本代號**（舊 Phase A1·A2·A3 / Phase D v6·v7 / V0.x / R0x / P0–P7 等）已統一為線性 `vN.M` —
-完整新舊對照見 [docs/版本對照表.md](docs/版本對照表.md)。下表只列**非版本的領域代號**。
+完整新舊對照見 [docs/CHANGELOG.md 附錄](docs/CHANGELOG.md)。下表只列**非版本的領域代號**。
 
 | 代號 | 是什麼 |
 |---|---|
@@ -241,9 +241,8 @@ python scripts/run_phase_d_factor_ic.py --factor industry_momentum
 
 | 文件 | 內容 |
 |---|---|
-| [docs/版本對照表.md](docs/版本對照表.md) | 版本代號對照（舊代號 ↔ `vN.M`）|
 | [docs/research-findings.md](docs/research-findings.md) | 完整因子研究結論 + 版本路徑 |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 完整迭代紀錄（舊代號對照見版本對照表）|
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 完整迭代紀錄 + 版本代號對照（文末附錄）|
 | [reports/phase_d/H_d_v6_preregistration.md](reports/phase_d/H_d_v6_preregistration.md) | v3.x 假設 pre-registration（6 candidates / 6 hard gates / 13 pre-commit）|
 | [reports/phase_d/v7_outcome2_summary.md](reports/phase_d/v7_outcome2_summary.md) | **v3.3 正式結案**（Outcome-2 / 0 cell 過 6/6 / no paper trade）|
 | [reports/phase_d/cell_sweep_v7_2026_05_06/cell_summary.json](reports/phase_d/cell_sweep_v7_2026_05_06/cell_summary.json) | **18-cell canonical 結果**（CONFIRM-NO-GO 證據）|

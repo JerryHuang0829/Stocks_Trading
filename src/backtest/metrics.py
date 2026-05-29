@@ -125,7 +125,7 @@ def adjust_splits_ohlc(ohlc: pd.DataFrame) -> pd.DataFrame:
     classifier misfire).
 
     Used by:
-        - ``scripts/_factor_ic_helpers._compute_regimes`` (Codex R1 P1-4 fix)
+        - ``scripts/_factor_ic_helpers._compute_regimes``
 
     Parameters
     ----------
@@ -428,7 +428,7 @@ def compute_metrics(
             result["beta"] = round(beta, 4)
 
             # Default to price_only; engine.py overrides to "total_return"
-            # when dividend data is available (P4.5).
+            # when dividend data is available.
             result["benchmark_type"] = "price_only"
         elif not aligned.empty:
             logger.warning(

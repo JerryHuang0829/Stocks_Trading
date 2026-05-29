@@ -26,7 +26,6 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 

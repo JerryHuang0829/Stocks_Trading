@@ -1,8 +1,8 @@
-"""Phase A2 Step 1.5 tests: shared _batch_precompute_and_analyze helper +
+"""Tests for the shared _batch_precompute_and_analyze helper +
 _rank_analyses silent renormalize guard + BacktestEngine _backtest_context marker.
 
-Addresses external audit Round 14-plan-review P0-1 (duplicate analyze loop) and P0-2
-(silent renormalize false-positive). These tests exist purely to lock in the
+Locks in two fixes: duplicate analyze loop (deduplicated into the shared helper)
+and silent renormalize false-positive. These tests exist purely to lock in the
 refactored behavior — no new business logic.
 """
 
@@ -11,7 +11,7 @@ from __future__ import annotations
 import copy
 import logging
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -19,7 +19,6 @@ from src.portfolio.tw_stock import (
     _batch_precompute_and_analyze,
     _rank_analyses,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures local to this file
@@ -60,7 +59,7 @@ def test_helper_returns_list_same_length_as_universe():
 
 def test_helper_error_stub_has_exactly_five_keys():
     """When _analyze_symbol raises, stub dict must have the canonical 5 keys
-    (symbol/name/eligible/filters/industry) — same keys the pre-1.5 inline loops
+    (symbol/name/eligible/filters/industry) — same keys the former inline loops
     produced in both callers. Lock-in via exact set comparison."""
     universe = [{"symbol": "2330", "name": "台積電", "industry": "半導體業"}]
     with patch("src.portfolio.tw_stock._analyze_symbol", side_effect=ValueError("boom")):

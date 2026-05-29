@@ -1,4 +1,4 @@
-"""v5.0 Step 4a-3 — Integration smoke: full 2020-2024 IS training matrix.
+"""v5.0 ML pooling integration smoke: full 2020-2024 IS training matrix.
 
 End-to-end exercise of `ml_pooling.build_training_matrix()` +
 `ml_features.compute_feature_panel()` against real cache data.
@@ -7,10 +7,9 @@ Purpose:
   - Verify the full pipeline produces the expected ~75-78K row matrix
   - Validate schema + OOS boundary + diagnostics work on real data
   - Surface universe drift / missing-feature attrition for review
-  - Pre-engineering sanity check BEFORE Step 4b (contextual features) +
-    Step 4c (CPCV) + Step 4d (ML models)
+  - Pre-engineering sanity check before contextual features + CPCV + ML models
 
-NOT a production run — output is for v5.0 4a smoke validation only.
+NOT a production run — output is for ML pooling smoke validation only.
 
 Output:
   reports/phase_d_v5/v5_4a_smoke_summary.json (row count, drop counts, per-period)
@@ -48,7 +47,6 @@ from src.analysis.ml_features import LOCKED_FEATURE_NAMES, compute_feature_panel
 from src.analysis.ml_pooling import PoolingConfig, build_training_matrix  # noqa: E402
 from src.backtest.engine import BacktestEngine  # noqa: E402
 from src.backtest.metrics import adjust_splits_ohlc  # noqa: E402
-from src.utils.config import load_config  # noqa: E402
 from src.utils.paths import resolve_cache_dir  # noqa: E402
 
 logger = logging.getLogger("ml_pooling_smoke")
@@ -62,7 +60,7 @@ REBALANCE_DAY = 12
 
 
 def _build_market_returns(benchmark_ohlcv: pd.DataFrame) -> pd.Series:
-    """0050 daily returns (split-adjusted, per Codex v5.0 R1 P1-4 fix)."""
+    """0050 daily returns (split-adjusted)."""
     adjusted = adjust_splits_ohlc(benchmark_ohlcv)
     return adjusted["close"].pct_change().dropna()
 
@@ -109,7 +107,7 @@ def main() -> None:
     logger.info("rebalance dates (IS 2020-2024): %d", len(rebalance_dates))
 
     # Filter so that BOTH as_of and label_end fall before OOS boundary
-    # (Codex v5.0 R2 P0 fix: drop tail dates whose forward label leaks into 2025).
+    # (drop tail dates whose forward label leaks into 2025).
     # as_of_dates passed to builder must satisfy:
     #   as_of[i] < FORBIDDEN_OOS_START
     #   as_of[i+1] < FORBIDDEN_OOS_START  (= label_end)

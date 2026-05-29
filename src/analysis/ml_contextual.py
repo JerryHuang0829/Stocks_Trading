@@ -1,4 +1,4 @@
-"""v5.0 Step 4b — Contextual features + locked interactions.
+"""v5.0 Contextual features + locked interactions.
 
 Pre-registration reference: `reports/phase_d_v5/H_v5_0_ml_oddlot_preregistration.md`
   §6 Contextual features (LOCKED set + LOCKED interactions)
@@ -15,11 +15,11 @@ Adds the following to the training matrix produced by ml_pooling:
         4. reversal_1m × high_proximity_top_quintile (>= 80th percentile)
         5. value_ep_sn × size_decile_low             (decile <= 3)
 
-Pure join layer (per Codex v5.0 R2 P0/P1 fix discipline):
+Pure join layer:
   - Does NOT load cache or compute features.
   - Takes pre-computed industry_map + size_panel_by_date + regime_by_date.
   - PIT is delegated to upstream provider (size = close[as_of-1d] × shares;
-    regime = adjust-splits-aware classifier — already fixed in R1 P1-4).
+    regime = adjust-splits-aware classifier).
 
 Locked interactions LOCKED per pre-reg §6 — adding new interaction OR
 removing one of these 5 = violation of pre-commit discipline §13 condition 1.
@@ -27,7 +27,7 @@ removing one of these 5 = violation of pre-commit discipline §13 condition 1.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Mapping
 
 import numpy as np
@@ -154,7 +154,7 @@ def add_contextual_features(
         Use close[as_of - 1d] × issued_shares[as_of] (same as size_factor.py).
     regime_by_date : {as_of: 'trending_up' | 'trending_down' | 'ranging' | None}
         Regime label per as_of from `_compute_regimes` (must be the
-        adjust_splits_ohlc-corrected version; Codex v5.0 R1 P1-4 fix).
+        adjust_splits_ohlc-corrected version).
     config : ContextualConfig | None
         If None, uses defaults.
 
@@ -282,7 +282,7 @@ def add_contextual_features(
     # ----- Final column ordering: base + sector + size + regime + interactions -----
     base_cols = list(training_df.columns)
     sector_cols = sorted([c for c in out.columns if c.startswith("sector_")])
-    regime_cols = [f"regime_{l}" for l in REGIME_LABELS]
+    regime_cols = [f"regime_{label}" for label in REGIME_LABELS]
     interaction_cols = list(LOCKED_INTERACTION_NAMES)
     ordered = base_cols + sector_cols + ["size_decile"] + regime_cols + interaction_cols
     out = out[ordered]

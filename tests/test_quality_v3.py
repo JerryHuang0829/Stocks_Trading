@@ -1,4 +1,4 @@
-"""V0.13 quality_v3 PIT-correct logic tests (Phase 2 S2).
+"""quality_v3 PIT-correct logic tests.
 
 Verifies `src.features.quality_v3.compute_quality_v3_panel` correctly handles:
 - PIT lag (Q4 90d / Q1-3 45d income statement + 60d balance sheet)
@@ -7,8 +7,8 @@ Verifies `src.features.quality_v3.compute_quality_v3_panel` correctly handles:
 - Edge cases (empty input, missing data, weights validation)
 - Mutation tests catching look-ahead leak / silent default
 
-Phase 2 S6 owner extends to real FinMind cache wire-up; S2 tests use synthetic
-financial_history fixture (per V1.2 active_corr stub pattern).
+Real FinMind cache wire-up is a later extension; these tests use a synthetic
+financial_history fixture (following the active_corr stub pattern).
 """
 from __future__ import annotations
 
@@ -26,10 +26,6 @@ from src.features.quality_v3 import (  # noqa: E402
     BALANCE_SHEET_LAG_DAYS,
     DEFAULT_WEIGHTS,
     compute_quality_v3_panel,
-)
-from src.utils.constants import (  # noqa: E402
-    QUARTERLY_EPS_LAG_DAYS_OTHER,
-    QUARTERLY_EPS_LAG_DAYS_Q4,
 )
 
 
@@ -182,12 +178,12 @@ def test_quality_v3_clipping_outliers_preserved_in_zscore():
 
 
 def test_quality_v3_default_weights_are_40_40_20():
-    """Sanity: default weights match H_d_v6:56 D-E spec (40/40/20)."""
+    """Sanity: default weights are 40/40/20."""
     assert DEFAULT_WEIGHTS == (0.4, 0.4, 0.2)
 
 
 def test_quality_v3_balance_lag_constant_is_60():
-    """Sanity: BALANCE_SHEET_LAG_DAYS constant = 60 per V0.13 lock."""
+    """Sanity: BALANCE_SHEET_LAG_DAYS constant = 60."""
     assert BALANCE_SHEET_LAG_DAYS == 60
 
 

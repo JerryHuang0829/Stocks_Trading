@@ -73,11 +73,20 @@
 
 之前文件/CLI 誤標為 p-value → 若套「p < 0.05 = 顯著」規則會把沒 skill 的 factor 判為全通過。已於 R13 修正（commit 預定）。
 
-5 因子 Ψ 全 = 0.0000 的數學解釋：
-- `sr_max_null ≈ sqrt(2·ln 5) ≈ 1.79`（n_trials=5 下的 null 最佳 Sharpe 期望值）
-- 5 因子 IR 範圍 -0.20 ~ 0.33（遠低於 1.79）
-- z ≈ (0.33 - 1.79) / σ_sr ≈ -10 → cdf(-10) ≈ 0
-- **結論**：本輪測的 5 因子**都沒超過 random-5 基準**。
+~~5 因子 Ψ 全 = 0.0000 的數學解釋（**R13 推論基於 buggy 公式,已 2026-05-28 撤回**）：~~
+- ~~`sr_max_null ≈ sqrt(2·ln 5) ≈ 1.79`(n_trials=5 下的 null 最佳 Sharpe 期望值)~~
+- ~~5 因子 IR 範圍 -0.20 ~ 0.33(遠低於 1.79)~~
+- ~~z ≈ (0.33 - 1.79) / σ_sr ≈ -10 → cdf(-10) ≈ 0~~
+- ~~**結論**:本輪測的 5 因子**都沒超過 random-5 基準**。~~
+
+**2026-05-28 corrected formula 重算結果**(`ic_analysis.deflated_sharpe_ratio` unit-mismatch fix):
+- pead_eps:Ψ = **0.7987**(IC IR 0.291, n=71, n_trials=5)
+- high_proximity:Ψ = **0.7316**(IC IR 0.274)
+- margin_short_ratio:Ψ = **0.6853**(IC IR 0.232)
+- revenue_momentum_v2:Ψ = **0.5088**(IC IR 0.191)
+- foreign_broker_v2:Ψ = **0.0005**(IC IR -0.084,符號錯)
+
+**修正後結論**:4/5 因子有顯著 DSR evidence(0.51~0.80 — single-factor 業界邊緣級),非「全沒超過 random-5」。原 R13 推論的 `z ≈ (0.33 - 1.79) / σ_sr` 才是 bug:`1.79` 是 standard-normal units 不是 SR units;corrected 應 `1.79 × σ_sr` 後再相減。
 
 ---
 

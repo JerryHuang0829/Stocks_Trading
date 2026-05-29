@@ -22,9 +22,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from src.features.momentum_12_1 import (  # noqa: E402
-    DEFAULT_LOOKBACK_DAYS,
-    DEFAULT_MIN_HISTORY,
-    DEFAULT_SKIP_DAYS,
     _close_at_offset,
     compute_momentum_12_1,
     compute_momentum_12_1_universe,
@@ -98,26 +95,6 @@ def test_close_at_offset_none_for_non_positive():
 # ---------------------------------------------------------------------------
 # compute_momentum_12_1 — formula
 # ---------------------------------------------------------------------------
-def test_score_formula_positive_winner():
-    """p_recent=120, p_far=100 → score = 0.2 (20% winner)."""
-    # Build: index goes back. We want close[t-21d] = 120, close[t-252d] = 100.
-    # Easiest: flat 100 for first 232 days, then 120 for last 21 days.
-    n = 260
-    prices = [100.0] * (n - 21) + [120.0] * 21
-    ohlcv = pd.DataFrame(
-        {"close": prices},
-        index=pd.date_range("2023-01-01", periods=n, freq="B"),
-    )
-    as_of = ohlcv.index[-1] + pd.Timedelta(days=1)  # outside index → all eligible
-    result = compute_momentum_12_1(ohlcv, as_of)
-    # p_recent at offset 21 → from eligible (260 rows), index -1-21 = -22 (a 100)
-    # p_far at offset 252 → index -1-252 = -253 (also 100)
-    # → score = 0
-    # Hmm let me re-design: I want p_recent = some value, p_far = different value
-    # Simpler: linear ramp
-    pass
-
-
 def test_score_formula_simple():
     """Construct with explicit values at known offsets."""
     n = 260

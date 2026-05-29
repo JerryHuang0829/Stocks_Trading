@@ -104,7 +104,6 @@ def simulate_capital(
     total_drift = []
     total_unbuyable = 0
     total_positions = 0
-    total_cost_drag = []
 
     for snap in snapshots:
         date = pd.Timestamp(snap["rebalance_date"]).tz_localize(None)
@@ -146,7 +145,6 @@ def simulate_capital(
     turnovers = [s.get("one_way_turnover", 0.5) for s in snapshots if s.get("one_way_turnover") is not None]
     avg_turnover_rt = (sum(turnovers) / len(turnovers) * 2) if turnovers else 1.0
     annual_turnover = avg_turnover_rt * 12  # approx annual (monthly rebalance)
-    cost_per_side_bps = commission_bps + slippage_bps
     # Full round-trip cost: commission × 2 + tax (sell only) + slippage × 2
     cost_per_trade_bps = (commission_bps + slippage_bps) * 2 + TAX_BPS_SELL
     annual_cost_bps = annual_turnover * cost_per_trade_bps / 2  # divide by 2 since turnover counts round-trip

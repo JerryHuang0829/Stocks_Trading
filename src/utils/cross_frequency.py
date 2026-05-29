@@ -1,16 +1,16 @@
-"""Cross-frequency factor alignment for monthly cell sweep (V0.13 P1 #10).
+"""Cross-frequency factor alignment for monthly cell sweep.
 
-Phase 2 Session 1 落地 (2026-05-05): provide wrapper to align factor panel
-(any frequency) to monthly rebalance t-point. Existing 5 factors each handle
-their own PIT lag internally per `src/utils/constants.py`; this module
-provides the cross-freq alignment infra for the v7 18-cell sweep.
+Provides a wrapper to align a factor panel (any frequency) to the monthly
+rebalance t-point. Existing 5 factors each handle their own PIT lag internally
+per `src/utils/constants.py`; this module provides the cross-freq alignment
+infra for the 18-cell sweep.
 
 PIT discipline:
     - daily: shift=1 minimum (strictly-before-rebalance close)
     - monthly: latest month-end strictly before (t - pit_lag_days)
     - quarterly: latest quarter-end with (factor_date + pit_lag_days <= t)
 
-Caller wires (Phase 2 S4 composite_d_v7 generic engine):
+Caller wires (composite generic engine):
     from src.utils.cross_frequency import align_factor_to_rebalance_date
     aligned = align_factor_to_rebalance_date(
         factor_panel=high_proximity_panel,
@@ -19,16 +19,14 @@ Caller wires (Phase 2 S4 composite_d_v7 generic engine):
         pit_lag_days=1,  # shift=1 semantics
     )
 
-Per H_d_v6 V0.13 §"3 New factor PIT lag spec" + Phase 2 Session 1 「跨頻 infra」
-spec: 18-cell sweep 各 cell 在月初 t 點對齊各 factor PIT-lagged value，避免
-look-ahead bias。
+「跨頻 infra」spec: 18-cell sweep 各 cell 在月初 t 點對齊各 factor
+PIT-lagged value，避免 look-ahead bias。
 """
 from __future__ import annotations
 
 from typing import Literal
 
 import pandas as pd
-
 
 FactorFreq = Literal["daily", "monthly", "quarterly"]
 
@@ -46,7 +44,7 @@ def align_factor_to_rebalance_date(
                       columns = symbols). Each row is a factor snapshot at the
                       respective publication date.
         factor_freq: "daily" | "monthly" | "quarterly".
-        rebalance_date: Phase 2 cell sweep rebalance day (typically month-end).
+        rebalance_date: cell sweep rebalance day (typically month-end).
         pit_lag_days: PIT publication lag (e.g. 1d for daily shift=1, 45d for
                       monthly revenue, 60d/90d for quarterly EPS).
 

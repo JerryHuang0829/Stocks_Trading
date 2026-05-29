@@ -45,9 +45,7 @@ import pandas as pd
 from src.features.pead_eps import _normalise_eps_frame
 from src.utils.constants import (
     QUARTERLY_EPS_LAG_DAYS,
-    QUARTERLY_EPS_LAG_DAYS_Q4,
 )
-
 
 DEFAULT_MIN_QUARTERS = 4   # for TTM EPS
 

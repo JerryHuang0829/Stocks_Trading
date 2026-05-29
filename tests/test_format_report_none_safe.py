@@ -9,8 +9,6 @@ passed to NoneType.__format__.
 
 from __future__ import annotations
 
-import pytest
-
 from src.backtest.metrics import format_report
 
 

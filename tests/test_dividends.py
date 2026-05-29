@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
-import pytest
 
 from src.backtest.metrics import adjust_dividends, adjust_splits
-
 
 # ---------------------------------------------------------------------------
 # adjust_dividends() unit tests

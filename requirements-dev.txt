@@ -66,3 +66,10 @@ xgboost>=1.7.0,<3.0.0
 optuna>=3.5.0,<5.0.0
 shap>=0.43.0,<1.0.0
 tabulate>=0.9.0,<1.0.0   # pandas DataFrame.to_markdown() backend (Step 5 deliverables)
+
+# ------------------------------------------------------------------
+# Lint + import sort
+# ------------------------------------------------------------------
+# ruff: 單一 binary，同時做 lint + isort。設定在 ruff.toml（select = E,F,I）。
+# commit 前跑 `ruff check .`；`ruff check --fix .` 自動修 import 排序 + unused import。
+ruff>=0.6.0,<1.0.0

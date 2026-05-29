@@ -1,4 +1,4 @@
-"""V0.15 cache infra improvement — ProxyPool latency benchmark + backup pool tests.
+"""ProxyPool latency benchmark + backup pool tests.
 
 Verifies:
 - _verify_proxy_with_latency returns numeric latency on success / None on fail
@@ -58,7 +58,7 @@ def test_verify_proxy_with_latency_failure(rotator):
 
 
 def test_fetch_working_proxy_returns_fastest(rotator, monkeypatch):
-    """V0.15 core test: among 3 verified proxies, return the one with lowest latency."""
+    """Core test: among 3 verified proxies, return the one with lowest latency."""
     proxy_list_text = (
         "socks5://1.1.1.1:1080\n"
         "socks5://2.2.2.2:1080\n"
@@ -152,7 +152,7 @@ def test_get_backup_proxy_pops_then_returns_none(rotator):
 
 
 def test_patch_current_proxy_preserves_calls_on_current(rotator):
-    """V0.15 hot-swap: patching proxy must NOT reset _calls_on_current.
+    """Hot-swap: patching proxy must NOT reset _calls_on_current.
 
     This is the core invariant: token quota window keeps counting; we only
     swap the proxy (HTTP path) without consuming a slot.
@@ -170,6 +170,6 @@ def test_patch_current_proxy_preserves_calls_on_current(rotator):
 
 
 def test_calls_on_current_property(rotator):
-    """V0.15 public property exposes calls_on_current for hot-swap floor check."""
+    """Public property exposes calls_on_current for hot-swap floor check."""
     rotator._calls_on_current = 42
     assert rotator.calls_on_current == 42

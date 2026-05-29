@@ -11,8 +11,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.data.finmind import _DiskCache, FinMindSource
-
+from src.data.finmind import FinMindSource, _DiskCache
 
 # ---------------------------------------------------------------------------
 # _DiskCache tests

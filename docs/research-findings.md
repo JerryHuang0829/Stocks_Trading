@@ -2,7 +2,7 @@
 
 最後更新：**2026-05-11**（v3.3 18-cell run 完成 → CONFIRM-NO-GO / Outcome-2 Partial / 0/18 cells 過 6 hard gates；A-then-B 的 A（v3.3 closeout）+ B0（architecture hardening：PIT 修法 + CI + 文件一致性）已完成，B（v4.x reframe）待決定）
 
-> **版本代號**：本檔為 append-only 研究日誌，各日期章節**內文保留當時的舊代號**（Phase A1 / Phase D v7 / V0.x / P1-P7 等）以維持歷史準確。章節標題與下方「累積階段結論」表已改用線性 `vN.M`；完整新舊對照見 `docs/版本對照表.md`。
+> **版本代號**：本檔為 append-only 研究日誌，各日期章節**內文保留當時的舊代號**（Phase A1 / Phase D v7 / V0.x / P1-P7 等）以維持歷史準確。章節標題與下方「累積階段結論」表已改用線性 `vN.M`；完整新舊對照見 `docs/CHANGELOG.md` 文末附錄「版本代號對照表」。
 
 ---
 

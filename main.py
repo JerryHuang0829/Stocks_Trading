@@ -19,7 +19,6 @@ import os
 import signal
 import sys
 import time
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -34,7 +33,6 @@ from src.portfolio.tw_stock import (
 )
 from src.storage.database import Database
 from src.utils.config import load_config
-from src.utils.constants import TW_TZ
 
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(parents=True, exist_ok=True)

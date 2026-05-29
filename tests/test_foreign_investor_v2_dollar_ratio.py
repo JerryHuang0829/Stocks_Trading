@@ -1,7 +1,7 @@
-"""Mutation tests for P0-B (cum_ratio dollar-denominated) + P1-C (stale guard) +
-P1-D (consistency weight=0) + P1-E (covered-weight rescale).
+"""Mutation tests for cum_ratio dollar-denomination, last20 stale guard,
+consistency weight=0, and covered-weight rescale.
 
-R26 audit established:
+Unit reasoning behind the dollar-denominated fix:
   - foreign_net unit = shares (TWSE T86 + FinMind 同款)
   - market_value unit = NTD (= TWSE shares × close per finmind.py:1033)
   - shares ÷ NTD = 1/price → cross-section price/scale bias
@@ -52,7 +52,7 @@ def _make_close(n_days: int, close: float = 100.0, start: str = "2024-01-02") ->
 
 
 # -----------------------------------------------------------------------------
-# P0-B dollar denomination
+# dollar denomination
 # -----------------------------------------------------------------------------
 
 
@@ -81,9 +81,9 @@ def test_p0b_dollar_ratio_dimensionless():
 def test_p0b_higher_close_yields_higher_ratio_same_shares():
     """Same net shares but different close → dollar ratio differs (higher close = higher ratio).
 
-    Pre-P0-B (legacy shares/NTD): ratio identical regardless of close — stocks
-    with tiny prices got artificially high scores. Post-P0-B: higher close means
-    larger dollar amount in the numerator, mv same → bigger ratio.
+    Legacy shares/NTD denomination: ratio identical regardless of close — stocks
+    with tiny prices got artificially high scores. Dollar denomination: higher
+    close means larger dollar amount in the numerator, mv same → bigger ratio.
     """
     n = 80
     foreign = [0.0] * (n - 20) + [1000.0] * 20
@@ -116,7 +116,7 @@ def test_p0b_close_panel_missing_skips_cum_ratio():
 
 
 # -----------------------------------------------------------------------------
-# P1-C last20 stale guard
+# last20 stale guard
 # -----------------------------------------------------------------------------
 
 
@@ -149,12 +149,12 @@ def test_p1c_stale_last20_drops_symbol():
 
 
 # -----------------------------------------------------------------------------
-# P1-D consistency weight = 0
+# consistency weight = 0
 # -----------------------------------------------------------------------------
 
 
 def test_p1d_consistency_weight_zero():
-    """SUBSIGNAL_WEIGHTS['consistency'] must be 0 per H_a1 amendment 2026-05-10."""
+    """SUBSIGNAL_WEIGHTS['consistency'] must be 0 (sub-signal disabled)."""
     assert SUBSIGNAL_WEIGHTS["consistency"] == 0.0
 
 
@@ -166,7 +166,7 @@ def test_p1d_weight_sum_unchanged():
 
 
 def test_subsignal_weights_yaml_in_sync_with_constant():
-    """2026-05-11 R31 finding 4: the module now reads weights from
+    """The module reads weights from
     `config/factor_thresholds.yaml :: factor_specific.foreign_investor_v2.weights`
     via `_subsignal_weights()`. Guard that the yaml and the module fallback
     constant stay in sync (so editing one without the other surfaces here).
@@ -182,8 +182,8 @@ def test_subsignal_weights_yaml_in_sync_with_constant():
 
 
 def test_last20_span_and_top_pct_yaml_resolved():
-    """2026-05-11 R31 finding 4: last20 stale-guard span + rank_stability
-    top-pct are yaml-driven; verify they resolve to the expected values."""
+    """last20 stale-guard span + rank_stability top-pct are yaml-driven;
+    verify they resolve to the expected values."""
     from src.features.foreign_investor_v2 import (
         _last20_max_calendar_span_days,
         _rank_stability_top_pct,
@@ -193,19 +193,19 @@ def test_last20_span_and_top_pct_yaml_resolved():
 
 
 # -----------------------------------------------------------------------------
-# P1-E covered-weight rescale
+# covered-weight rescale
 # -----------------------------------------------------------------------------
 
 
 def test_p1e_missing_subsignal_drops_below_50pct_coverage():
-    """2026-05-10 P1-E: symbol with covered_weight < 0.5 must be DROPPED
-    from output (not silently scored).
+    """Symbol with covered_weight < 0.5 must be DROPPED from output
+    (not silently scored).
 
-    R27 found previous version of this test only checked finite/no
-    crash — too weak. This rewrite explicitly creates a symbol whose
-    covered_weight = persistence (0.25) + consistency (0.0 weight) only,
-    by withholding its close panel entry. cum_ratio + rank_stability both
-    require close panel and are skipped → covered_weight = 0.25 < 0.5 → drop.
+    An earlier version of this test only checked finite/no crash — too
+    weak. This rewrite explicitly creates a symbol whose covered_weight =
+    persistence (0.25) + consistency (0.0 weight) only, by withholding its
+    close panel entry. cum_ratio + rank_stability both require close panel
+    and are skipped → covered_weight = 0.25 < 0.5 → drop.
     """
     n = 80
     df_full = _make_inst_frame(n_days=n, stock_id="FULL")

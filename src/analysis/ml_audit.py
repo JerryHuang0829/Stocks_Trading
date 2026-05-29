@@ -19,16 +19,20 @@ L1-L6 (LOCKED v3.3 retail-realistic):
   (L7 NOT in v5.0 binding per pre-reg §10)
 
 DSR per cell:
-  Ψ = deflated_sharpe_ratio(observed_sr=oos_sharpe, n_obs=12, n_trials=400)
+  Ψ = deflated_sharpe_ratio(observed_sr=per_period_active_sr, n_obs=n_oos_periods, n_trials=400)
+  where per_period_active_sr = mean(active)/std(active) per-period (NOT annualized,
+  NOT absolute oos_sharpe). Aligns DSR with L1-L6 active-return basis.
   Ψ ≥ 0.95 → strong (per Bailey-LdP 2014); n_trials=400 reflects pre-reg
   §8.4 Option A multi-test family.
+
+  Pre-reg §8.4 originally specified oos_sharpe; per-period switch requires
+  amendment + audit chain re-sign (see H_v5_1_dsr_amendment.md).
 """
 from __future__ import annotations
 
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -55,14 +59,17 @@ L6_BOOTSTRAP_SEED = 42
 COST_PER_TURNOVER_ONE_WAY = 0.0067   # pre-reg §10
 DEFAULT_TURNOVER_ONE_WAY = 2.0       # legacy proxy — superseded by compute_actual_turnover()
 DSR_N_TRIALS = 400                   # pre-reg §8.4 Option A LOCK
+# DSR_N_TRIALS is module-level for ergonomic import; tests that need a different
+# value MUST pass the dsr_n_trials kwarg explicitly to evaluate_cell_gates /
+# run_audit_from_cell_summary rather than monkeypatching this module constant
+# (monkeypatching leaks across tests in the same process).
 ANNUALIZATION = 12
 
 
 def compute_actual_turnover_one_way(
     holdings_by_period: list[set[str]],
 ) -> float:
-    """Codex v5.0 R6 P1 fix (2026-05-26):
-    Compute realised average per-period one-way turnover from actual portfolio
+    """Compute realised average per-period one-way turnover from actual portfolio
     holdings, replacing the v3.3-era 2.0 proxy.
 
     For an equal-weight long-only top_n portfolio:
@@ -89,8 +96,7 @@ def compute_actual_turnover_one_way(
 def compute_beta_adj_t_stat(
     portfolio: pd.Series, bench: pd.Series,
 ) -> tuple[float, float, float]:
-    """Codex v5.0 R6 P1 fix (2026-05-26):
-    Proper OLS regression intercept t-stat (replaces naive residual-mean / SE).
+    """Proper OLS regression intercept t-stat (replaces naive residual-mean / SE).
 
     OLS y = α + β·x + ε:
         SE(α) = sqrt(MSE × (1/n + x̄² / Σ(x − x̄)²))
@@ -137,6 +143,13 @@ class GateResult:
         }
 
 
+DSR_FORMULA_VERSION = "2026-05-28-per-period-active-sr"
+DSR_OBSERVED_SR_BASIS = "per_period_active_sr (mean(active)/std(active), monthly)"
+# Bump on any breaking change to audit JSON shape so downstream consumers can
+# detect drift instead of silently reading a stale schema.
+AUDIT_JSON_SCHEMA_VERSION = "2"  # v2 adds dsr_observed_sr fields over v1
+
+
 @dataclass
 class CellAudit:
     cell_id: str   # e.g. "xgboost_top_n_15"
@@ -147,6 +160,10 @@ class CellAudit:
     gates: list[GateResult] = field(default_factory=list)
     dsr_psi: float | None = None
     dsr_n_trials: int = DSR_N_TRIALS
+    # The actual SR fed to DSR (not oos_sharpe — see DSR_OBSERVED_SR_BASIS)
+    dsr_observed_sr: float | None = None
+    dsr_observed_sr_basis: str = DSR_OBSERVED_SR_BASIS
+    dsr_formula_version: str = DSR_FORMULA_VERSION
     n_gates_pass: int = 0
     all_gates_pass: bool = False
 
@@ -159,6 +176,9 @@ class CellAudit:
             "n_oos_periods": self.n_oos_periods,
             "dsr_psi": self.dsr_psi,
             "dsr_n_trials": self.dsr_n_trials,
+            "dsr_observed_sr": self.dsr_observed_sr,
+            "dsr_observed_sr_basis": self.dsr_observed_sr_basis,
+            "dsr_formula_version": self.dsr_formula_version,
             "n_gates_pass": self.n_gates_pass,
             "all_gates_pass": self.all_gates_pass,
             "gates": [g.to_dict() for g in self.gates],
@@ -213,6 +233,7 @@ def evaluate_cell_gates(
     audit = CellAudit(
         cell_id=cell_id, model_name=model_name, top_n=top_n,
         oos_sharpe=oos_sharpe, n_oos_periods=int(len(oos_returns)),
+        dsr_n_trials=int(dsr_n_trials),
     )
 
     # Align bench to oos_returns dates
@@ -240,7 +261,7 @@ def evaluate_cell_gates(
         passed=(ir_annual >= L1_IR_THRESHOLD),
     ))
 
-    # L2: monthly net α (Codex v5.0 R6 P1 fix: prefer actual turnover; else proxy)
+    # L2: monthly net α — prefer actual turnover; else proxy
     gross_alpha = float(active.mean())
     effective_turnover = (turnover_one_way if turnover_one_way is not None
                           else DEFAULT_TURNOVER_ONE_WAY)
@@ -280,7 +301,7 @@ def evaluate_cell_gates(
         ac = active_corr(portfolio, bench)
     except Exception:
         ac = float("nan")
-    # Codex v5.0 R6 P1 fix: proper OLS intercept SE (was naive residual SE)
+    # proper OLS intercept SE (was naive residual SE)
     _alpha_ols, _beta_ols, t_alpha = compute_beta_adj_t_stat(portfolio, bench)
     l5_pass = (
         (not np.isnan(ac) and ac <= L5_ACTIVE_CORR_LIMIT) and
@@ -307,17 +328,37 @@ def evaluate_cell_gates(
         passed=(ci_lower > 0),
     ))
 
-    # DSR
-    try:
-        psi = deflated_sharpe_ratio(
-            observed_sr=oos_sharpe,
-            n_obs=audit.n_oos_periods,
-            n_trials=dsr_n_trials,
+    # DSR input must be PER-PERIOD ACTIVE Sharpe (mean/std of monthly active),
+    # not annualized portfolio Sharpe. Two reasons:
+    #   (a) DSR must match the basis of L1-L6 (all active-return based)
+    #   (b) Mertens variance formula assumes per-period SR with per-period n_obs;
+    #       annualizing one side creates a unit mismatch.
+    active_mean_per_period = float(active.mean())
+    active_std_per_period = float(active.std(ddof=1))
+    if active_std_per_period > 1e-12:
+        per_period_active_sr: float | None = (
+            active_mean_per_period / active_std_per_period
         )
-        audit.dsr_psi = float(psi) if psi is not None else None
-    except Exception as exc:
-        logger.warning("DSR failed for %s: %s", cell_id, exc)
+    else:
+        # Degenerate std: keep dsr_observed_sr=None so JSON readers can
+        # distinguish "no signal computable" from "signal computed = 0".
+        per_period_active_sr = None
+    audit.dsr_observed_sr = (
+        float(per_period_active_sr) if per_period_active_sr is not None else None
+    )
+    if per_period_active_sr is None:
         audit.dsr_psi = None
+    else:
+        try:
+            psi = deflated_sharpe_ratio(
+                observed_sr=per_period_active_sr,
+                n_obs=audit.n_oos_periods,
+                n_trials=dsr_n_trials,
+            )
+            audit.dsr_psi = float(psi) if psi is not None else None
+        except Exception as exc:
+            logger.warning("DSR failed for %s: %s", cell_id, exc)
+            audit.dsr_psi = None
 
     audit.n_gates_pass = sum(int(g.passed) for g in audit.gates)
     audit.all_gates_pass = (audit.n_gates_pass == 6)
@@ -345,7 +386,7 @@ def run_audit_from_cell_summary(
         oos_dates = [pd.Timestamp(d) for d in c["oos_dates"]]
         oos_returns = pd.Series(c["oos_monthly_returns"], index=oos_dates)
         cell_id = f"{c['model_name']}_top_n_{c['top_n']}"
-        # Codex v5.0 R6 P1 fix: compute realised turnover from holdings if present
+        # compute realised turnover from holdings if present
         holdings = c.get("oos_holdings", [])
         actual_turnover = None
         if holdings:
@@ -382,9 +423,11 @@ def run_audit_from_cell_summary(
     verdict = "GO" if cells_pass_all_gates and cells_beat_baseline else "NO-GO"
 
     out = {
+        "schema_version": AUDIT_JSON_SCHEMA_VERSION,
         "audit_date": pd.Timestamp.now().isoformat(timespec="seconds"),
         "source_cell_summary": cell_summary_path,
         "dsr_n_trials": dsr_n_trials,
+        "dsr_formula_version": DSR_FORMULA_VERSION,
         "sharpe_diff_threshold": sharpe_diff_threshold,
         "n_cells": len(audits),
         "n_cells_pass_all_gates": len(cells_pass_all_gates),

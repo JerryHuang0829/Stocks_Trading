@@ -1,4 +1,4 @@
-"""Phase 2 S7 walk_forward_d_v7 tests.
+"""walk_forward_d_v7 tests.
 
 Verifies:
 - L6 80% CI lower bound computation correctness on synthetic monthly active returns
@@ -12,8 +12,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -30,14 +28,13 @@ from scripts.walk_forward_d_v7 import (  # noqa: E402
     write_bootstrap_ci_lowers,
 )
 
-
 # ---------------------------------------------------------------------------
 # Spec lock constants
 # ---------------------------------------------------------------------------
 
 
 def test_l6_locked_constants():
-    """13 pre-commit #13 + V0.13 §L6 spec lock — constants must NOT drift."""
+    """L6 spec lock — constants must NOT drift."""
     assert L6_ALPHA == 0.20, "L6 alpha must be 0.20 (= 80% CI per pre-commit #13)"
     assert L6_BOOTSTRAP_N == 10000, "L6 bootstrap n must be 10000"
     assert L6_AVG_BLOCK_LEN == 3.0, "L6 avg_block_len must be 3.0"

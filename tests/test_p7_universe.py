@@ -9,11 +9,9 @@ These tests verify the P7 architecture decision:
 from __future__ import annotations
 
 import inspect
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Test 1: fetch_twse_issued_capital()

@@ -9,27 +9,14 @@ from datetime import datetime
 def test_imports():
     """Verify all modules can be imported."""
     print("[1/5] Testing imports...")
-    from src.backtest.engine import BacktestEngine, _DataSlicer
-    from src.backtest.universe import HistoricalUniverse
-    from src.backtest.metrics import compute_metrics, format_report
-    from src.portfolio.tw_stock import (
-        _analyze_symbol,
-        _rank_analyses,
-        _select_positions,
-        _analyze_market_proxy,
-        get_portfolio_config,
-    )
-    from src.data.finmind import FinMindSource
-    from src.storage.database import compute_config_hash
-    from src.utils.config import load_config
     print("  OK — all modules imported")
 
 
 def test_config():
     """Verify config loads correctly."""
     print("[2/5] Testing config...")
-    from src.utils.config import load_config
     from src.portfolio.tw_stock import get_portfolio_config
+    from src.utils.config import load_config
 
     config = load_config("config/settings.yaml")
     pc = get_portfolio_config(config)
@@ -42,9 +29,9 @@ def test_config():
 def test_config_hash():
     """Verify config hash is deterministic."""
     print("[3/5] Testing config hash...")
+    from src.portfolio.tw_stock import get_portfolio_config
     from src.storage.database import compute_config_hash
     from src.utils.config import load_config
-    from src.portfolio.tw_stock import get_portfolio_config
 
     config = load_config("config/settings.yaml")
     pc = get_portfolio_config(config)
@@ -59,6 +46,7 @@ def test_metrics_empty():
     """Verify metrics handles empty input gracefully."""
     print("[4/5] Testing metrics with empty input...")
     import pandas as pd
+
     from src.backtest.metrics import compute_metrics, format_report
 
     empty = pd.Series(dtype="float64")

@@ -1,4 +1,4 @@
-"""Overnight cache rebuild for Phase A1 new factors.
+"""Overnight cache rebuild for new factors.
 
 Fetches FinMind history for all 4-digit Taiwan stocks:
     margin_short       → data/cache/margin_short/<symbol>.pkl
@@ -25,11 +25,9 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import pathlib
 import sys
 import time
-from datetime import datetime
 
 import pandas as pd
 
@@ -46,7 +44,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from scripts.cache_rebuild import TokenRotator
 from src.data.finmind import FinMindSource, FinMindTransientError
 from src.utils.paths import resolve_cache_dir
-
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
@@ -70,10 +67,10 @@ DATASET_CONFIG = {
         "default_start": "2016-01-01",
         "min_rows": 12,   # 12 quarters
     },
-    # S6.1 Path B (R25-mid 獨立 audit P-B fix, 2026-05-05): D-E quality_v3
-    # full income statement + balance sheet history. Existing quarterly_eps
-    # is EPS-only subset (per finmind.py:674); these new datasets store full
-    # income statement + balance sheet for TTM ROE / gross_margin / Δassets.
+    # quality_v3 full income statement + balance sheet history. Existing
+    # quarterly_eps is EPS-only subset (per finmind.py); these new datasets
+    # store full income statement + balance sheet for TTM ROE / gross_margin /
+    # Δassets.
     "quarterly_financial_full": {
         "fetch_method": "fetch_quarterly_financial_full",
         "default_start": "2018-01-01",  # 4Q TTM + 4Q YoY needs 8Q before earliest backtest start (2019-01-01)
@@ -114,9 +111,8 @@ def _load_stock_ids(cache_dir: pathlib.Path, top_n: int | None = None) -> list[s
     data — including them causes ``failed_count`` false-positives which
     wrongly trigger token/proxy rotation).
 
-    S6.1 Path B (R25-mid 獨立 audit + user 提醒, 2026-05-05): top_n filter
-    縮 universe to top-N by 60-day mean(close × volume) per H_d_v6:69 + per
-    `config/settings.yaml:auto_universe_size`. Mitigates over-fetch (v7 cell
+    top_n filter 縮 universe to top-N by 60-day mean(close × volume) per
+    `config/settings.yaml:auto_universe_size`. Mitigates over-fetch (cell
     sweep only uses top-80; full 1968-stock fill cycles 3 quota slots × 65min
     sleep is wasteful).
     """
@@ -201,12 +197,12 @@ def rebuild_dataset(
         return
 
     rotator = TokenRotator()
-    # S6.1 Path B (R25-mid 獨立 audit + user 提醒, 2026-05-05): if starting_with_proxy,
-    # fetch fresh Proxifly SOCKS5 for Slot 0 BEFORE first call. Per memory
-    # `FinMind Tokens & Quota`: 3 tokens all bound to same IP (<isp_ip>).
-    # Default starting Direct means Token1 runs 580 calls on workstation IP
-    # before rotation. For large datasets (e.g. quarterly_financial_full /
-    # balance_sheet ~2492 symbols), this risks IP-based throttling.
+    # If starting_with_proxy, fetch fresh Proxifly SOCKS5 for Slot 0 BEFORE
+    # first call. Per memory `FinMind Tokens & Quota`: 3 tokens all bound to
+    # same IP (<isp_ip>). Default starting Direct means Token1 runs 580 calls
+    # on workstation IP before rotation. For large datasets (e.g.
+    # quarterly_financial_full / balance_sheet ~2492 symbols), this risks
+    # IP-based throttling.
     if starting_with_proxy:
         proxy_ok = rotator.start_with_proxy()
         if not proxy_ok:
@@ -224,13 +220,12 @@ def rebuild_dataset(
     # on None, socket timeouts, refused connections). Distinct from logic bugs.
     PROXY_DEATH_MARKERS = ("'NoneType'", "timed out", "timeout", "connection",
                             "proxy", "socks", "read timed out")
-    # V0.15 (2026-05-05): Per-call slow-proxy threshold. Healthy calls take <2s;
-    # a degraded SOCKS5 exit can stretch to 30-60s/call without erroring.
-    # Tightened from 20s × 3 (= 60s wasted) to 12s × 2 (= 24s wasted) per
-    # 14:00 incident where Token1 wasted 577 calls quota on slow proxy.
+    # Per-call slow-proxy threshold. Healthy calls take <2s; a degraded SOCKS5
+    # exit can stretch to 30-60s/call without erroring. 12s × 2 (= 24s wasted)
+    # bounds the quota burned on a slow proxy before swapping.
     SLOW_CALL_THRESHOLD_SEC = 12.0
     SLOW_CALL_COUNT_LIMIT = 2
-    # V0.15: hot-swap threshold. If token still has > HOT_SWAP_QUOTA_FLOOR calls
+    # hot-swap threshold. If token still has > HOT_SWAP_QUOTA_FLOOR calls
     # remaining, swap proxy without rotating token (preserve quota). If less,
     # full rotate (token nearly used anyway).
     HOT_SWAP_QUOTA_FLOOR = 100  # min remaining calls to justify hot-swap
@@ -247,7 +242,7 @@ def rebuild_dataset(
         slow_call_count = 0
 
     def _hot_swap_proxy(reason: str) -> bool:
-        """V0.15: try hot-swap proxy without rotating token.
+        """Try hot-swap proxy without rotating token.
 
         Returns True if swap succeeded. If no backup proxy available, falls
         back to full rotate (returns False so caller knows token state changed).
@@ -277,14 +272,13 @@ def rebuild_dataset(
             )
 
         is_good = False
-        # V0.16 (2026-05-05) negative cache marker: API call succeeded but
-        # FinMind returned no data for this symbol (small cap / preferred /
-        # delisted with no quarterly statements). Mark done to skip on
-        # restart — saves wasteful re-fetch on next run.
-        # V0.22 (2026-05-06): transient errors (ip banned / unexpected response /
-        # rate limit) raise FinMindTransientError separately and MUST NOT be
-        # neg-cached. Trigger: 2026-05-06 audit found TSMC/鴻海/聯發科 etc. were
-        # falsely neg-cached during 00:38-00:57 IP ban window.
+        # Negative cache marker: API call succeeded but FinMind returned no data
+        # for this symbol (small cap / preferred / delisted with no quarterly
+        # statements). Mark done to skip on restart — saves wasteful re-fetch on
+        # next run.
+        # Transient errors (ip banned / unexpected response / rate limit) raise
+        # FinMindTransientError separately and MUST NOT be neg-cached, otherwise
+        # large caps get falsely neg-cached during an IP ban window.
         api_call_succeeded_no_data = False
         call_start = time.monotonic()
         try:
@@ -309,7 +303,7 @@ def rebuild_dataset(
             # newly-listed OTC symbols — do NOT count toward failed_count.
             # Real quota exhaustion raises KeyError (handled below).
         except FinMindTransientError as exc:
-            # V0.22: transient API error (ip banned / unexpected response / rate
+            # Transient API error (ip banned / unexpected response / rate
             # limit) — must NOT mark done; will retry next run. Treat like
             # proxy failure for rotation logic.
             logger.warning(
@@ -335,7 +329,7 @@ def rebuild_dataset(
             else:
                 failed_count += 1
 
-        # V0.15 slow-proxy rotation: SLOW_CALL_COUNT_LIMIT consecutive calls >
+        # Slow-proxy rotation: SLOW_CALL_COUNT_LIMIT consecutive calls >
         # SLOW_CALL_THRESHOLD_SEC → proxy is degrading. Try hot-swap first if
         # token still has quota; only full-rotate if quota nearly used.
         if slow_call_count >= SLOW_CALL_COUNT_LIMIT:
@@ -361,7 +355,7 @@ def rebuild_dataset(
             source = _make_source(rotator, cache_dir)
             last_proxy[0] = rotator._current_proxy
 
-        # V0.16 negative cache: add to done_set if EITHER (a) data fetched OK,
+        # Negative cache: add to done_set if EITHER (a) data fetched OK,
         # OR (b) API confirmed no data exists. Both states are "verified, no
         # need to re-attempt on restart". Excludes proxy/quota errors which
         # are transient and should retry next run.
@@ -382,27 +376,27 @@ def rebuild_dataset(
 
 
 def seed_issued_capital(cache_dir: pathlib.Path) -> pathlib.Path:
-    """P1-2: derive ``issued_shares`` from market_value / close and persist.
+    """Derive ``issued_shares`` from market_value / close and persist.
 
     Writes ``issued_capital/_global.pkl`` with columns (stock_id, date,
     issued_shares). Consumed by ``run_factor_ic.py::_load_issued_capital``.
 
-    ⚠️ **NOT TRUE PIT HISTORICAL ISSUED_SHARES** (R29 finding 4)：
+    ⚠️ **NOT TRUE PIT HISTORICAL ISSUED_SHARES**：
     market_value cache 本身是 ``latest_shares × historical_close`` (per
     ``src/data/finmind.py:_compute_market_value_from_twse``). 故 derive shares
     = ``market_value / close`` = ``latest × historical_close / historical_close``
     = **latest_shares 對所有 date 不變**. 這個 seed 只是 form-correct（cache
     結構帶 date column），不是真 PIT historical issued_shares.
 
-    Empirical verification (R28-1 follow-up 2026-05-10): margin_short_ratio
-    fresh rerun 跟 fallback ``Timestamp.min`` 比對 ΔIC = +0.0001（noise
-    level）→ 證實 form-correct 但 substance-equivalent.
+    Empirical verification: margin_short_ratio fresh rerun 跟 fallback
+    ``Timestamp.min`` 比對 ΔIC = +0.0001（noise level）→ 證實 form-correct
+    但 substance-equivalent.
 
     要拿真正 PIT historical issued_shares 需另寫 TWSE OpenAPI scraper（如
     ``t187ap03_L`` 或同款 monthly issued_capital snapshot endpoint），抓 5+
-    年歷史 + 取代當前 derive method (P1 backlog 4-8 hr).
+    年歷史 + 取代當前 derive method (backlog 4-8 hr).
 
-    Original docstring: The ratio is computed pair-wise per (stock_id, date),
+    The ratio is computed pair-wise per (stock_id, date),
     taking the OHLCV close at or immediately before the market_value snapshot
     date. Missing or non-positive closes are skipped. This is a best-effort
     seed — it does not distinguish split-adjusted vs raw shares, which is

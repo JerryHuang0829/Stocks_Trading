@@ -175,7 +175,7 @@ class HistoricalUniverse:
                 _before_pre = len(working)
                 # Coverage guard: 若 turnover dict 覆蓋率過低，強制失敗而非靜默
                 # 以 0.0 補齊大量股票會讓 top-N 排名變成隨機、靜默扭曲 universe
-                # （這是 2026-04-15 抓出的 alpha 幻覺根因）。
+                # （這是 alpha 幻覺的根因）。
                 min_coverage = float(
                     portfolio_config.get("auto_universe_pre_filter_min_coverage", 0.80)
                 )
@@ -218,7 +218,7 @@ class HistoricalUniverse:
         size_ranked = False
 
         # 排序：用 close×volume 20日均值（與 tw_stock.py 完全一致的正式規格）
-        # P7: 移除 TWSE turnover 排序，統一 live/backtest 路徑，避免微差。
+        # 不用 TWSE turnover 排序，統一 live/backtest 路徑，避免微差。
         # TWSE turnover 仍用於 pre_filter 預篩（上方），但不用於最終排序。
         if not size_ranked and source is not None and hasattr(source, "fetch_ohlcv"):
             logger.info(

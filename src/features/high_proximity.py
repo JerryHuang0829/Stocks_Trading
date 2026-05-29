@@ -22,7 +22,6 @@ from typing import Mapping
 
 import pandas as pd
 
-
 DEFAULT_WINDOW = 252
 DEFAULT_MIN_HISTORY = 126  # relaxed for new IPOs (~6 months)
 
@@ -74,7 +73,6 @@ def compute_high_proximity_universe(
         valid = close[close.index <= as_of_ts].dropna()
         if valid.empty:
             continue
-        anchor_day = valid.index[-1]
         today_close = float(valid.iloc[-1])
         if today_close <= 0:
             continue

@@ -1,10 +1,123 @@
 # 優化紀錄
 
-最後更新：**2026-05-11**（B0 architecture hardening 補一輪：feature-module PIT cutoff mutation tests + 移除 `dir()` introspection + GitHub Actions CI + README/dashboard 一致性與呈現 polish（TL;DR / 名詞速查 / 資料流 / 「結論之後如何變 GO」表）；694 pytest 全綠 @ conda `quant`）
+最後更新：**2026-05-28**（v5.0 ML pipeline 結案 NO-GO + Codex R1-R6 audit chain 完成 + commit `a0848f6` push 到 main;~938 pytest 全綠 @ conda `quant`）
 
 > **版本代號**：本檔為 append-only 完整 changelog。各區段標題已於開頭加上統一版本號 `[vN.M]`；
 > 內文保留當時的舊代號（Phase A1 / Phase D v7 / V0.x / R0x / P0-P7 / Sprint / Wave 等）以維持歷史準確。
-> 新舊代號完整對照見 `docs/版本對照表.md`。
+> 新舊代號完整對照見本檔文末附錄「版本代號對照表」。
+
+---
+
+## [v5.0] 2026-05-23 ~ 2026-05-28：ML pipeline 結案 NO-GO（CONFIRM）+ Codex R1-R6 audit chain
+
+**最終 verdict**：NO-GO（0/8 cells 過 L1-L6 全 6 gates;但 8/8 cells OOS Sharpe 都贏 baseline +0.79 ~ +1.31）。
+
+### 主要產物（commit `a0848f6` on `main`，已 push）
+
+- **9 個 ML 模組**（`src/analysis/ml_*.py` + `cpcv.py`,~3500 LOC,100 + 13 tests）:
+  - `ml_pooling.py` cross-sectional 訓練 matrix + label_end OOS guard
+  - `ml_features.py` PIT-aware 5-feature provider
+  - `ml_contextual.py` sector / size / regime + 5 LOCKED interactions
+  - `cpcv.py` López de Prado 2018 Purged Combinatorial CV(k=5 / n_test=2 / embargo=1m → 10 paths)
+  - `ml_models.py` XGBoost classifier + LambdaMART ranker + Linear baseline
+  - `ml_optuna.py` Optuna nested CV(outer=CPCV / inner=TimeSeriesSplit)
+  - `ml_shap.py` SHAP TreeExplainer + interaction values
+  - `ml_audit.py` L1-L6 hard gates + DSR n_trials=400 + actual turnover + OLS t-stat
+  - `ml_experiment.py` orchestrator(8 cells × 50 trials × 10 CPCV paths = 4000 fits)
+- **5 個 factor modules**(`src/features/`):value_ep / reversal_1m / gross_profitability / size_factor / momentum_12_1（後 3 candidate IC all DROP,留 src 作 audit trail）
+- **`src/utils/factor_neutralize.py`** sector_neutralize / size_neutralize（Fama-French / Barra 標配）
+- **`src/backtest/metrics.adjust_splits_ohlc()`** OHLC 4-column split adjust（Codex R1 P1-4 fix）+ `_compute_regimes` 已整合
+- **8 個 deliverables**(`reports/phase_d_v5/`):cell_summary / vs_baseline / shap / dsr_audit / final_outcome / architecture_check / **closeout_outcome（11 章節）** / pre-reg + plan SIGNED
+- **Codex audit prompts**:`Codex-Prompt-v5.0.md`（R1-R5 對 pre-reg）+ `Codex-Prompt-v5.0-R6.md`（R6 對 Step 4-6 程式）
+
+### Step 順序時間軸
+
+| Step | 日期 | 內容 |
+|---|---|---|
+| **Step 2** | 2026-05-23 ~ 25 | Foundation factor research:value_ep / reversal_1m 加進 IC pipeline、寫 `factor_neutralize`、SN IC research、3 candidate(size / GP / momentum_12_1)研究 → 全 DROP → final 5 features lock |
+| **Step 3** | 2026-05-25 | Pre-registration 撰寫;Codex R1 抓 9 finding → v5.0.1 |
+| **Step 4** | 2026-05-25 ~ 26 | 9 個 ML 模組 + 113 tests;Codex R2-R5 對 pre-reg 收斂(R2=5 / R3=4 / R4=3 / R5=1 P2)→ R5 PASS → user SIGNED v5.0.2 |
+| **Step 5** | 2026-05-26 | Production v1 跑 51 min(8 cells × 50 trials × 5 inner CV = 2000 fits);Codex R6 抓 3 真 finding:CPCV 模組存在但 production 0 imports / turnover 用 proxy 2.0 / L5 naive SE → C 路徑 refactor + v2 重跑(8 cells × 50 trials × 10 CPCV paths = 4000 fits)|
+| **Step 6** | 2026-05-26 ~ 27 | L1-L6 + DSR audit + architecture check(fair baseline 57f / single idio_vol)+ closeout v2 + git commit `a0848f6` + push to main + 刪 audit branch |
+
+### v1 vs v2 OOS Sharpe 對照(Codex R6 spec-compliant rerun)
+
+| Cell | v1(single-path) | v2(CPCV 10 paths) |
+|---|---:|---:|
+| xgboost top_n=15 | +1.18 | +0.90 |
+| xgboost top_n=20 | +0.74 | +0.78 |
+| xgboost top_n=25 | +0.91 | +0.87 |
+| xgboost top_n=30 | +0.92 | +0.65 |
+| lambdamart top_n=15 | +1.16 | +0.96 |
+| **lambdamart top_n=20** | +1.02 | **+1.07**(v2 best) |
+| lambdamart top_n=25 | +0.90 | +0.70 |
+| lambdamart top_n=30 | +1.17 | +0.75 |
+
+CPCV 平均小幅降低 Sharpe(更保守,反映真正 multi-path expectation)。**verdict 不變**:0/8 cells 過全 gates。
+
+### Best cell L1-L6 + DSR(lambdamart top_n=20)
+
+- L1 IR +0.66 ✅(≥ 0.20)
+- L2 net α +0.49%/月 ✅(actual turnover 0.825,cost 0.55%/月)
+- L3 TE in [0.10, 0.30] ✅
+- L4 max_dd_diff ❌
+- L5 active_corr + OLS t-stat -0.001 ❌(11 obs 算不出 t > 1.5)
+- L6 80% bootstrap CI lower < 0 ❌(11 obs CI 寬)
+- DSR Ψ = 0.0037 ❌(Bailey-LdP 2014,n_trials=400 + n_obs=11;corrected formula 2026-05-28,舊版錯誤顯示 0.00)
+- **Gates pass:3/6**
+
+### SHAP top features(XGBoost best cell)
+
+```
+1. idio_vol_max                                   0.188 (54% 主導)
+2. high_proximity                                 0.042
+3. interact_reversal_1m × high_prox_top_quintile  0.036
+4. pead_eps_sn                                    0.032
+5. reversal_1m                                    0.031
+6. value_ep_sn                                    0.018
+```
+
+### Architecture sanity check(推翻 alt 假設)
+
+| 策略 | OOS Sharpe |
+|---|---:|
+| ML XGBoost top_n=15 | +0.90 |
+| Fair baseline(57 features z-score 等權) | -0.32 |
+| Single factor idio_vol_max only | +0.03 |
+| Locked baseline(5 features 等權) | -0.23 |
+
+→ ML 真有 alpha(+0.74 vs fair baseline,+0.87 vs single factor)。
+
+### NO-GO 根因 + 跟 v3.3 對比
+
+跟 v3.3 同根源:**12-month calendar / 11 obs OOS sample 在 retail 月頻 setting 下統計上不足以過 L6 + DSR**。差別:**v3.3 是邊緣弱訊號,v5.0 是強訊號但樣本不足以證**。
+
+### Codex audit chain 收斂
+
+- **R1**:9 真 finding(2 P0 LLM 路徑 + DSR n_trials math + 4 P1 CPCV embargo / OOS leak / regime split / pre-reg ambiguity + 3 Extra naming)→ 全修
+- **R2**:5 真 P1(remaining Claude refs / DSR 100 殘留 / 8 entries / PowerShell `\` / metadata stale)→ 全修
+- **R3**:4 真(provenance 殘留 / backlog stale / A2 diff bug / shell portability)→ 全修
+- **R4**:3 真(plan stale / grep claim / backtick CLAUDE.md)→ 全修
+- **R5**:1 P2 非阻斷(bash inline commands)→ 全修 + PASS verdict → user SIGNED pre-reg v5.0.2
+- **R6**:3 真 P0/P1 對 production code(CPCV not wired / turnover proxy / OLS t-stat naive)→ C 路徑 refactor + v2 重跑 verify → 18/18 pre-commit disciplines 真實達標
+
+累計 **25 finding 全修**,0 誤判;審計鏈完整收斂。
+
+### 5 paths 待 user 拍板
+
+- **Path A** 結案 + 100% 0050 DCA(保守,跟 v3.3 後一樣)
+- **Path B** Paper trading 6-12 月(累積 OOS 11→23 obs,L6/DSR 才有機會過)← **推薦**
+- **Path C** 小額實盤試驗(20 萬 ML + 80% 0050)
+- **Path D** Pre-reg amendment(D1 延 OOS / D2 改頻率 / D3 walk-forward,全違紀律)
+- **Path E** Options_Trading 姊妹專案 pivot
+
+詳見 `reports/phase_d_v5/v5_closeout_outcome.md` §8。
+
+### 驗證
+
+- `~938 pytest passed`(840 baseline + 113 ML + 7 audit fixes;1 pre-existing dashboard fail `test_load_factor_correlation_5x5`)
+- `git ls-remote origin`:`a0848f6 main`(已 push,contributors 0 Claude/Anthropic 殘留)
+- 5 個 deliverables 完整 + Codex R1-R6 audit chain log 保留
 
 ---
 
@@ -2953,3 +3066,114 @@ industry=3 的 6M/3Y 兩輪精準對上。原始 ind=2 的 3Y 有 5.8% 差異（
 `quality` 這一版（ROE × 毛利率）不落地，但品質因子不是永久無效。若未來重啟：
 - 先修財務定義：TTM net income / average equity
 - 在修好定義前不建議再調 `quality_raw` 的 0.6/0.4 權重
+
+---
+
+# 附錄：版本代號對照表（VERSIONS）
+
+> 本附錄是專案版本代號的**唯一權威對照表**（2026-05-29 從 `docs/版本對照表.md` 併入）。
+> 歷史上用過 8 套交疊的代號（P0–P7 / Round / Phase A·B·D / V0.x / V1.x / Sprint / Wave …），
+> 2026-05-22 起一律收斂成單一線性版本軸 `vN.M`。
+> 舊代號仍存在於 git commit message、`reports/` 封存目錄與 JSON（皆為不可竄改的證據，不改），
+> 看到舊代號時用本表解碼。
+
+## 一、主版本對照表
+
+版本軸規則：`v<時代>.<里程碑>`。同一時代（major）共用一個研究主題；minor 依時間順序遞增。
+
+| 統一版本 | 舊代號 | 日期 | 一句話 | 結果 |
+|---|---|---|---|---|
+| **v1.0** | P0–P3 | 2024 | 原始三因子策略 + grid search（research integrity / 因子 / exposure / 策略擴展） | — |
+| **v1.1** | P4.0–P4.4、P4.8–P4.9 | 2026-03~04 | 工程化（paper trading / split 前復權 / known-answer test / walk-forward / config 提取） | — |
+| **v1.2** | P5 | 2026-04-01 | 五輪雙視角審查（87 測試 / CSV fallback / constants 共用） | APPROVE |
+| **v1.3** | P6 | 2026-04-07 | 度量層強化（CVaR / Tail Ratio / JB / Bootstrap CI）+ backtest_mode | — |
+| **v1.4** | P7 | 2026-04-07 | 選股池正式化 + TWSE 市值監控 | — |
+| **v1.5** | P4.5 + P4.6 | 2026-04-08 | Total Return benchmark（除息爬蟲）+ drift-aware 日報酬 | — |
+| **v1.6** | 「2026-04-15 重大發現」+ Round 1–3 | 2026-04-15~16 | 揭穿 timezone bug + universe pre-filter bug → 過去所有 alpha 證偽為 overfit | overfit |
+| **v2.0** | Phase A1 | 2026-04-16 | 5 因子單因子 IC + Pro methodology infra（DSR / FDR / bootstrap / permutation） | 2 通過中道（52W High / PEAD） |
+| **v2.1** | Phase A2（Step 1.5 + Step 2） | 2026-04-21 | 雙因子組合 D1_v2（52W 50% + PEAD 50%）IS+OOS | OOS 2025 α 不顯著 |
+| **v2.2** | Phase A3.1 | 2026-04-23 | sector-neutral / regime-aware 架構強化 | gate 全 fail |
+| **v2.3** | Phase B0-Lite | 2026-05-03 | low_vol_v2 spike（IC 0.0584） | DSR=0 fail |
+| **v3.0** | Plan v4 | 2026-05-04 | Phase D 多因子計畫初版 | NO-GO（R23 6 blockers） |
+| **v3.1** | Plan v5 | 2026-05-04 | Phase D 計畫修正版 | NO-GO（R24 5 P0 + 7 設計） |
+| **v3.2** | Plan v6 baseline | 2026-05-04 | Phase D Phase 0 baseline（commit `54b952a`） | — |
+| **v3.3** | Plan v7 / v7.1 + 18-cell sweep | 2026-05-07 | 多因子最終驗證（6 候選 × 3 持股 = 18 cells，6 道 hard gate） | **CONFIRM-NO-GO**（0/18 過 6/6，Outcome-2 Partial） |
+| &nbsp;&nbsp;v3.3.1 | V0.22 | 2026-05-06 | FinMind transient error 分類（新增 `FinMindTransientError` class） | P0 closed |
+| &nbsp;&nbsp;v3.3.2 | V0.23 | 2026-05-06 | universe build 改 PIT-safe filter（`_is_above_min_price_at()`，杜絕用 future close 過濾） | P0 closed |
+| &nbsp;&nbsp;v3.3.3 | V0.24 | 2026-05-06 | 0050 dividend 強制調整（`require_dividend_adjust=True`） | P0 closed |
+| &nbsp;&nbsp;v3.3.4 | V0.25 | 2026-05-06 | `_build_financial_history` join overlap 修法（`rsuffix="_bs"`） | P0 closed |
+| &nbsp;&nbsp;v3.3.5 | V0.26 | 2026-05-06 | TSMC NetIncome 2020+ NaN（FinMind schema change）→ `NetIncome.fillna(IncomeAfterTaxes)` | P0 closed |
+| _（雜項，不給版本號）_ | branch `audit/calc-logic-fixes`（commit `f1509d6`） | 2026-05-22 | v3.3 結案後的計算邏輯 audit（1 HIGH + 3 MEDIUM）+ gap-aware return 架構 | 已 commit（未 push） |
+| **v4.0** | （舊 v8.1） | 2026-05-22 | 整股（whole-lot）realism fix — 評估發現「100 萬 整張買不起 top-80 大半」結構不可行（2024 投資率僅 19-32%）；sweep 取消；`src/backtest/lot_sizing.py` 模組 + 16 測試 retained 為「證明整張不可行」的可行性工具 | 取消（方向錯，pivot v5.0） |
+| **v5.0** | （新） | 2026-05-23 ~ 2026-05-28 | 零股 reframe + **ML 因子合成**（XGBoost + LambdaMART + CPCV 10 paths + Optuna 50 trials × 8 cells = 4000 fits + SHAP）+ 5 LOCKED features（idio_vol / 52W high / SN-E/P / SN-PEAD / reversal_1m）+ Codex R1-R6 audit chain（25 finding 全修） | **CONFIRM-NO-GO**（0/8 cells 過 L1-L6 全 gates；主因 11-obs OOS 過不了 L6 80% bootstrap CI + DSR n_trials=400 多檢定校正；但 8/8 cells beat baseline +0.79 ~ +1.31 Sharpe → ML 真有 alpha,只是 sample-bound） |
+| &nbsp;&nbsp;v5.0.0 | — | 2026-05-25 | Pre-reg 初稿（18 章節 + 13 pre-commit disciplines） | — |
+| &nbsp;&nbsp;v5.0.1 | — | 2026-05-25 | Codex R1 抓 9 finding（2 P0 + 4 P1 + 3 Extra）全修 | — |
+| &nbsp;&nbsp;v5.0.2 | — | 2026-05-26 | Codex R2-R5 抓 13 finding 全修 + user SIGNED；Codex R6 對 Step 4-6 程式抓 3 真 finding（CPCV not wired / turnover proxy / OLS t-stat）→ C 路徑 refactor + v2 重跑 → 18/18 pre-commit disciplines verified | SIGNED + LOCKED |
+| &nbsp;&nbsp;v5.1-amend (DRAFT) | — | 2026-05-28 | DSR 公式 unit-mismatch P0 bug 修(`ic_analysis.deflated_sharpe_ratio`)+ Amendment A1（observed_sr 改 per-period active SR）+ Codex R6 / R7 抓 14 finding（A2 n_trials=400→8 撤回；其餘 13 修法落地）+ 重算 20 個歷史 DSR JSON + AUDIT_JSON_SCHEMA_VERSION=2 + 7 個 G-series 架構 fix（degenerate state / schema_version / int coercion / module-level isolation 等） | DRAFT；待 Codex R8 final verification + user sign-off；verdict NO-GO 不變 |
+
+> **註**：原 v4.1（零股敏感度）/ v4.2（結構性 reframe — daily/long-short）規劃廢止 —— 由 v5.0 取代並擴大範圍。
+> **v5.0 結案後**：5 paths 待 user 拍板 — A 結案 / B Paper trading（累積 OOS sample） / C 小額實盤 / D pre-reg amendment（D1 延 OOS / D2 改頻率 / D3 walk-forward,全違紀律）/ E Options pivot。
+> 若選 B 跑 6-12 月 paper 後 re-audit 編為 v5.1；若 ML pivot 到 weekly / daily 等結構性 reframe 編為 v6.0。
+
+### 時代（major）一覽
+
+- **v1.x — 原始策略研究時代**（2024 ~ 2026-04-16）：三因子 long-only，最終揭穿 alpha 為 overfit。
+- **v2.x — 因子研究時代**（2026-04-16 ~ 05-03）：單因子 / 雙因子 / 架構強化，全數無穩定 edge。
+- **v3.x — 多因子最終驗證時代**（2026-05-04 ~ 05-11）：Phase D 18-cell sweep，誠實結案 CONFIRM-NO-GO。
+- **v4.x — 整股 realism 探索期**（2026-05-22，封存）：證明 100 萬 整股結構不可行；pivot 至 v5.x；`lot_sizing.py` 工具 retained 為「證明整張不可行」之證據。
+- **v5.x — 實際 retail 零股 + ML 因子合成時代**（2026-05-23 ~ 2026-05-28 結案；後續若 paper trading 重啟編 v5.1）：承認 100 萬 retail 必用盤中零股 + breadth（top_n 15-30）+ ML 取代線性合成（XGBoost / LambdaMART + CPCV nested CV + Optuna + SHAP）。v5.0 NO-GO 主因 11-obs OOS 樣本天花板（與 v3.3 同源），但 ML alpha 訊號真實強（vs baseline +1+ Sharpe）。
+
+> **姊妹 repo 註**：2026-04-23 ~ 05-02 曾 pivot 到 `../Options_Trading` 試 TXO Iron Condor（5yr OOS Sharpe −2.1~−2.9 證偽）。該段不屬本 repo 版本線，不給 `vN.M`。
+
+## 二、退役代號對照（不再當版本，改以「日期 + 一句話」記錄）
+
+以下代號原本被當版本用，但它們其實是 audit 輪次或修法子步驟，不是策略版本狀態。
+退役後：在 changelog 中以日期記錄；需要指版本時對應下表的 `vN.M`。
+
+| 退役代號 | 性質 | 對應版本 |
+|---|---|---|
+| Round 1–3（R01–R03） | external audit 輪次 | v1.6 |
+| Round 4–13（含 R11–R13） | Phase A1 audit chain | v2.0 |
+| Round 14–15 | Phase A2 Step 1.5 plan-review / post-execute audit | v2.1 |
+| Round 18–19 | Phase A3 收尾 + audit 補強 | v2.2 |
+| Round 23 | Plan v4 NO-GO 判定 | v3.0 |
+| Round 24 | Plan v5 NO-GO 判定 | v3.1 |
+| Round 25（mid / final） | Plan v7 audit 鏈 | v3.3 |
+| Round 26–33 | Phase A1 PIT 修法 architecture hardening | v3.3 後 B0 hardening |
+| V0.1–V0.7 | Plan v6 Phase 0 修法子版本 | v3.2 |
+| V0.8–V0.12 | Plan v7 closeout 修法子版本 | v3.3 |
+| V0.13 | Phase 2 spec lock（4 P0） | v3.3 |
+| V1.1a/b/c、V1.2、V1.3、V1.4 | Plan v7「Phase 1」修法子版本（注意：與 v1.x 主時代無關） | v3.3 |
+| Sprint Phase A–J | Pro Validation Sprint 9 階段 | v3.2 ~ v3.3 |
+| Wave 1–3 | 2026-05-07 closeout 三波 | v3.3 |
+| Phase 1 / Phase 2 + S1–S8 | Plan v7 實作 Session 編號 | v3.3 |
+
+> 例外：`V0.22–V0.26`（Phase D v7 的 5 個 P0 silent bug 修法）因在 `README.md` 被當證據單獨指稱，
+> **未退役**，已升為 patch 級版本 `v3.3.1`–`v3.3.5`，見第一節主表。
+> ⚠️ 易混點：舊 `V1.x`（如 V1.2、V1.4）是 **Plan v7 內部的「Phase 1」子版本**，跟新版本軸的 `v1.x` 主時代**完全無關**。退役後不再使用，避免再撞名。
+
+## 三、保留不動的代號（領域術語，不是版本代號）
+
+以下代號描述的是「因子組合 / 評分關卡 / 統計量」，改掉反而看不懂，**一律保留**。
+
+| 代號 | 意義 |
+|---|---|
+| D-A … D-G | Phase D（v3.x）的 7 個候選因子組合（D-A 已預先 disqualify，不在 sweep） |
+| D-C\|12 等 | `<候選>\|<持股數>` 的 cell 命名 |
+| L1 … L6 | v3.3 的 6 道 hard gate（IR / 月α / TE / ΔMaxDD / A1 aggregate / 80% bootstrap CI 下界） |
+| D1_v2 / D1_v3 | Phase A2（v2.1）雙因子組合的 config 檔名識別碼 |
+| IS / OOS | In-Sample（調策略用）/ Out-of-Sample（純驗證） |
+| IC / IC IR / DSR / TE / IR | Spearman rank IC / IC 的夏普 / Deflated Sharpe Ratio / Tracking Error / Information Ratio |
+| Outcome-1/2/4 | sweep 結果分類（1 = ≥1 cell 過 6/6 / 2 = 只到 4–5/6 partial / 4 = 0 cell 過） |
+
+> `scripts/` 與 `config/` 中帶版本號的**檔名**（如 `d_cell_sweep_v7_real.py`、`config/d_v7/`）此輪**不改名** —
+> 它們是 v3.3 階段的程式產物，名字帶 `v7` 屬合理；改名牽動 import / 測試 / dashboard，另列 round 規劃。
+
+## 四、未來版本編號規則
+
+- 新的研究主題 → 升 major（`v5.0`）。
+- 同主題下的里程碑 → 升 minor（`v4.1` → `v4.2`）。
+- 修法子版本 → 原則上**不給版本號**，在本 changelog 以「日期 + 一句話」記錄；
+  **例外**：若該修法在文件中被當證據單獨指稱，才升為 patch 級 `vN.M.P`（如 `v3.3.1`）。
+- audit 輪次、Sprint / Wave 等流程步驟 → 一律不給版本號，以日期記錄。
+- 領域代號（因子組合 / 關卡 / 統計量）→ 不納入版本軸。

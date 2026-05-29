@@ -1,4 +1,4 @@
-"""Phase A1 R11: Backfill margin_short + institutional_v2 caches via TWSE/TPEX
+"""Backfill margin_short + institutional_v2 caches via TWSE/TPEX
 public endpoints (replaces per-symbol FinMind fetch pattern).
 
 Uses 4 fetcher endpoints (each returns a full-market snapshot in 1 call):
@@ -50,10 +50,10 @@ PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.data.twse_scraper import (  # noqa: E402
-    fetch_margin_daily_combined,
-    fetch_institutional_daily_combined,
-    FINMIND_MARGIN_SHORT_COLS,
     FINMIND_INSTITUTIONAL_COLS,
+    FINMIND_MARGIN_SHORT_COLS,
+    fetch_institutional_daily_combined,
+    fetch_margin_daily_combined,
 )
 from src.utils.paths import resolve_cache_dir  # noqa: E402
 

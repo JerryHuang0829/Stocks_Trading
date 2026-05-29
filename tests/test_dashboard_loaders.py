@@ -70,13 +70,13 @@ def test_load_factor_ic_5factors():
 
 
 def test_load_factor_ic_phase_d_3factors():
-    """2026-05-11 補測：Phase D 3 因子 single IC schema 對齊 Phase A1（含 enrichment）。
+    """Phase D 3 因子 single IC schema 對齊 5 因子 baseline（含 enrichment）。
 
-    R31 finding 1 fix: 早期版本只檢查 overall/by_regime/by_bucket，
-    沒驗 enrichment diagnostics 是否齊全；現補檢查 decile / monotonicity /
-    peak / price_score / pit_violation 等與 Phase A1 5 因子 JSON 一致。
+    補測 enrichment diagnostics 是否齊全：只檢查 overall/by_regime/by_bucket
+    不足，需驗 decile / monotonicity / peak / price_score / pit_violation 等
+    與 5 因子 JSON 一致。
     """
-    # 取一個 Phase A1 JSON 作 schema baseline
+    # 取一個 5 因子 JSON 作 schema baseline
     a1_ref = utils.load_factor_ic("high_proximity")
     assert a1_ref is not None
     a1_keys = set(a1_ref.keys())
@@ -89,7 +89,7 @@ def test_load_factor_ic_phase_d_3factors():
         overall = ic["overall"]
         for k in ("mean_ic", "ic_ir", "t_stat", "p_value", "n", "bootstrap_ci_95"):
             assert k in overall, f"{factor} overall 缺 {k}"
-        # Enrichment diagnostics parity (R31 finding 1)
+        # Enrichment diagnostics parity
         for k in (
             "decile_returns_per_period",
             "decile_avg_returns_across_periods",
@@ -101,7 +101,7 @@ def test_load_factor_ic_phase_d_3factors():
             "enriched_diagnostics_date",
         ):
             assert k in ic, f"{factor} 缺 enrichment 欄位 {k}（schema 未對齊 Phase A1）"
-        # Top-level key parity (no missing relative to Phase A1 reference)
+        # Top-level key parity (no missing relative to 5 因子 reference)
         missing = a1_keys - set(ic.keys())
         assert not missing, f"{factor} top-level keys 缺 {missing}（schema 未對齊 high_proximity）"
 

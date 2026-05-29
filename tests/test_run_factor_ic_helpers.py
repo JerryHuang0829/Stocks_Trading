@@ -1,17 +1,17 @@
-"""Unit tests for scripts.run_factor_ic helpers (P1-新1 / P1-新2 / follow-up-4).
+"""Unit tests for scripts.run_factor_ic helpers.
 
 Focuses on the pure helpers `_resolve_price_asof` and
 `_compute_intersection_universe`; the CLI `main()` requires a live cache and
 is covered by the IC smoke run instead.
 
-Note (external audit Round 3.5 fix, 2026-04-17)
+Note: pandas_ta pre-stub rationale
 --------------------------------------
 Importing `scripts.run_factor_ic` pulls `src.strategy.indicators` which
-`import pandas_ta as ta`. On minimal Python installs (external audit sandbox / bare
-system Python) that import hangs for ~3 minutes before raising.
+`import pandas_ta as ta`. On minimal Python installs (bare system Python)
+that import hangs for ~3 minutes before raising.
 
 Earlier version tried ``try: import pandas_ta`` first and only stubbed on
-exception — external audit showed the `try:` branch never returns in those envs, so
+exception — the `try:` branch never returns in those envs, so
 the fallback stub never runs.
 
 New policy: **unconditional pre-stub before any import that touches
@@ -33,14 +33,12 @@ from types import ModuleType
 sys.modules.setdefault("pandas_ta", ModuleType("pandas_ta"))
 
 import pandas as pd
-import pytest
 
 from scripts.run_factor_ic import (
     DEFAULT_MAX_GAP_DAYS,
     _compute_intersection_universe,
     _resolve_price_asof,
 )
-
 
 # ---------------------------- _resolve_price_asof ----------------------------
 
@@ -185,11 +183,11 @@ def test_intersection_universe_empty_when_no_panels(tmp_path):
     assert out == []
 
 
-# ---------------------------- follow-up-4: per-panel min_obs ----------------------------
+# ---------------------------- per-panel min_obs ----------------------------
 
 
 def test_intersection_universe_per_panel_min_obs_keeps_quarterly(tmp_path):
-    """follow-up-4 (audit-confirmed): quarterly_eps panel must not be dropped.
+    """quarterly_eps panel must not be dropped.
 
     Pre-fix: uniform `min_obs_per_symbol=250` applied to every panel. A
     quarterly panel has ~28 rows per symbol (7Y × 4Q), so every symbol would
@@ -225,7 +223,7 @@ def test_intersection_universe_per_panel_min_obs_keeps_quarterly(tmp_path):
 
 
 def test_intersection_universe_defaults_to_yaml_per_panel(tmp_path, monkeypatch):
-    """follow-up-4: `min_obs_per_symbol=None` triggers yaml-based per-panel lookup.
+    """`min_obs_per_symbol=None` triggers yaml-based per-panel lookup.
 
     We stub the thresholds cache to force a deterministic per-panel map so
     the test is self-contained (doesn't depend on repo yaml contents).

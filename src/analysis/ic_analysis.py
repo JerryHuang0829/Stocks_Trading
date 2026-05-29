@@ -32,13 +32,9 @@ BOOTSTRAP_DEFAULT_N = 1000
 PERMUTATION_DEFAULT_N = 300
 DEFAULT_SEED = 42
 DEFAULT_AVG_BLOCK_LEN = 3.0
-# DEFAULT_DSR_N_TRIALS removed in V1.1b (2026-05-04, Plan v7 H_d_v6 V0.13 Assertion 3
-# enforcement). Phase A1 single-factor research used n_trials=5; v7 18-cell sweep
-# uses n_trials=18. All callers MUST explicit pass n_trials kwarg — silent default
-# fallback removed to prevent over-claim (n_trials 越小 DSR 越寬，silent default 5
-# 用於 v7 cell sweep 會 false PASS). For reference legacy values:
-#   Phase A1 single-factor: n_trials=5
-#   v7 cell sweep: n_trials=18 (= 6 candidates × 3 top_n)
+# No default DSR n_trials: all callers MUST explicitly pass n_trials kwarg —
+# silent default fallback removed to prevent over-claim (smaller n_trials makes
+# DSR more lenient, so a silent default would false-PASS multi-trial sweeps).
 EULER_MASCHERONI = 0.5772156649
 
 
@@ -46,7 +42,7 @@ EULER_MASCHERONI = 0.5772156649
 class PeriodIC:
     """One rebalance period's IC observation.
 
-    Phase A1 R3 additions for transparency:
+    Transparency fields:
         tie_ratio: fraction of symbols with duplicate forward-return values.
             Spearman uses average-ranking for ties but information is lost;
             period with tie_ratio > 0.3 is flagged unreliable.
@@ -78,36 +74,34 @@ class FactorICResult:
     n_periods: int
     n_symbols_avg: float
     known_biases: list[str] = field(default_factory=list)
-    # Phase A1 methodology-layer additions (P1-新3A / 5 / 原 P1-5)
+    # Methodology-layer fields
     bootstrap_method: str = "stationary_block"
     bootstrap_avg_block_len: float = DEFAULT_AVG_BLOCK_LEN
     deflated_sharpe_ratio: float | None = None
-    # V1.1b (2026-05-04): default int → int | None (records actual passed value,
-    # None = unset). Silent default DEFAULT_DSR_N_TRIALS=5 retired per V0.13 lock.
+    # int | None records the actual passed value (None = unset); silent default
+    # DSR n_trials retired to prevent over-claim.
     deflated_sharpe_n_trials: int | None = None
-    # R3-1: empirical skew / Pearson kurtosis fed into DSR (default Gaussian
+    # Empirical skew / Pearson kurtosis fed into DSR (default Gaussian
     # fallback). `deflated_sharpe_moments_estimated` distinguishes "really
-    # estimated" from "fell back silently" so external audit-style mutation tests can
-    # pin down which branch executed (external audit C2 / Round 3.5).
+    # estimated" from "fell back silently" so mutation tests can
+    # pin down which branch executed.
     deflated_sharpe_skewness: float = 0.0
     deflated_sharpe_kurtosis: float = 3.0
     deflated_sharpe_moments_estimated: bool = False
     # n_obs used by DSR (time-series n_periods, NOT effective_n). Recorded
-    # for transparency after external audit flagged dimension confusion.
+    # for transparency to avoid dimension confusion with cross-sectional size.
     deflated_sharpe_n_obs: int | None = None
     # Cross-sectional cluster shrinkage value. METADATA ONLY — never wired
     # into p-value or DSR (see known_biases).
     effective_n: int | None = None
     fdr_period_level: list[float | None] = field(default_factory=list)
     fdr_method: str = "benjamini_hochberg"
-    # Phase A2 Step 4-prep: per-period factor scores kept for downstream
+    # Per-period factor scores kept for downstream
     # cross-factor correlation analysis (/ic-aggregate skill). Each entry is
     # {"rebalance_date": "YYYY-MM-DD", "scores": {symbol: factor_score}}. Only
     # symbols that survived factor + forward-return alignment (i.e. the subset
     # used to compute that period's rank IC) are stored — ensures correlation
     # analysis operates on the same aligned universe as IC itself.
-    # Was a known limitation documented in reports/factor_ic/phase_a1_summary.md
-    # ("相關性矩陣 — skip: JSON schema 未儲存 per-period factor scores").
     period_factor_scores: list[dict] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -187,7 +181,7 @@ def compute_spearman_ic(factor: pd.Series, future_returns: pd.Series) -> float |
 
 
 def _estimate_tie_ratio(values: Sequence[float]) -> float | None:
-    """R3-4: fraction of samples that share a value with at least one other.
+    """Fraction of samples that share a value with at least one other.
 
     Used to flag periods dominated by ties (e.g., mass limit-down days where
     many symbols share the exact same forward return). scipy.stats.spearmanr
@@ -195,10 +189,10 @@ def _estimate_tie_ratio(values: Sequence[float]) -> float | None:
     information content degrades; callers should treat tie_ratio > 0.3 as
     reduced confidence.
 
-    R5-4: returns **None** when the input is degenerate (empty, all
+    Returns **None** when the input is degenerate (empty, all
     NaN, or single observation) so callers can distinguish "cannot
-    evaluate" from "zero ties". Previously any degenerate input returned
-    0.0, silently masking all-NaN periods as tie-free.
+    evaluate" from "zero ties". A degenerate input must not return
+    0.0, which would silently mask all-NaN periods as tie-free.
     """
     arr = np.array([float(v) for v in values if v is not None and not pd.isna(v)])
     if arr.size < 2:
@@ -214,7 +208,7 @@ def compute_period_ic_stats(ics: Sequence[float | None]) -> dict:
     Returns: mean, std, IC_IR, t_stat, p_value, n, t_df.
     Uses Student-t for p-value (exact small-sample, superior to normal approx).
 
-    ADR — time-series df, not cross-sectional (external audit Round 3.5, 2026-04-17)
+    ADR — time-series df, not cross-sectional
     -----------------------------------------------------------------------
     Earlier revisions accepted a cross-sectional cluster override that
     replaced Student-t ``df = n - 1`` with ``effective_n - 1``. That was a
@@ -231,7 +225,7 @@ def compute_period_ic_stats(ics: Sequence[float | None]) -> dict:
           note reminding readers that cross-sectional dependence is NOT baked
           into this p-value.
         * Future proper Moulton-style correction should shrink `std_ic`, not
-          `df`, and is left as a Phase A2 refinement.
+          `df`, and is left as a future refinement.
     """
     clean = _clean_floats(ics)
     n = len(clean)
@@ -247,9 +241,9 @@ def compute_period_ic_stats(ics: Sequence[float | None]) -> dict:
             "t_stat": None, "p_value": None, "n": 1, "t_df": None,
         }
     sd = math.sqrt(sum((v - mu) ** 2 for v in clean) / (n - 1))
-    # R5-2: `sd == 0` exact comparison is brittle against float noise.
+    # `sd == 0` exact comparison is brittle against float noise.
     # A constant series like [0.2, 0.2, 0.2] can yield sd ≈ 1e-17 depending on
-    # accumulation order, which previously produced ic_ir ~ 5.88e15 and
+    # accumulation order, which produces ic_ir ~ 5.88e15 and
     # p_value = 0.0. Use a tight absolute tolerance so numerically-degenerate
     # inputs are treated as "no variation".
     if sd < 1e-12:
@@ -261,7 +255,7 @@ def compute_period_ic_stats(ics: Sequence[float | None]) -> dict:
     t_stat = ic_ir * math.sqrt(n)
     df = n - 1
     p_value = 2.0 * float(stats.t.sf(abs(t_stat), df=df))
-    # R6-2 fix: `round(sd, 4)` collapses microscopic-but-above-guard
+    # `round(sd, 4)` collapses microscopic-but-above-guard
     # standard deviations (e.g. 1.58e-10) to 0.0 while ic_ir / t_stat /
     # p_value still carry the real signal (ic_ir ~ 6.3e8). Downstream
     # readers then see `std_ic=0.0` next to "statistically significant"
@@ -299,7 +293,7 @@ def bootstrap_ci(
         s = [clean[rng.randrange(sample_size)] for _ in range(sample_size)]
         means.append(sum(s) / sample_size)
     means.sort()
-    # P1-新3B: clamp both bounds to valid index range so alpha/2 * n floor to 0
+    # Clamp both bounds to valid index range so alpha/2 * n floor to 0
     # does not underflow when n is small.
     lo_idx = max(0, int((alpha / 2) * n))
     hi_idx = min(n - 1, int((1 - alpha / 2) * n))
@@ -369,7 +363,7 @@ def deflated_sharpe_ratio(
         Ψ ≤ 0.05 → observed SR is WORSE than even the null's expected max
                    (NOT significant; do not flip to treat as a p-value)
 
-    Decision rule (Phase A1): ``deflated_sharpe_ratio >= 0.95`` for skill,
+    Decision rule: ``deflated_sharpe_ratio >= 0.95`` for skill,
     NOT ``< 0.05`` (which would be inverted — this function is a confidence,
     not a p-value).
 
@@ -382,30 +376,48 @@ def deflated_sharpe_ratio(
     Returns None when inputs are pathological (n_obs <= 1, n_trials < 1, or
     the variance estimate is non-positive).
 
-    Raises ValueError when n_trials is None — silent default removed in V1.1b
-    (Plan v7 H_d_v6 V0.13 Assertion 3) to prevent over-claim. Pass n_trials
-    explicit (Phase A1 single-factor: 5; v7 cell sweep: 18).
+    Raises ValueError when n_trials is None — silent default removed to
+    prevent over-claim (a smaller n_trials makes DSR more lenient, so a
+    silent default would false-PASS multi-trial sweeps). Pass n_trials
+    explicitly (= number of candidate strategies / factors considered).
 
-    Formula choice — Gumbel asymp vs BLdP 2014 Eq.(6) quantile-mixture
-    ------------------------------------------------------------------
-    This implementation uses the Gumbel asymptotic form for E[max SR_0]:
-        E[max SR_0] ≈ √(2·ln N) - (γ + ln(ln N)) / (2·√(2·ln N))
-    BLdP 2014 paper Eq.(6) gives the quantile-mixture form:
-        E[max SR_0] ≈ (1-γ)·Φ⁻¹(1-1/N) + γ·Φ⁻¹(1-1/(N·e))
+    Edge cases
+    ----------
+    - ``n_trials`` must be a positive integer family size. ``int`` and
+      whole-valued ``float`` (e.g. ``400.0``) are accepted; fractional floats
+      (``400.5``), ``bool``, and non-finite values (``inf`` / ``nan``) raise
+      ``ValueError`` — a fractional or boolean trial count signals a config
+      bug, not a value to silently normalize.
+    - ``observed_sr < 0`` is mathematically valid: Ψ → 0 as observed_sr drops
+      below E[max SR_0]. A near-zero Ψ for negative SR means "this strategy
+      under-performs even the null's best-of-N expected SR" — it is NOT a
+      computation failure. Factor sign errors typically surface here.
+    - ``n_obs ≤ 1`` or ``n_trials < 1`` → returns None (degenerate variance).
+
+    Formula structure (two-stage, units explicit)
+    ---------------------------------------------
+    Stage 1 — compute z_max in STANDARD-NORMAL units (Gumbel asymp):
+        z_max ≈ √(2·ln N) - (γ + ln(ln N)) / (2·√(2·ln N))
+    Stage 2 — convert to SR units and form the z-score:
+        E[max SR_0] = σ_SR × z_max          # SR units
+        z           = (observed_sr - E[max SR_0]) / σ_SR
+                    = observed_sr / σ_SR - z_max
+    Ψ = Φ(z).
+
+    Comparison with BLdP 2014 Eq.(6) quantile-mixture form:
+        z_max_eq6 ≈ (1-γ)·Φ⁻¹(1-1/N) + γ·Φ⁻¹(1-1/(N·e))
     For small N (e.g. N=12) Gumbel asymp gives ≈1.8957 vs Eq.(6) ≈1.6648
-    (true Monte-Carlo value ≈1.6297). Gumbel asymp is slightly more
-    conservative; both are valid extreme-value approximations and the
-    gap closes for N → ∞. DSR verdicts (Ψ ≥ 0.95 → skill) are robust to
-    this choice within the parameter ranges relevant to this project
-    (n_obs 50-250, n_trials 5-18). See
-    ``reports/_audit/dsr_low_vol_v2_review_2026-05-19.md`` for the
-    verification trace where all three forms (Gumbel / Eq.(6) / MC)
-    give the same DSR=0 verdict on the low_vol_v2 spike case.
+    (true Monte-Carlo value ≈1.6297). Both quantities are in
+    standard-normal units. Gumbel asymp is slightly more conservative;
+    both are valid extreme-value approximations and the gap closes for
+    N → ∞. DSR verdicts (Ψ ≥ 0.95 → skill) are robust to this choice
+    within the parameter ranges relevant to this project
+    (n_obs 50-250, n_trials 5-18).
 
-    The ``test_deflated_sharpe_golden_n12_gumbel_asymp`` golden test
-    locks the current Gumbel asymp form — any switch to Eq.(6) must
-    update both the formula AND the golden test together (no silent
-    drift).
+    The ``test_deflated_sharpe_golden_n12_gumbel_asymp`` and
+    ``test_deflated_sharpe_unit_consistency_mutation`` tests lock both
+    the Gumbel form AND the unit-correct stage-2 application; any
+    switch must update formula and tests together.
     """
     if n_trials is None:
         raise ValueError(
@@ -414,22 +426,46 @@ def deflated_sharpe_ratio(
             "DEFAULT_DSR_N_TRIALS=5 retired in V1.1b. Pass n_trials=5 "
             "(Phase A1 single-factor) or n_trials=18 (v7 cell sweep)."
         )
+    if isinstance(n_trials, bool):
+        raise ValueError(
+            f"deflated_sharpe_ratio: n_trials must be an integer family size, "
+            f"not bool ({n_trials!r}) — bool silently coerces to 0/1."
+        )
+    if isinstance(n_trials, float):
+        if not math.isfinite(n_trials):
+            raise ValueError(
+                f"deflated_sharpe_ratio: n_trials must be finite, got {n_trials!r}"
+            )
+        if not n_trials.is_integer():
+            raise ValueError(
+                f"deflated_sharpe_ratio: n_trials must be a whole number, got "
+                f"fractional {n_trials!r} (fractional family size is a config bug)"
+            )
+    try:
+        n_trials = int(n_trials)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError(
+            f"deflated_sharpe_ratio: n_trials must be int-coercible, got "
+            f"{type(n_trials).__name__}={n_trials!r}"
+        )
     if n_obs <= 1 or n_trials < 1 or observed_sr is None or pd.isna(observed_sr):
         return None
     if n_trials == 1:
-        sr_max_expected = 0.0
+        z_max = 0.0
     else:
         ln_n = math.log(n_trials)
         if ln_n <= 0:
-            sr_max_expected = 0.0
+            z_max = 0.0
         else:
             sqrt_two_ln_n = math.sqrt(2.0 * ln_n)
-            # Bailey-Lopez de Prado Equation (6): expected max SR under the null
-            sr_max_expected = (
+            # Gumbel asymp expected MAX of N standard-normal variables —
+            # in STANDARD NORMAL units (NOT SR units). Convert to SR units
+            # by multiplying by sigma_SR below.
+            z_max = (
                 sqrt_two_ln_n
                 - (EULER_MASCHERONI + math.log(max(ln_n, 1e-12))) / (2.0 * sqrt_two_ln_n)
             )
-    # Mertens (2002) variance of the Sharpe ratio estimator
+    # Mertens (2002) variance of the Sharpe ratio estimator under null.
     var_sr = (
         1.0
         - skewness * observed_sr
@@ -437,7 +473,11 @@ def deflated_sharpe_ratio(
     ) / (n_obs - 1)
     if var_sr <= 0 or not math.isfinite(var_sr):
         return None
-    z = (observed_sr - sr_max_expected) / math.sqrt(var_sr)
+    sigma_sr = math.sqrt(var_sr)
+    # z_max is in standard-normal units; convert to SR units before z-scoring
+    # against observed_sr (BLdP 2014: return mu + sigma * maxZ, mu=0 under null).
+    expected_max_sr = sigma_sr * z_max
+    z = (observed_sr - expected_max_sr) / sigma_sr
     return round(float(stats.norm.cdf(z)), 4)
 
 
@@ -498,12 +538,12 @@ def regime_conditional_ic(
 ) -> dict:
     """Group period ICs by regime, return {regime: stats_dict} for each bucket.
 
-    external audit Round 3.5 correction: the previous cross-sectional cluster
-    override has been removed because mixing cross-sectional cluster
-    shrinkage into a time-series t-test inverted the conservatism direction.
-    Each regime now simply runs `compute_period_ic_stats` on its own
-    time-series sample with df = (n_regime_periods - 1). See the ADR in
-    `compute_period_ic_stats` for the full rationale.
+    The previous cross-sectional cluster override has been removed because
+    mixing cross-sectional cluster shrinkage into a time-series t-test
+    inverted the conservatism direction. Each regime now simply runs
+    `compute_period_ic_stats` on its own time-series sample with
+    df = (n_regime_periods - 1). See the ADR in `compute_period_ic_stats`
+    for the full rationale.
     """
     if len(period_ics) != len(regimes):
         raise ValueError("period_ics and regimes must have matching length")
@@ -527,7 +567,7 @@ def permutation_baseline(
 ) -> dict:
     """Shuffle factor scores within each period, build null distribution of mean IC.
 
-    P1-新4 fix: each (iter_id, period_id) pair gets an independent `default_rng`
+    Each (iter_id, period_id) pair gets an independent `default_rng`
     derived from `base_seed + iter_id * n_periods + period_id`. Sharing a single
     RNG across the nested loops induces serial correlation in the null and
     biases the empirical p-value optimistically by 15-25%.
@@ -597,7 +637,7 @@ def permutation_baseline(
     count_below = int((null_arr < real_mean).sum())
     count_above = int((null_arr > real_mean).sum())
     percentile = float(count_below) / total
-    # R3-2: two-sided empirical p with discrete lower bound (North, Curtis &
+    # Two-sided empirical p with discrete lower bound (North, Curtis &
     # Sham 2002). Plain (count/n) can return p=0 when real_mean beats every
     # null draw, which JSON readers then misread as "absolute zero". Using
     # (count + 1) / (n + 1) guarantees p_emp >= 2 / (n + 1) — the true
@@ -646,19 +686,18 @@ def factor_ic_report(
     period_data: list of (rebalance_date, factor_series, forward_returns, regime).
                  Both Series are indexed by symbol.
 
-    Phase A1 additions:
-        * CI uses Politis-Romano stationary block bootstrap (P1-新3A)
-        * Adds deflated Sharpe p-value, effective_n, bucket-level FDR (P1-新5, 原 P1-5)
-        * Permutation null now uses per (iter, period) independent seed (P1-新4)
+    Methodology notes:
+        * CI uses Politis-Romano stationary block bootstrap
+        * Adds deflated Sharpe p-value, effective_n, bucket-level FDR
+        * Permutation null uses per (iter, period) independent seed
 
-    V1.1b (Plan v7 H_d_v6 V0.13 Assertion 3): dsr_n_trials default = 5 retained
-    here for Phase A1 single-factor backward compatibility. v7 cell sweep MUST
-    NOT use compute_factor_ic for DSR computation — v7 cell sweep (Phase 2 S6
-    `d_cell_aggregate_v7.py`) must call `deflated_sharpe_ratio()` directly with
-    explicit `n_trials=18` kwarg (deflated_sharpe_ratio() raises on None to
+    `dsr_n_trials` has a default here only for single-factor backward
+    compatibility. Multi-trial cell sweeps MUST NOT use this function for DSR
+    computation — they must call `deflated_sharpe_ratio()` directly with an
+    explicit `n_trials` kwarg (deflated_sharpe_ratio() raises on None to
     enforce). This split:
-      - compute_factor_ic: Phase A1 single-factor IC, dsr_n_trials=5 default OK
-      - deflated_sharpe_ratio (direct call): MUST explicit n_trials kwarg
+      - single-factor IC via this function: dsr_n_trials default OK
+      - deflated_sharpe_ratio (direct call): MUST pass explicit n_trials kwarg
     """
     period_ics_records: list[PeriodIC] = []
     period_ics_float: list[float | None] = []
@@ -667,7 +706,7 @@ def factor_ic_report(
     returns_by_period: list[pd.Series] = []
     n_symbols: list[int] = []
     symbols_seen: set[str] = set()
-    # Phase A2 Step 4-prep: per-period factor scores for /ic-aggregate
+    # Per-period factor scores for /ic-aggregate
     # cross-factor correlation analysis. Populated below from `aligned` so only
     # symbols that actually participated in the rank IC are included.
     period_factor_scores: list[dict] = []
@@ -676,7 +715,7 @@ def factor_ic_report(
         ic = compute_spearman_ic(factor, fwd_returns)
         aligned = pd.concat([factor, fwd_returns], axis=1, join="inner").dropna()
         n_sym = len(aligned)
-        # R3-5: how many symbols were dropped during alignment (NaN factor /
+        # How many symbols were dropped during alignment (NaN factor /
         # NaN return / stale price). Computed against the *union* of inputs
         # so the diagnostic reflects selection pressure from the full intended
         # universe, not just the factor-populated subset.
@@ -687,9 +726,9 @@ def factor_ic_report(
         else:
             union_size = n_sym
         n_excluded = max(0, union_size - n_sym)
-        # R3-4 + R5-4: tie ratio on forward returns (ties in returns are the
+        # Tie ratio on forward returns (ties in returns are the
         # common failure mode on mass limit-up/down days; ties in factor also
-        # count). `_estimate_tie_ratio` now returns None on degenerate input
+        # count). `_estimate_tie_ratio` returns None on degenerate input
         # (all-NaN / n<2), so max() must skip None to avoid TypeError.
         tie_ratio = None
         if n_sym >= 2:
@@ -713,7 +752,7 @@ def factor_ic_report(
                 n_excluded=n_excluded,
             )
         )
-        # Phase A2 Step 4-prep: store aligned factor scores (same subset used
+        # Store aligned factor scores (same subset used
         # for rank IC) — keyed by symbol for downstream /ic-aggregate pairing.
         # round(x, 6) keeps float precision while trimming JSON bloat.
         if n_sym > 0:
@@ -734,10 +773,9 @@ def factor_ic_report(
         symbols_seen.update(str(s) for s in aligned.index)
 
     # Cross-sectional effective-n (symbol-cluster shrinkage). Kept as JSON
-    # metadata + known-biases warning ONLY — external audit Round 3.5 showed that
-    # plumbing it into Student-t df or DSR n_obs mixes dimensions and
-    # produces the wrong direction of conservatism (see ADR note in
-    # compute_period_ic_stats docstring).
+    # metadata + known-biases warning ONLY — plumbing it into Student-t df or
+    # DSR n_obs mixes dimensions and produces the wrong direction of
+    # conservatism (see ADR note in compute_period_ic_stats docstring).
     eff_n = effective_n_cluster(
         sorted(symbols_seen),
         industry_labels,
@@ -746,10 +784,10 @@ def factor_ic_report(
     effective_n_metadata = eff_n if eff_n and eff_n > 1 else None
 
     overall = compute_period_ic_stats(period_ics_float)
-    # Note (R5-5): top-level `FactorICResult.effective_n` already
-    # surfaces this as metadata. An earlier revision also wrote
-    # `overall["effective_n_cross_sectional"] = effective_n_metadata` but
-    # that produced identical duplicate values in the serialised JSON. The
+    # Top-level `FactorICResult.effective_n` already
+    # surfaces this as metadata. Writing
+    # `overall["effective_n_cross_sectional"] = effective_n_metadata` would
+    # produce identical duplicate values in the serialised JSON. The
     # overall dict only carries **time-series** stats; cross-sectional
     # cluster metadata lives at the top level where it belongs.
     overall["bootstrap_ci_95"] = list(
@@ -787,14 +825,13 @@ def factor_ic_report(
 
     # Deflated Sharpe Ratio on the IC-IR.
     #
-    # n_obs = number of time-series observations (= n_periods). external audit Round 3.5
-    # caught the earlier version substituting cross-sectional `effective_n`
-    # here — that mixes dimensions the same way as the Student-t df error.
-    # Sharpe / IR is a time-series statistic; Mertens (2002) variance is
-    # parameterised by time-series n, not symbol count.
+    # n_obs = number of time-series observations (= n_periods). Substituting
+    # cross-sectional `effective_n` here mixes dimensions the same way as the
+    # Student-t df error. Sharpe / IR is a time-series statistic; Mertens (2002)
+    # variance is parameterised by time-series n, not symbol count.
     #
     # Feed the empirically-estimated period-IC skewness / Pearson kurtosis
-    # (R3-1) so fat-tailed IC distributions do not inflate DSR confidence via
+    # so fat-tailed IC distributions do not inflate DSR confidence via
     # the Gaussian default.
     dsr_confidence: float | None = None
     dsr_skew_used: float = 0.0
@@ -839,7 +876,7 @@ def factor_ic_report(
     biases = list(known_biases or [])
     # Document methodology caveats so downstream readers cannot forget them.
     #
-    # external audit Round 3.5 corrections applied below:
+    # Corrections applied below:
     #   * effective_n is metadata only (NOT wired into any p-value / DSR).
     #   * Survivorship boilerplate is unconditional here; callers should no
     #     longer pass their own "cache-scan survivorship" string to avoid
@@ -853,7 +890,7 @@ def factor_ic_report(
         if effective_n_metadata is not None
         else "effective_n unavailable (symbol universe < 2); no cross-sectional metadata recorded"
     )
-    # R3-1: DSR skew/kurt note — uses the explicit `dsr_moments_estimated`
+    # DSR skew/kurt note — uses the explicit `dsr_moments_estimated`
     # flag so callers know whether **both** moments were estimated.
     dsr_moment_note = (
         f"DSR uses empirical period-IC moments "
@@ -868,13 +905,13 @@ def factor_ic_report(
         "preserve autocorrelation",
         "permutation null uses per (iter, period) independent seed",
         dsr_moment_note,
-        # R3-3 unconditional additions (callers should not duplicate these)
+        # Unconditional additions (callers should not duplicate these)
         "universe drawn from local cache scan; delisted symbols absent "
         "(survivorship bias)",
         "forward return is price-only (no dividend adjustment); total-return "
         "upgrade deferred to Phase A2",
     ]
-    # R3-4: flag periods where tie_ratio > 0.3 — Spearman via average-rank
+    # Flag periods where tie_ratio > 0.3 — Spearman via average-rank
     # still runs but loses information; downstream readers should treat those
     # periods as less reliable.
     high_tie_periods = [
@@ -890,14 +927,13 @@ def factor_ic_report(
             + ("..." if len(high_tie_periods) > 5 else "")
         )
 
-    # R5-3 precision fix for C5 dedup:
-    # Earlier versions used substring keyword match which swallowed unrelated
-    # caller notes. A first R5-3 attempt bucketed all canonical phrases into
-    # one set, but that cross-contaminated *topics* — e.g. an already-
-    # appended survivorship boilerplate would falsely suppress the price-only
-    # boilerplate because both qualify as "canonical". The fix groups
-    # canonical phrases by semantic topic so dedup only triggers within the
-    # same topic.
+    # Dedup precision:
+    # A plain substring keyword match swallows unrelated caller notes.
+    # Bucketing all canonical phrases into one set cross-contaminates
+    # *topics* — e.g. an already-appended survivorship boilerplate would
+    # falsely suppress the price-only boilerplate because both qualify as
+    # "canonical". Group canonical phrases by semantic topic so dedup only
+    # triggers within the same topic.
     _CANONICAL_PHRASE_GROUPS = (
         # Survivorship topic
         {

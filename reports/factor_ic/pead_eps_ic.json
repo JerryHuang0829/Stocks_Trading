@@ -155,7 +155,7 @@
     ],
     "method": "benjamini_hochberg"
   },
-  "deflated_sharpe_ratio": 0.0,
+  "deflated_sharpe_ratio": 0.7987,
   "deflated_sharpe_n_trials": 5,
   "deflated_sharpe_n_obs": 71,
   "deflated_sharpe_skewness": -0.1402,
@@ -116849,5 +116849,9 @@
     "max": 0.21199482155616833,
     "n_periods": 70
   },
-  "enriched_diagnostics_date": "2026-05-10"
+  "enriched_diagnostics_date": "2026-05-10",
+  "deflated_sharpe_corrected_2026_05_28": {
+    "old_value": 0.0,
+    "reason": "Codex DSR audit P0 unit-mismatch fix (ic_analysis.py)"
+  }
 }

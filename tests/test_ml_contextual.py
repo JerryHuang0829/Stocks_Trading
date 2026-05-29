@@ -21,11 +21,9 @@ sys.path.insert(0, str(REPO_ROOT))
 from src.analysis.ml_contextual import (  # noqa: E402
     LOCKED_INTERACTION_NAMES,
     REGIME_LABELS,
-    ContextualConfig,
     _compute_size_decile_per_period,
     add_contextual_features,
 )
-
 
 # ===========================================================================
 # Fixtures

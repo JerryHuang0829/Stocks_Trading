@@ -13,8 +13,7 @@ higher score actually earns a higher return is an EMPIRICAL question — see the
     margin_change_20d = MarginPurchaseTodayBalance_today / MarginPurchaseTodayBalance_20d_ago - 1
     score             = -0.5 * zscore_cross(margin_ratio) - 0.5 * zscore_cross(margin_change_20d)
 
-Empirical IC vs decile sanity (2026-05-22 audit correction — supersedes the
-old R28-4 "sign-convention sanity check"):
+Empirical IC vs decile sanity:
   ⚠️ This is NOT a stable long-only factor. The old docstring claimed
   "decile rho > 0 (D9 > D0) → expected" — that is empirically FALSE. Two
   DIFFERENT quantities were conflated and must not be:
@@ -24,12 +23,13 @@ old R28-4 "sign-convention sanity check"):
       earns +0.88% — among the lowest. d9_d0_t = −1.21 (not significant).
     - per-period (IC ↔ D9-D0 spread) Spearman = 0.946 — this is only a
       WITHIN-PERIOD consistency metric. It does NOT resolve the monotonicity
-      sign; the old R28-4 paragraph was wrong to wave away the −0.818 with it.
+      sign; this per-period consistency does NOT justify waving away the
+      −0.818 decile rho.
   The positive mean IC (+0.0388) is concentrated in 2022 (bucket IC +0.101, a
   crash year) and the trending_up regime (IC +0.082); the trending_down regime
   IC is −0.025. The signal behaves like a regime-conditional / crash-hedge
   indicator, not a plain monotonic long-only alpha.
-  Verdict: do NOT deploy as a plain long-only factor. Any v8 use must add
+  Verdict: do NOT deploy as a plain long-only factor. Any use must add
   explicit regime conditioning. Flipping the formula sign would NOT fix this —
   it flips BOTH the IC and the decile curve, leaving the non-monotonicity
   intact. The formula above is therefore left unchanged; only this
@@ -41,9 +41,9 @@ old R28-4 "sign-convention sanity check"):
   fetched via fetch_twse_issued_capital() is in **shares** (not lots). This
   module re-normalises margin balance from lots → shares before forming the
   ratio so that the denominator is consistent.
-- 2026-05-10 R28-2: portfolio caller `tw_stock._load_issued_capital_dict` now
-  uses panel + asof helper (same as IC pipeline) instead of latest snapshot.
-- ⚠️ Static-snapshot caveat (R28-1): when issued_capital cache lacks date
+- portfolio caller `tw_stock._load_issued_capital_dict` uses panel + asof
+  helper (same as IC pipeline) instead of latest snapshot.
+- ⚠️ Static-snapshot caveat: when issued_capital cache lacks date
   column (current state), both IC and portfolio paths fall back to
   pd.Timestamp.min, treating issued_shares as constant across all dates.
   margin_ratio denominator is therefore "PIT approximation", not fully PIT.
@@ -53,11 +53,9 @@ from __future__ import annotations
 
 from typing import Mapping
 
-import numpy as np
 import pandas as pd
 
 from src.utils.constants import MARGIN_LAG_DAYS
-
 
 DEFAULT_MIN_HISTORY = 40  # trading days, enough for 20D change + buffer
 LOTS_TO_SHARES = 1000
@@ -66,7 +64,7 @@ LOTS_TO_SHARES = 1000
 def _zscore_with_tolerance(s: pd.Series, tolerance: float = 1e-12) -> pd.Series:
     """Cross-sectional z-score with float-noise tolerance guard.
 
-    R8-1 fix: previously a closure inside
+    Previously a closure inside
     `compute_margin_short_ratio_universe`, which blocked direct unit testing
     of the guard logic. Extracted to module level so a mutation-proof test
     can import it and verify that `std` below `tolerance` (e.g. 1e-13 from
@@ -189,7 +187,7 @@ def compute_margin_short_ratio_universe(
     if ratio_series.empty and change_series.empty:
         return pd.Series(dtype=float)
 
-    # P1-3: use intersection (not union) so symbols with partial coverage do
+    # use intersection (not union) so symbols with partial coverage do
     # not get a fillna(0.0) shadow signal that distorts the z-score baseline
     # and the composite score. Only symbols with both raw signals present
     # participate in the final ranking.

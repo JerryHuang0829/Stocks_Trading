@@ -1,10 +1,6 @@
-"""V1.2 binding stub tests: src.analysis.active_correlation.active_corr.
+"""Tests for src.analysis.active_correlation.active_corr.
 
-Phase 2 Session 1 落地 stub-level mutation tests. Phase 2 Session 5 will add
-full implementation cover (cell sweep CLI + A10 mutation test 3 範例) per
-V1.2 binding clause.
-
-Mutation tests cover the V1.2 stub deliverable:
+Mutation tests cover:
 1. happy path: known synthetic series → known corr value
 2. self-corr mutation: revert to corr(portfolio, portfolio) → would always
    return 1.0 (hollow PASS) → caught by mutation test
@@ -52,7 +48,7 @@ def test_active_corr_active_zero_handles_gracefully():
 
 
 def test_active_corr_mutation_catches_self_corr():
-    """V1.2 A10 mutation 範例 1: revert to corr(portfolio, portfolio).
+    """Mutation: revert to corr(portfolio, portfolio).
     self-corr always returns 1.0 (hollow PASS) → this test catches the
     regression by verifying active_corr ≠ self-corr.
     """
@@ -75,7 +71,7 @@ def test_active_corr_mutation_catches_self_corr():
 
 
 def test_active_corr_mutation_catches_port_vs_bench():
-    """V1.2 A10 mutation 範例 3: revert to corr(portfolio, benchmark) directly
+    """Mutation: revert to corr(portfolio, benchmark) directly
     (without subtracting active = port - bench). Different metric than
     corr(active, benchmark); test catches the regression."""
     import numpy as np
@@ -105,32 +101,30 @@ def test_active_corr_length_mismatch_raises():
 
 
 def test_active_corr_index_misalignment_raises_v0_14():
-    """V0.14 P0-4 fix per R25-mid 獨立 audit: docstring promised non-aligned
-    index check but original code only verified length. Same length ≠ same
-    dates; pandas Series subtract auto-aligns by index which silently produces
-    wrong result if dates differ. Caller MUST align by date index first.
+    """docstring promised non-aligned index check but original code only
+    verified length. Same length ≠ same dates; pandas Series subtract
+    auto-aligns by index which silently produces wrong result if dates differ.
+    Caller MUST align by date index first.
 
-    Mutation reverts the V0.14 index check → same-length-different-dates
+    Mutation reverts the index check → same-length-different-dates
     series silently compute wrong active_corr."""
     dates_a = pd.date_range("2024-01-31", periods=12, freq="ME")
     dates_b = pd.date_range("2024-02-29", periods=12, freq="ME")  # offset 1 month
     port = pd.Series([0.01] * 12, index=dates_a)
     bench = pd.Series([0.01] * 12, index=dates_b)
-    # Same length (12) but different date indexes → V0.14 must raise
+    # Same length (12) but different date indexes → must raise
     with pytest.raises(ValueError, match="Index misalignment"):
         active_corr(port, bench)
 
 
 def test_active_corr_a10_mutation_3_daily_frequency_v1_2_s5():
-    """V1.2 binding S5 落地 — A10 attacker test mutation 3 of 3:
-    daily frequency masquerading as monthly → must produce different result
-    than properly-monthly aligned input. Together with self-corr (mutation 1)
-    and port-vs-bench (mutation 3 of A10 spec list) covers the V1.2 §"L5
-    active_corr binding" A10 attacker connection 3 mutation 範例.
+    """Mutation: daily frequency masquerading as monthly → must produce
+    different result than properly-monthly aligned input. Together with
+    self-corr and port-vs-bench mutations covers the active_corr mutation set.
 
-    Note: V1.2 spec mutation list:
+    Mutation list:
       1. self-corr → covered by test_active_corr_mutation_catches_self_corr
-      2. daily frequency → THIS test (V1.2 S5 落地)
+      2. daily frequency → THIS test
       3. 移除 active = port - bench → covered by test_active_corr_mutation_catches_port_vs_bench
     """
     import numpy as np
@@ -158,7 +152,6 @@ def test_active_corr_a10_mutation_3_daily_frequency_v1_2_s5():
     # with high probability for non-degenerate data).
     assert -1.0 <= daily_result <= 1.0
     assert -1.0 <= monthly_result <= 1.0
-    # V1.2 binding intent: callers MUST pass monthly-frequency only; the
-    # function does NOT enforce this internally (caller responsibility) but
-    # the docstring + V1.2 spec lock 紀律 makes daily input a regression
-    # detected by integration / smoke / V1.2 A10 mutation cover at S5.
+    # Intent: callers MUST pass monthly-frequency only; the function does NOT
+    # enforce this internally (caller responsibility) but the docstring makes
+    # daily input a regression detected by this mutation cover.

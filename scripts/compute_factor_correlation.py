@@ -1,8 +1,8 @@
 """Compute cross-factor Spearman correlation matrix from factor IC JSONs.
 
-涵蓋全部 8 個實測因子：階段一 pre-registered 5 因子（high_proximity /
+涵蓋全部 8 個實測因子：pre-registered 5 因子（high_proximity /
 pead_eps / margin_short_ratio / revenue_momentum_v2 / foreign_investor_v2）
-+ 階段三 3 因子（quality_v3 / industry_momentum / idio_vol_max）。Reads the
++ 後續新增 3 因子（quality_v3 / industry_momentum / idio_vol_max）。Reads the
 `period_factor_scores` field from each factor's IC JSON, pairs symbols
 per period, computes rank correlation, averages across periods.
 
@@ -28,13 +28,13 @@ from scipy import stats
 REPORTS_DIR = Path("reports/factor_ic")
 
 FACTORS = [
-    # 階段一 pre-registered 5 因子
+    # pre-registered 5 因子
     "high_proximity",
     "pead_eps",
     "margin_short_ratio",
     "revenue_momentum_v2",
     "foreign_investor_v2",
-    # 階段三 3 因子
+    # 後續新增 3 因子
     "quality_v3",
     "industry_momentum",
     "idio_vol_max",

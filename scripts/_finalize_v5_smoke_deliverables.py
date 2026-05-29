@@ -49,7 +49,7 @@ def main():
              f"**Mode**: {d['mode']}",
              f"**Run**: {d['run_date']}",
              f"**OOS Window**: {d['oos_window'][0]} ~ {d['oos_window'][1]}",
-             f"**Pre-reg §1 threshold**: Sharpe diff ≥ +0.05",
+             "**Pre-reg §1 threshold**: Sharpe diff ≥ +0.05",
              "",
              vs_df.to_markdown(index=False)]
     vs_md_path.write_text("\n".join(vs_md), encoding="utf-8")
@@ -67,7 +67,7 @@ def main():
         f"- ML cells: {len(d['ml_cells'])}",
         f"- Baseline cells: {len(d['baseline_cells'])}",
         f"- Best ML vs baseline Sharpe diff: {best_diff:+.4f}",
-        f"  (pre-reg §1 requires ≥ +0.05)",
+        "  (pre-reg §1 requires ≥ +0.05)",
         f"- ML cells with OOS Sharpe ≥ 0.20 (rough L1 proxy): "
         f"{n_pass_l1_proxy} / {len(d['ml_cells'])}",
         f"- ML cells beating baseline by ≥ +0.05: "

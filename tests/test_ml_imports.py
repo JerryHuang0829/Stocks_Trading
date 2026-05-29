@@ -1,9 +1,8 @@
 """Smoke test for v5.0 ML pipeline dependencies.
 
-Added 2026-05-25 per Codex v5.0 R1 P1-3 fix. Verifies xgboost / optuna / shap
-import cleanly in the quant conda env BEFORE Step 4 engineering starts;
-without this, Step 4 dev would fail mid-way when the wrapper modules
-import these packages.
+Verifies xgboost / optuna / shap import cleanly in the quant conda env before
+ML engineering starts; without this, dev would fail mid-way when the wrapper
+modules import these packages.
 
 Each test passes a minimal sanity check beyond bare import:
   - xgboost: smoke create + fit a 5-row classifier
@@ -16,7 +15,6 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -75,9 +73,9 @@ def test_shap_import_and_explain():
 
 def test_versions_in_expected_ranges():
     """Sanity-check pinned ranges from requirements-dev.txt."""
-    import xgboost
     import optuna
     import shap
+    import xgboost
     # Loose check — full pin enforcement is in requirements-dev.txt
     assert xgboost.__version__ >= "1.7"
     assert optuna.__version__ >= "3.5"
@@ -86,10 +84,9 @@ def test_versions_in_expected_ranges():
 
 def test_tabulate_import():
     """tabulate is required by pandas DataFrame.to_markdown() in
-    scripts/_run_v5_ml_experiment.py (Step 5 deliverables).
+    scripts/_run_v5_ml_experiment.py.
 
-    Codex v5.0 R6-equivalent fix (2026-05-26): added after smoke 1 failed
-    at to_markdown without tabulate installed.
+    Without tabulate installed, to_markdown() fails when writing deliverables.
     """
     import tabulate
     from packaging.version import Version

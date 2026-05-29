@@ -64,10 +64,10 @@ class PoolingConfig:
         order in the training matrix.
     forbidden_oos_start : pd.Timestamp
         2025-01-01 strict holdout boundary. ANY as_of or label_end >= this
-        date raises ValueError (defense in depth — Codex v5.0 R2 P0 fix:
-        original design only checked as_of; this also covers label_end since
-        forward return reads close on or near label_end, which would leak OOS
-        data into training labels for as_of = 2024-12-XX).
+        date raises ValueError (defense in depth: checking as_of alone is
+        insufficient — this also covers label_end since forward return reads
+        close on or near label_end, which would otherwise leak OOS data into
+        training labels for as_of = 2024-12-XX).
     top_decile_threshold : float
         0.9 per pre-reg §7.1 (top 10% binary target). Per-period independent
         ranking.
@@ -85,7 +85,7 @@ class PoolingConfig:
 
 @dataclass
 class PoolingDiagnostics:
-    """Per-period drop counts surfaced for audit (Codex v5.0 R2 P1 fix).
+    """Per-period drop counts surfaced for audit.
 
     Without these diagnostics, complete-case drop is silent and could mask
     universe drift mid-sample. The training matrix builder always returns
@@ -183,7 +183,7 @@ def _validate_panel_schema(
     Strict: missing column OR extra column → ValueError. This prevents silent
     bugs where an upstream provider drops a feature (would silently produce
     rows with missing values, drop them in complete-case, and quietly degrade
-    sample size — a Codex audit-flagged failure mode).
+    sample size — a silent sample-attrition failure mode).
     """
     if not isinstance(panel, pd.DataFrame):
         raise TypeError(
@@ -207,10 +207,9 @@ def _validate_oos_boundary(
 ) -> None:
     """Raise if as_of OR label_end falls in OOS holdout.
 
-    Codex v5.0 R2 P0 fix:
-    Original 4a design only checked as_of, allowing as_of=2024-12-12 with
-    label_end=2025-01-12 to slip through (label reads OOS close → leak).
-    Strict: both as_of and label_end must be strictly < forbidden_oos_start.
+    Checking as_of alone allows as_of=2024-12-12 with label_end=2025-01-12 to
+    slip through (label reads OOS close → leak). Strict: both as_of and
+    label_end must be strictly < forbidden_oos_start.
     """
     if as_of >= forbidden_oos_start:
         raise ValueError(

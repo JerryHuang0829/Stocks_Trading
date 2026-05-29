@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -50,7 +49,7 @@ def _make_close_panel(
     n_days: int = 80,
     constant_close: float = 100.0,
 ) -> dict[str, pd.Series]:
-    """2026-05-10 P0-B: helper for tests requiring close_by_symbol.
+    """Helper for tests requiring close_by_symbol.
 
     Returns {symbol: close_series} with constant close (100.0 by default)
     over n_days business days starting from `start`.
@@ -148,15 +147,15 @@ def test_bullish_persistent_foreign_scores_higher():
 
 
 def test_foreign_and_trust_alignment_consistency_deprecated():
-    """2026-05-10 P1-D 修法: consistency weight = 0.
+    """Consistency weight = 0 (deprecated sub-signal).
 
-    Pre-P1-D: BOTH (foreign + trust 同正) > ONEF (only foreign 正) > NONE
-    via consistency sub-signal contribution.
+    Before deprecation: BOTH (foreign + trust 同正) > ONEF (only foreign 正)
+    > NONE via consistency sub-signal contribution.
 
-    Post-P1-D (R26 deprecation): consistency 78% sparsity / low SNR →
-    weight 0. BOTH and ONEF have identical foreign_net and identical
-    foreign_cum_ratio + persistence + rank_stability sub-signals; only
-    consistency differs. With weight 0 they should be ≈ equal.
+    After deprecation: consistency 78% sparsity / low SNR → weight 0. BOTH
+    and ONEF have identical foreign_net and identical foreign_cum_ratio +
+    persistence + rank_stability sub-signals; only consistency differs. With
+    weight 0 they should be ≈ equal.
     """
     n = 80
     foreign_both = [0.0] * (n - 20) + [100_000.0] * 20
@@ -178,8 +177,8 @@ def test_foreign_and_trust_alignment_consistency_deprecated():
     )
     # BOTH and ONEF: foreign net identical + market_value identical →
     # foreign_cum_ratio + persistence + rank_stability identical. Only
-    # consistency differs (BOTH=1.0 last 20d, ONEF=0.0). With weight 0 →
-    # composite identical.
+    # consistency differs (BOTH=1.0 last 20d, ONEF=0.0). With consistency
+    # weight 0 → composite identical.
     assert {"BOTH", "ONEF", "NONE"} <= set(out.index)
     assert abs(out["BOTH"] - out["ONEF"]) < 1e-9, (
         f"P1-D consistency weight=0 expected BOTH≈ONEF, got "
@@ -220,7 +219,7 @@ def test_as_of_required_raises():
 
 
 def test_pivot_drops_duplicate_date_name_rows():
-    """P1-4: duplicate (date, name) rows must not double-count via aggfunc='sum'.
+    """Duplicate (date, name) rows must not double-count via aggfunc='sum'.
 
     Simulates FinMind publishing two revisions for the same (date, name).
     Under the old 'sum' aggregation net would be 150 instead of the latest 50.
@@ -241,7 +240,7 @@ def test_pivot_drops_duplicate_date_name_rows():
 
 
 def test_rank_stability_skips_small_universe_days():
-    """P1-新7: days with < min_universe_size positive-net symbols must be skipped.
+    """Days with < min_universe_size positive-net symbols must be skipped.
 
     Build a day-level panel where only 10 symbols have positive foreign net — fewer
     than MIN_UNIVERSE_FOR_RANK_STABILITY=50. The rank_stability sub-signal should
@@ -280,7 +279,7 @@ def test_rank_stability_skips_small_universe_days():
 
 
 def test_rank_stability_min_universe_yaml_override(monkeypatch):
-    """follow-up-2: min_universe_size default flows from factor_thresholds.yaml.
+    """min_universe_size default flows from factor_thresholds.yaml.
 
     Pre-fix: module-level constant MIN_UNIVERSE_FOR_RANK_STABILITY=50 was
     bound into the function signature, so yaml edits had no effect. This
@@ -334,7 +333,7 @@ def test_rank_stability_responds_to_mv_normalisation():
     dfs = {f"S{i}": _make_inst_frame(n_days=n, foreign_pattern=foreign, stock_id=f"S{i}")
            for i in range(3)}
     as_of = pd.Timestamp(dfs["S0"]["date"].iloc[-1]) + pd.Timedelta(days=3)
-    # 2026-05-10 P0-B: dollar denominator (foreign_net × close ÷ mv).
+    # Dollar denominator (foreign_net × close ÷ mv).
     # Same close (100) for all symbols → dollar amount identical across S0/S1/S2;
     # only mv differs → S0 ratio largest (smallest cap) → highest rank.
     out = compute_foreign_investor_v2_universe(
@@ -347,20 +346,19 @@ def test_rank_stability_responds_to_mv_normalisation():
     assert out["S0"] > out["S2"]
 
 
-# R8-1 mutation-proof test ----------------------------------------------
+# mutation-proof test ----------------------------------------------
 
 
 def test_zscore_with_tolerance_fires_on_sub_tolerance_std():
-    """R8-1 (rewrite after external audit Round 7 showed R7-2 wasn't mutation-proof):
-    directly verify that `_zscore_with_tolerance` fires on std that is
+    """Directly verify that `_zscore_with_tolerance` fires on std that is
     **greater than zero but below 1e-12** — the exact failure mode the
-    R6-3 fix was supposed to catch.
+    tolerance-guard fix was supposed to catch.
 
-    external audit's R7 mutation showed the previous R7-2 test's input collapsed
-    to *exactly identical* values (`1e-15` step is below float epsilon of
-    `1.0`, `1e-17` step is below epsilon of `10000.0`), so std was 0 and
-    even the old `std == 0` exact-compare guard fired — the test passed
-    under mutation, i.e. was useless.
+    A prior version of this test had inputs that collapsed to *exactly
+    identical* values (`1e-15` step is below float epsilon of `1.0`,
+    `1e-17` step is below epsilon of `10000.0`), so std was 0 and even the
+    old `std == 0` exact-compare guard fired — the test passed under
+    mutation, i.e. was useless.
 
     This version uses `1e-13` step which survives float representation
     at the 1.0 scale (cross-section std ≈ 1.00e-13, strictly > 0 and
@@ -380,7 +378,7 @@ def test_zscore_with_tolerance_fires_on_sub_tolerance_std():
         f"Either Python float changed behaviour, or step is wrong."
     )
 
-    # Under the R6-3 fix, guard fires → all zeros.
+    # Under the tolerance-guard fix, guard fires → all zeros.
     result = _zscore_with_tolerance(col)
     assert all(abs(v) < 1e-9 for v in result), (
         f"tolerance guard did NOT fire for sub-tolerance std: {result.tolist()}"

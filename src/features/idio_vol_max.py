@@ -1,12 +1,12 @@
-"""V0.13 idio_vol_max (D-G candidate factor): 0.5/0.5 IdioVol residual + MAX lottery.
+"""idio_vol_max (D-G candidate factor): 0.5/0.5 IdioVol residual + MAX lottery.
 
-Phase 2 Session 3 (2026-05-05) — H_d_v6 V0.13 §"3 New factor PIT lag spec":
+New factor PIT lag spec:
 - residual std lookback = 60 trading days strict-before
 - MAX lottery = top-5 daily return in past 1m (~22 trading days)
 - shift=1 semantics (mirrors high_proximity / low_vol_v2)
-- 0.5/0.5 weights split per H_d_v6:58 D-G + R24 §設計-6
+- 0.5/0.5 weights split (D-G row)
 
-Definition (per H_d_v6:58 D-G row):
+Definition (D-G row):
     composite = 0.5 × z(-residual_std) + 0.5 × z(-max_lottery)
     (negative sign: both are anti-features for long-only — low residual / low
      MAX = high quality; cross-section z-scored)
@@ -20,11 +20,11 @@ MAX lottery: top-5 daily returns in past 22 trading days (Bali-Cakici-Whitelaw
     2011 "Maxing Out: Stocks as Lotteries"). Average of top-5 captures
     lottery-like skewness exposure.
 
-A6 cross-correlation 監控 (per V0.13 §"A6 cross-correlation 監控擴展"):
+A6 cross-correlation 監控:
     若 D-G idio_vol_max 與 low_vol_v2 |ρ| > 0.6 → D-G drop or weight halve
-    (Phase 2 S6 cell sweep run 階段檢查 + report)
+    (cell sweep run 階段檢查 + report)
 
-Caller wires (Phase 2 S6 cache fresh-rerun + S5 cell sweep CLI):
+Caller wires (cache fresh-rerun + cell sweep CLI):
     from src.features.idio_vol_max import compute_idio_vol_max_panel
     panel = compute_idio_vol_max_panel(
         ohlcv_panel=ohlcv_dict,
@@ -102,10 +102,10 @@ def compute_idio_vol_max_panel(
         market_returns: pd.Series of market (typically 0050) daily returns
             indexed by date.
         as_of: rebalance date.
-        residual_lookback_days: 60 trading days per V0.13 lock.
-        max_lookback_days: ~22 trading days (1 month) per V0.13.
+        residual_lookback_days: 60 trading days.
+        max_lookback_days: ~22 trading days (1 month).
         max_top_k: top-5 per Bali-Cakici-Whitelaw 2011.
-        weights: (idio_weight, max_weight); default (0.5, 0.5) per H_d_v6:58.
+        weights: (idio_weight, max_weight); default (0.5, 0.5).
         z_clip: cross-section z-score outlier clip.
 
     Returns:

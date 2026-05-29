@@ -462,7 +462,7 @@ def fetch_twse_daily_all(as_of: datetime) -> dict[str, dict]:
             logger.debug("TWSE STOCK_DAY_ALL exception for %s: %s", date_str, exc)
 
     # --- TPEX (上櫃) ---
-    # 2026-04-16 更新：TPEX OpenAPI 現在提供 Open/High/Low 欄位（以前只有 Close）
+    # TPEX OpenAPI 提供 Open/High/Low 欄位（以前只有 Close），
     # 這讓 TPEX 股票也能走 --daily 快速路徑，不需再用 FinMind 逐支抓
     def _safe_tpex_price(val, fallback: float) -> float:
         """解析 TPEX 價格欄位，遇 '--' / 空字串 / None 時 fallback 到 close。"""
@@ -693,7 +693,7 @@ def fetch_twse_monthly_revenue() -> dict[str, dict]:
 
 
 # ---------------------------------------------------------------------------
-# Ex-dividend data (除權息) for total-return price adjustment (P4.5)
+# Ex-dividend data (除權息) for total-return price adjustment
 # ---------------------------------------------------------------------------
 
 _TWSE_EX_DIVIDEND_URL = "https://www.twse.com.tw/rwd/zh/exRight/TWT49U"
@@ -816,7 +816,7 @@ def fetch_twse_dividends(start_year: int, end_year: int) -> list[dict]:
 
 
 # ==============================================================================
-# Phase A1 R11: Margin + Institutional daily snapshots (TWSE/TPEX public endpoints)
+# Margin + Institutional daily snapshots (TWSE/TPEX public endpoints)
 #
 # Replaces per-symbol FinMind fetcher pattern for margin_short + institutional_v2.
 # Each endpoint is ONE HTTP call = full market snapshot for a given date.
@@ -1015,8 +1015,8 @@ def fetch_twse_institutional_daily_all(as_of: datetime) -> dict[str, list[dict]]
     """
     date_str = as_of.strftime("%Y%m%d")
     # TWSE T86 selectType=ALL is flaky on some dates (returns empty for dates
-    # that ALLBUT0999 handles fine — observed 2026-04-17). Try ALLBUT0999
-    # first (more reliable), fall back to ALL only if empty.
+    # that ALLBUT0999 handles fine). Try ALLBUT0999 first (more reliable),
+    # fall back to ALL only if empty.
     for select_type in ("ALLBUT0999", "ALL"):
         try:
             resp = requests.get(
@@ -1071,7 +1071,7 @@ def fetch_tpex_institutional_daily_all(as_of: datetime) -> dict[str, list[dict]]
     www/zh-tw/insti/dailyTrade (1 HTTP call). Same output schema as
     fetch_twse_institutional_daily_all.
 
-    TPEX insti field ordering (empirically confirmed 2026-04-17):
+    TPEX insti field ordering (empirically confirmed):
       [0][1]      代號/名稱
       [2-4]       外陸資合計(含外資自營商) 買/賣/淨  (NOT used; overlaps [8-10]+[5-7])
       [5-7]       外資自營商              買/賣/淨  → Foreign_Dealer_Self

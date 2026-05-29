@@ -25,7 +25,6 @@ import pandas as pd
 from src.features.margin_short_ratio import _normalise_margin_frame, score_margin_short
 from src.features.pead_eps import compute_pead_eps
 
-
 # Quarter-end dates 2021-Q1 .. 2024-Q1 (13 rows). FinMind feeds quarterly EPS
 # stamped at quarter-end; it becomes public +45d (Q1-Q3) / +90d (Q4) later.
 _EPS_QUARTER_ENDS = pd.to_datetime([

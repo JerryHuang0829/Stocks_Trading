@@ -197,7 +197,7 @@ def main():
         print(f"Current rolling 12M Alpha:           {_format_pct(ee.get('last_rolling_12M_alpha'))}")
 
     # Print monthly table for last 18 months
-    print(f"\nLast 18 months (252d rolling):")
+    print("\nLast 18 months (252d rolling):")
     print(f"{'date':<12}{'Sharpe':>10}{'Alpha':>10}{'Bench Sharpe':>14}{'MDD':>10}")
     print("-" * 56)
     recent = output["monthly_stats"][-18:]

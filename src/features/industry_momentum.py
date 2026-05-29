@@ -1,25 +1,22 @@
-"""V0.13 industry_momentum (D-F candidate factor): 6-month per Moskowitz-Grinblatt 1999.
+"""industry_momentum (D-F candidate factor): 6-month per Moskowitz-Grinblatt 1999.
 
-Phase 2 Session 3 (2026-05-05) — H_d_v6 V0.13 §"3 New factor PIT lag spec":
-- 6m formation period (NOT 12m; pre-commit #1 frozen per H_d_v6:57)
+- 6m formation period (NOT 12m; formation length frozen)
 - monthly rebalance frequency
 - per Moskowitz-Grinblatt 1999 "Do Industries Explain Momentum?"
 
-Definition (per H_d_v6:57 D-F row + V0.13 §"industry label PIT strategy"):
+Definition:
     Per symbol score = own industry's average past-6m return.
     Cross-section z-scored across all symbols (not industries).
 
 PIT discipline:
     - Past 6m return computed from ohlcv close < (as_of - 1d) [shift=1]
-    - Industry label PIT strategy (V0.13 lock):
-      - Option A (preferred): caller passes month-end snapshot @ (as_of - 30d);
-        cache key `industry_label_<YYYY-MM-DD>` migration in Phase 2 S6
+    - Industry label PIT strategy:
+      - Option A (preferred): caller passes month-end snapshot @ (as_of - 30d)
       - Option B (caveat fallback): caller passes current snapshot;
         D-F results 標 "industry-label PIT not enforced; D-F caveat"
-        per V0.13 R14 risk register
       Caller controls strategy by passing appropriate `industry_label_map`.
 
-Caller wires (Phase 2 S6 cache fresh-rerun + S5 cell sweep CLI):
+Caller wires:
     from src.features.industry_momentum import compute_industry_momentum_panel
     panel = compute_industry_momentum_panel(
         ohlcv_panel=ohlcv_dict,
@@ -28,21 +25,20 @@ Caller wires (Phase 2 S6 cache fresh-rerun + S5 cell sweep CLI):
         lookback_months=6,  # per MG1999, MUST be 6
     )
 
-V0.13 enforcement: lookback_months parameter validates == 6 to prevent
-silent regression to 12m (pre-commit #1 frozen per R24 §設計-5 fix).
+lookback_months parameter validates == 6 to prevent silent regression to 12m
+(formation length frozen).
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-
-DEFAULT_LOOKBACK_MONTHS: int = 6  # MG1999 per H_d_v6 V0.13; pre-commit #1 frozen
+DEFAULT_LOOKBACK_MONTHS: int = 6  # per MG1999; formation length frozen
 DEFAULT_PIT_INDUSTRY_LAG_DAYS: int = 30
 DEFAULT_Z_CLIP: float = 3.0
 DEFAULT_MIN_TRADING_DAYS: int = 60
-# 2026-05-22 audit (M3): the return is close[-1]/close[0]-1 over the lookback
-# window. min_trading_days alone does not pin the *horizon* — a sparse or
+# The return is close[-1]/close[0]-1 over the lookback window.
+# min_trading_days alone does not pin the *horizon* — a sparse or
 # recently-listed symbol can satisfy the bar count with all bars clustered in
 # the last ~3 months, yielding a much-shorter-than-6m return that silently
 # dilutes the industry average. The window-start bar must therefore lie within
@@ -69,14 +65,14 @@ def compute_industry_momentum_panel(
             (Option A vs B) controlled by caller. Symbols missing from map
             are excluded.
         as_of: rebalance date (typically month-end).
-        lookback_months: MUST be 6 per H_d_v6 V0.13 + MG1999. Raises if != 6
-            (pre-commit #1 frozen; change requires H_d_v7 reframe).
+        lookback_months: MUST be 6 per MG1999. Raises if != 6
+            (formation length frozen).
         z_clip: cross-section z-score outlier clip (default ±3σ).
         min_trading_days: per-symbol minimum OHLCV bars within lookback window
             to compute return; symbols below threshold dropped.
-        horizon_tolerance_days: M3 audit guard. The window-start bar must lie
-            within this many calendar days of cutoff_start; otherwise the
-            symbol's return horizon is shorter than 6m and it is dropped, so
+        horizon_tolerance_days: horizon-consistency guard. The window-start bar
+            must lie within this many calendar days of cutoff_start; otherwise
+            the symbol's return horizon is shorter than 6m and it is dropped, so
             the industry average aggregates a consistent horizon across symbols.
 
     Returns:
@@ -84,13 +80,13 @@ def compute_industry_momentum_panel(
         return. Empty Series when no valid symbols.
 
     Raises:
-        ValueError: if lookback_months != 6 (V0.13 enforcement).
+        ValueError: if lookback_months != 6.
 
     PIT semantics:
         - Past 6m return: close at (as_of - 1d) / close at (as_of - 6m - 1d) - 1
           (shift=1 PIT mirroring high_proximity / low_vol_v2 semantics)
         - Industry label: caller's choice of snapshot date; Option A preferred
-          but Option B caveat fallback acceptable per V0.13 R14
+          but Option B caveat fallback acceptable
     """
     if lookback_months != DEFAULT_LOOKBACK_MONTHS:
         raise ValueError(
@@ -114,7 +110,7 @@ def compute_industry_momentum_panel(
         df_lookback = df[(df.index >= cutoff_start) & (df.index < cutoff_end)]
         if len(df_lookback) < min_trading_days:
             continue
-        # M3 audit horizon-consistency guard: drop symbols whose first available
+        # Horizon-consistency guard: drop symbols whose first available
         # bar lies well after cutoff_start — their close[-1]/close[0]-1 would be
         # a much-shorter-than-6m return and silently dilute the industry mean.
         if df_lookback.index[0] > cutoff_start + pd.Timedelta(days=horizon_tolerance_days):

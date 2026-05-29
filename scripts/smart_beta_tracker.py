@@ -1,6 +1,5 @@
 """
 Smart Beta 對照組 NAV 追蹤腳本（支援 /smart-beta-paper skill）
-2026-04-17 新增。
 
 用途：
   追蹤三個被動對照組的每週 NAV：
@@ -25,7 +24,6 @@ from __future__ import annotations
 
 import logging
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -49,7 +47,7 @@ def _load_nav_history(csv_path: Path) -> pd.DataFrame:
 def _fetch_latest_close(symbol: str, source: str = "finmind") -> float | None:
     """
     取得 symbol 最新 close。預設 finmind，fallback yfinance。
-    Phase A1 期間用既有 src/data/finmind.py 的 fetch_ohlcv。
+    用既有 src/data/finmind.py 的 fetch_ohlcv。
     """
     try:
         from src.data.finmind import fetch_ohlcv

@@ -155,7 +155,7 @@
     ],
     "method": "benjamini_hochberg"
   },
-  "deflated_sharpe_ratio": 0.0,
+  "deflated_sharpe_ratio": 0.0184,
   "deflated_sharpe_n_trials": 3,
   "deflated_sharpe_n_obs": 71,
   "deflated_sharpe_skewness": 0.167,
@@ -129348,5 +129348,9 @@
     "single_ic_date": "2026-05-11",
     "note": "Phase D factor — never contaminated; this is the first stand-alone single-factor IC report (previously only in v7 cell-sweep aggregate)."
   },
-  "enriched_diagnostics_date": "2026-05-11"
+  "enriched_diagnostics_date": "2026-05-11",
+  "deflated_sharpe_corrected_2026_05_28": {
+    "old_value": 0.0,
+    "reason": "Codex DSR audit P0 unit-mismatch fix (ic_analysis.py)"
+  }
 }

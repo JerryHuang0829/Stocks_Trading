@@ -5,8 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -325,10 +325,10 @@ class TestAdjustSplits:
         pd.testing.assert_series_equal(adjusted, prices.astype(float))
 
     def test_gap_spanning_drop_not_detected_as_split(self):
-        """M2 修法：跨長日曆缺口（停牌）的 -51% 變動不應被誤判為 split。
+        """跨長日曆缺口（停牌）的 -51% 變動不應被誤判為 split。
 
         停牌股復牌時跨缺口的單筆 pct_change 可能 >40%，但不是真分割。
-        pre-fix（無 gap guard）會誤調整 → 此測試在舊版會 FAIL。"""
+        無 gap guard 會誤調整 → 此測試在無 guard 時會 FAIL。"""
         prices = pd.Series(
             [100.0, 101.0, 102.0, 50.0, 51.0, 52.0],  # 102→50 = -51%
             index=pd.DatetimeIndex([
@@ -341,7 +341,7 @@ class TestAdjustSplits:
         pd.testing.assert_series_equal(adjusted, prices.astype(float))
 
     def test_gap_spanning_jump_not_detected_as_reverse_split(self):
-        """M2 修法：跨長日曆缺口的 +150% 變動不應被誤判為 reverse split。"""
+        """跨長日曆缺口的 +150% 變動不應被誤判為 reverse split。"""
         prices = pd.Series(
             [10.0, 11.0, 12.0, 30.0, 31.0],  # 12→30 = +150%
             index=pd.DatetimeIndex([
@@ -353,7 +353,7 @@ class TestAdjustSplits:
         pd.testing.assert_series_equal(adjusted, prices.astype(float))
 
     def test_real_split_detected_despite_unrelated_gap(self):
-        """M2 修法不得誤傷：連續交易日的真分割仍須偵測，與跨缺口偽變動共存時只調整真分割。"""
+        """gap guard 不得誤傷：連續交易日的真分割仍須偵測，與跨缺口偽變動共存時只調整真分割。"""
         prices = pd.Series(
             [200.0, 210.0, 52.5, 30.0, 31.0],
             index=pd.DatetimeIndex([
@@ -372,7 +372,7 @@ class TestAdjustSplits:
 
 
 class TestBenchmarkAnnualizationAlignment:
-    """M2: benchmark 年化分母用 aligned 期間，不是 portfolio n_years。"""
+    """benchmark 年化分母用 aligned 期間，不是 portfolio n_years。"""
 
     def test_aligned_window_shorter_than_portfolio(self):
         """portfolio 252 天，benchmark 只在前 126 天 overlap。
@@ -400,7 +400,7 @@ class TestBenchmarkAnnualizationAlignment:
 
 
 class TestShortBenchmarkOverlapGuard:
-    """M2-guard: aligned<21 天不做年化，避免 _ay clamp 放大 100×。"""
+    """aligned<21 天不做年化，避免 _ay clamp 放大 100×。"""
 
     def test_2_day_overlap_skips_relative_metrics(self):
         port_dates = pd.date_range("2024-01-01", periods=252)
@@ -422,7 +422,7 @@ class TestShortBenchmarkOverlapGuard:
 
 
 class TestStatStabilityOnConstants:
-    """M3: 常數/近常數序列不應讓 skew/kurtosis/JB 吐 NaN。"""
+    """常數/近常數序列不應讓 skew/kurtosis/JB 吐 NaN。"""
 
     def test_constant_series_stats_are_none(self):
         """全部 +1% 序列 → std=0 → skew/kurt/JB 應為 None，不是 NaN。"""
@@ -455,9 +455,8 @@ class TestStatStabilityOnConstants:
 class TestAdjustSplitsOHLC:
     """adjust_splits_ohlc(): OHLC DataFrame 4-column split adjustment.
 
-    Added 2026-05-25 for Codex v5.0 R1 P1-4 fix — _compute_regimes needs
-    OHLC-level adjustment so ADX / SMA technical indicators don't misfire
-    at 0050 2025-06 1:4 split.
+    _compute_regimes needs OHLC-level adjustment so ADX / SMA technical
+    indicators don't misfire at 0050 2025-06 1:4 split.
     """
 
     def _make_ohlc(self, closes: list[float]) -> pd.DataFrame:

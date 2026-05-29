@@ -16,11 +16,10 @@ import pickle
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 sys.path.insert(0, "/app")
-from src.backtest.metrics import adjust_splits, adjust_dividends
+from src.backtest.metrics import adjust_dividends, adjust_splits
 
 CACHE_DIR = Path("data/cache/ohlcv")
 DIV_CACHE = Path("data/cache/dividends")
@@ -236,7 +235,7 @@ def main():
         print(f"{s['label']:<40}{s['cagr']:>+8.2%}{s['sharpe']:>+8.2f}{s['vol_annual']:>8.2%}"
               f"{s['mdd']:>+8.2%}{s['worst_year']:>+10.2%}{s['best_year']:>+8.2%}")
 
-    print(f"\n=== 2022-2025 comparison (match strategy backtest period) ===")
+    print("\n=== 2022-2025 comparison (match strategy backtest period) ===")
     print(f"{'Option':<40}{'CAGR':>8}{'Sharpe':>8}{'VolAnn':>8}{'MDD':>8}")
     print("-" * 75)
     for s in [s_0050_4y, s_0056_4y, s_sb_4y]:

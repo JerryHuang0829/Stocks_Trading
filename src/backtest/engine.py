@@ -10,12 +10,11 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from ..portfolio.tw_stock import (
-    _analyze_symbol,
+    _analyze_market_proxy,
+    _batch_precompute_and_analyze,
     _rank_analyses,
     _select_positions,
-    _analyze_market_proxy,
     get_portfolio_config,
-    _batch_precompute_and_analyze,
 )
 from ..storage.database import compute_config_hash
 from ..utils.constants import TECH_SUPPLY_CHAIN_KEYWORDS, TW_ROUND_TRIP_COST, to_utc_ts
@@ -30,9 +29,9 @@ def _annotate_return_gap(snapshot: dict, gap_symbols: list[str]) -> None:
     """Mark a snapshot data_degraded because its holding period's return series
     spans a calendar gap (suspension / cache gap).
 
-    2026-05-22 audit: a gap-spanning row produces a single "daily" return that
-    actually covers weeks, contaminating that period's risk metrics. Per the
-    flag-only policy the return values are left untouched — only surfaced here.
+    A gap-spanning row produces a single "daily" return that actually covers
+    weeks, contaminating that period's risk metrics. Per the flag-only policy
+    the return values are left untouched — only surfaced here.
     """
     snapshot["data_degraded"] = True
     reasons = snapshot.setdefault("data_degraded_reasons", [])
@@ -40,7 +39,7 @@ def _annotate_return_gap(snapshot: dict, gap_symbols: list[str]) -> None:
     if reason not in reasons:
         reasons.append(reason)
 
-DEFAULT_SLIPPAGE_BPS = 10  # 對齊 config/settings.yaml:72 (R19 external audit P1 fix 2026-05-02 + Pro sprint 2026-05-04 補 src/scripts 層)
+DEFAULT_SLIPPAGE_BPS = 10  # 對齊 config/settings.yaml:72
 
 
 def _compute_theme_concentration(
@@ -184,7 +183,7 @@ class _DataSlicer:
     def preload_reference_data(self, backtest_days: int = 2500) -> None:
         """預載入參考資料（回測全期間）。
 
-        P7: market_value 不再用於選股排序（改用成交金額），
+        market_value 不再用於選股排序（改用成交金額），
         因此不再預載入以避免浪費 TWSE API 呼叫。
         market_value 仍可透過 fetch_market_value() 取得（監控用途）。
         """
@@ -304,10 +303,10 @@ class BacktestEngine:
     ):
         self._source = source
         self._config = config
-        # Phase A2 Step 1.5.4: _backtest_context=True marker enables the
-        # silent-renormalize guard in _rank_analyses to raise (instead of warn)
-        # when a weight>0 factor has no real data — prevents false-positive
-        # backtest numbers. get_portfolio_config returns a new merged dict, so
+        # _backtest_context=True marker enables the silent-renormalize guard in
+        # _rank_analyses to raise (instead of warn) when a weight>0 factor has
+        # no real data — prevents false-positive backtest numbers.
+        # get_portfolio_config returns a new merged dict, so
         # dict-spread here creates one more new dict without mutating any caller
         # input. Live callers do not set this marker → guard only warns.
         self._portfolio_config = {
@@ -328,7 +327,7 @@ class BacktestEngine:
         self._factor_coverage_threshold = float(_bt.get("factor_coverage_threshold", 0.3))
         self._dividends: list[dict] | None = None
         # Symbols whose return series spanned a calendar gap in the most recent
-        # _compute_daily_returns call (2026-05-22 audit, flag-only policy).
+        # _compute_daily_returns call (flag-only policy).
         self._last_period_gap_symbols: list[str] = []
 
     def run(
@@ -376,7 +375,7 @@ class BacktestEngine:
         hist_universe = HistoricalUniverse(slicer)
         hist_universe.load()
 
-        # --- 取得除息資料（P4.5 total return adjustment）---
+        # --- 取得除息資料（total return adjustment）---
         # Dividend year range must cover the benchmark's full OHLCV lookback
         # (default 3000 days ≈ 8 years), not just backtest start-1.  Otherwise
         # early benchmark prices miss dividend adjustments → benchmark total
@@ -434,7 +433,7 @@ class BacktestEngine:
                 all_daily_returns.extend(daily_rets)
                 # Attribute any return-series calendar gap to the prior period's
                 # snapshot (monthly_snapshots[-1] = period i-1, whose holdings
-                # were just replayed). 2026-05-22 audit, flag-only policy.
+                # were just replayed). Flag-only policy.
                 if self._last_period_gap_symbols and monthly_snapshots:
                     _annotate_return_gap(
                         monthly_snapshots[-1], self._last_period_gap_symbols
@@ -478,9 +477,9 @@ class BacktestEngine:
                     f"performance metrics; fix data before rerunning."
                 )
 
-            # Phase A3.1.2: pass market_view so regime-aware weights take effect
-            # when portfolio_config has regime_score_weights configured.
-            # Falls back to flat score_weights otherwise (Phase A2 behavior).
+            # Pass market_view so regime-aware weights take effect when
+            # portfolio_config has regime_score_weights configured.
+            # Falls back to flat score_weights otherwise.
             ranked = _rank_analyses(
                 analyses, self._portfolio_config, market_view=market_view,
             )
@@ -672,7 +671,7 @@ class BacktestEngine:
         else:
             portfolio_daily = pd.Series(dtype="float64")
 
-        # --- 空倉日補 0.0（P4.7）---
+        # --- 空倉日補 0.0 ---
         # 原行為只記錄「有持倉」的日子，會讓年化分母 n_years 縮短，
         # 高估年化報酬 / Sharpe。改成 reindex 到交易日曆並 fill 0.0，
         # 讓 cash drag 日明確計入真實持有期間。
@@ -696,7 +695,7 @@ class BacktestEngine:
 
         # --- 計算 KPI ---
         metrics = compute_metrics(portfolio_daily, benchmark_daily)
-        # Override benchmark_type if dividends were applied (P4.5)
+        # Override benchmark_type if dividends were applied
         if self._dividends and metrics.get("benchmark_type") == "price_only":
             metrics["benchmark_type"] = "total_return"
         report = format_report(metrics, benchmark_symbol)
@@ -802,7 +801,7 @@ class BacktestEngine:
         if w_sum <= 0:
             return []
 
-        # --- Drift-aware 日報酬（P4.6）---
+        # --- Drift-aware 日報酬 ---
         # 以目標權重作為初始 dollar value，每日隨股價漂移更新。
         # 未投資部分（cash = 1 - w_sum）報酬為 0，隱含現金拖累。
         # 等同「buy-and-hold within period」，比固定權重更精確。

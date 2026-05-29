@@ -152,11 +152,12 @@ class ProxyPool:
             logger.info("Switched to %s", self.label)
 
     def _fetch(self) -> list[str]:
-        import urllib3; urllib3.disable_warnings()
+        import urllib3
+        urllib3.disable_warnings()
         logger.info("Fetching SOCKS5 proxy list...")
         try:
             resp = _req.get(PROXY_LIST_URL, timeout=15)
-            cands = [l.strip() for l in resp.text.strip().split("\n") if l.strip()]
+            cands = [line.strip() for line in resp.text.strip().split("\n") if line.strip()]
         except Exception: return []
         random.shuffle(cands)
         ok = []
@@ -195,7 +196,7 @@ class TradingCalendar:
 
 
 def build_calendar(ohlcv_dir: pathlib.Path) -> TradingCalendar:
-    # Phase 1: 10 支參考股投票建主日曆
+    # Step 1: 10 支參考股投票建主日曆
     votes: Counter[pd.Timestamp] = Counter()
     avail = []
     for sym in CALENDAR_REFERENCE:
@@ -210,7 +211,7 @@ def build_calendar(ohlcv_dir: pathlib.Path) -> TradingCalendar:
     thr = MIN_VOTES if len(avail) >= 5 else max(1, len(avail) // 2)
     days = sorted(d for d, c in votes.items() if c >= thr)
 
-    # Phase 2: 掃所有 pkl 的最後 10 筆，延伸日曆到最新交易日
+    # Step 2: 掃所有 pkl 的最後 10 筆，延伸日曆到最新交易日
     # 解決問題：參考股 last_day 落後時，後續日期偵測不到缺漏
     ext_count = 0
     if days:
@@ -462,7 +463,7 @@ def generate_report(si_issues, div_issues, ohlcv_results, rev_issues, rev_stats,
     missing_twse = (twse | ETF_SET) - ohlcv_ids
     missing_tpex = tpex - ohlcv_ids
     if missing_twse or missing_tpex:
-        L.append(f"  Missing pkl (should exist, no file):")
+        L.append("  Missing pkl (should exist, no file):")
         if missing_twse: L.append(f"    TWSE: {len(missing_twse)}")
         if missing_tpex: L.append(f"    TPEX: {len(missing_tpex)} {sorted(missing_tpex)[:5]}")
 
@@ -486,7 +487,6 @@ def generate_report(si_issues, div_issues, ohlcv_results, rev_issues, rev_stats,
     L.append(f"  Completeness: {len(with_issues)} stocks, {miss_m} missing months, {part_m} partial, {miss_d} days total")
 
     # Staleness (D6)
-    today = pd.Timestamp(datetime.now().strftime("%Y-%m-%d"), tz="UTC")
     stale = [(r["stock_id"], r["source"], r["last_date"])
              for r in ohlcv_results
              if r["last_date"] and cal.last_day and
@@ -535,8 +535,9 @@ def generate_report(si_issues, div_issues, ohlcv_results, rev_issues, rev_stats,
              len(rev_issues) + len(mv_issues) + len(stale) +
              sum(len(g) for g in ghosts.values()))
     fixable_twse = len([r for r in ohlcv_results if r["issues"] and r["source"] in ("twse","etf")])
-    L.append(f"\n--- Summary ---")
+    L.append("\n--- Summary ---")
     L.append(f"  Total issues: {total}")
+    L.append(f"  Fixable (TWSE/ETF): {fixable_twse}")
     L.append(f"  Missing OHLCV pkl: TWSE {len(missing_twse)}, TPEX {len(missing_tpex)}")
     L.append(f"  Ghosts: P2={len(ghosts.get(2,[]))}, P3={len(ghosts.get(3,[]))}")
     L.append(f"  Stale: {len(stale)}")
@@ -551,7 +552,8 @@ def generate_report(si_issues, div_issues, ohlcv_results, rev_issues, rev_stats,
 
 def _fetch_twse_month(sym, yr, mo, pool):
     """Fetch one month of OHLCV from TWSE via proxy pool."""
-    import urllib3; urllib3.disable_warnings()
+    import urllib3
+    urllib3.disable_warnings()
     if pool.need_rotate(): pool.rotate()
     date_str = f"{yr}{mo:02d}01"
     try:
@@ -743,10 +745,11 @@ class FinMindRotator:
         self._activate_slot()
 
     def _fetch_proxy(self) -> str | None:
-        import urllib3; urllib3.disable_warnings()
+        import urllib3
+        urllib3.disable_warnings()
         try:
             resp = _req.get(PROXY_LIST_URL, timeout=15)
-            cands = [l.strip() for l in resp.text.strip().split("\n") if l.strip()]
+            cands = [line.strip() for line in resp.text.strip().split("\n") if line.strip()]
         except Exception: return None
         random.shuffle(cands)
         for p in cands[:40]:

@@ -60,7 +60,7 @@ def main():
             except Exception:
                 continue
 
-    print(f"OHLCV:")
+    print("OHLCV:")
     print(f"  cached:    {len(ohlcv_tradeable)} / {len(tradeable_set)} ({100*len(ohlcv_tradeable)/len(tradeable_set):.1f}%)")
     print(f"  latest:    {ohlcv_latest}")
     print(f"  missing:   {len(ohlcv_missing)} 支")
@@ -88,7 +88,7 @@ def main():
     rev_missing = tradeable_set - rev_real
 
     print()
-    print(f"Revenue:")
+    print("Revenue:")
     print(f"  real data: {len(rev_tradeable_real)} / {len(tradeable_set)} ({100*len(rev_tradeable_real)/len(tradeable_set):.1f}%)")
     print(f"  sentinel:  {len(rev_sentinel)} (FinMind 抓過但無資料)")
     print(f"  missing:   {len(rev_missing)} 支")
@@ -97,7 +97,7 @@ def main():
     inst_dir = cache_dir / "institutional"
     inst_cached = {p.stem for p in inst_dir.glob("*.pkl")} if inst_dir.exists() else set()
     print()
-    print(f"Institutional (weight=0%, 不影響排名):")
+    print("Institutional (weight=0%, 不影響排名):")
     print(f"  cached:    {len(inst_cached & tradeable_set)}")
 
     # --- Top-80 coverage (most important) ---
@@ -131,7 +131,7 @@ def main():
             if top80_ohlcv_missing:
                 print(f"    缺失:  {', '.join(top80_ohlcv_missing[:10])}")
             else:
-                print(f"    ✅ 全部覆蓋")
+                print("    ✅ 全部覆蓋")
 
             print(f"  Revenue: {80 - len(top80_rev_missing)}/80 ({100*(80-len(top80_rev_missing))/80:.1f}%)")
             if top80_rev_missing:
@@ -139,7 +139,7 @@ def main():
                 if len(top80_rev_missing) > 10:
                     print(f"           ... 共 {len(top80_rev_missing)} 支")
             else:
-                print(f"    ✅ 全部覆蓋")
+                print("    ✅ 全部覆蓋")
         else:
             print("  ⚠️ OHLCV cache 不足，無法計算 top-80 排名")
     except Exception as exc:

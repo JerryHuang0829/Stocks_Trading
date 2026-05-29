@@ -17,7 +17,6 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -153,11 +152,35 @@ def test_compute_cell_metrics_short_series_zeros():
     assert all(v == 0.0 for v in metrics.values())
 
 
+def test_compute_cell_metrics_sharpe_for_dsr_is_per_period_not_annualized():
+    """sharpe_for_dsr must equal mean(active)/std(active) at PER-PERIOD frequency
+    (no √12 annualization). Annualizing here would mismatch the per-period n_obs
+    that deflated_sharpe_ratio expects."""
+    idx = pd.date_range("2020-01-31", periods=12, freq="BME")
+    rng = np.random.RandomState(42)
+    # Construct active with known mean/std
+    active_vals = rng.normal(0.01, 0.02, 12)
+    a = pd.Series(active_vals, index=idx)
+    b = pd.Series(rng.normal(0.005, 0.04, 12), index=idx)
+    p = a + b
+    metrics = _compute_cell_metrics(a, p, b)
+    expected_per_period_sr = float(a.mean() / a.std())
+    assert abs(metrics["sharpe_for_dsr"] - expected_per_period_sr) < 1e-9, (
+        f"sharpe_for_dsr {metrics['sharpe_for_dsr']} should equal per-period "
+        f"mean/std = {expected_per_period_sr} (NOT annualized × √12)"
+    )
+    # Cross-check: annualized would be √12× bigger; reject if it matches that
+    annualized_sr = expected_per_period_sr * np.sqrt(12)
+    assert abs(metrics["sharpe_for_dsr"] - annualized_sr) > 0.1, (
+        "sharpe_for_dsr looks annualized — reintroduces the DSR unit-mismatch bug"
+    )
+
+
 # ---------------------------------------------------------------------------
 # run_cell_sweep_real signature validation
 # ---------------------------------------------------------------------------
 def test_run_cell_sweep_real_rejects_da():
-    """V0.13 Assertion 2: D-A pre-disqualified."""
+    """D-A pre-disqualified: rejected before any cell work."""
     with pytest.raises(ValueError, match="D-A pre-disqualified|not in CANDIDATE_FACTOR_SETS"):
         run_cell_sweep_real(
             "D-A", 8,
@@ -167,7 +190,7 @@ def test_run_cell_sweep_real_rejects_da():
 
 
 def test_run_cell_sweep_real_rejects_invalid_top_n():
-    """pre-commit #7: top_n ∈ {8, 12, 16}."""
+    """top_n must be one of {8, 12, 16}; out-of-set values rejected."""
     with pytest.raises(ValueError, match="not in TOP_N_VALUES|pre-commit #7"):
         run_cell_sweep_real(
             "D-B", 20,
@@ -186,7 +209,7 @@ def test_run_cell_sweep_real_requires_ctx_or_cache_dir():
 
 
 # ---------------------------------------------------------------------------
-# 0050 split-adjust prerequisite (v5.0; 2026-05-24)
+# 0050 split-adjust prerequisite (v5.0)
 # ---------------------------------------------------------------------------
 def _write_fake_0050_with_split(cache_dir, n_pre=200, n_post=50, split_ratio=0.25):
     """Write synthetic 0050 OHLCV with a clean 1:4 split between two consecutive

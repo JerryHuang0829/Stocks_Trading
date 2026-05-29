@@ -1,15 +1,15 @@
-"""V0.13 Assertion 3 落地 — d_cell_aggregate_v7 tests (Phase 2 S6).
+"""d_cell_aggregate_v7 tests.
 
 Verifies:
-- DSR n_trials=18 explicit pass per V1.1b enforcement (raise on None)
-- 18-cell aggregate count enforcement (V0.13 Assertion 3)
+- DSR n_trials=18 explicit pass enforcement (raise on None)
+- 18-cell aggregate count enforcement
 - L1-L6 gate evaluation correctness
-- sole_survivor tie-break (H_d_v6:74 highest IR > highest mean α)
-- Outcome 1/2/4 classification per H_d_v6:200-208
-- D-A composition guard (V0.13 Assertion 2 catches via raise)
+- sole_survivor tie-break (highest IR > highest mean α)
+- Outcome 1/2/4 classification
+- D-A composition guard (catches via raise)
 
-Phase 2 S6.1 owner extends to real BacktestEngine wire-up; S6 aggregate uses
-synthetic cell metrics fixture (per V1.2 stub pattern).
+Aggregate uses a synthetic cell metrics fixture (stub pattern); real
+BacktestEngine wire-up is a follow-up.
 """
 from __future__ import annotations
 
@@ -29,7 +29,6 @@ from scripts.d_cell_aggregate_v7 import (  # noqa: E402
 )
 from scripts.d_cell_sweep_v7 import (  # noqa: E402
     CANDIDATE_FACTOR_SETS,
-    EXPECTED_N_TRIALS,
     TOP_N_VALUES,
 )
 
@@ -82,7 +81,7 @@ def test_aggregate_18_cells_passing_outcome_1():
 
 
 def test_aggregate_assertion_3_n_trials_18():
-    """V0.13 Assertion 3: aggregate result reports n_trials_dsr == 18."""
+    """Aggregate result reports n_trials_dsr == 18."""
     cell_metrics = _build_18_cell_dict(passing=True)
     bootstrap_ci_lowers = {(c, t): 0.005 for c in CANDIDATE_FACTOR_SETS for t in TOP_N_VALUES}
     result = aggregate_cell_results(cell_metrics, bootstrap_ci_lowers)
@@ -91,7 +90,7 @@ def test_aggregate_assertion_3_n_trials_18():
 
 
 def test_aggregate_cell_count_mismatch_raises():
-    """Mutation: pass 17 cells (1 missing) → V0.13 Assertion 3 violation raises."""
+    """Mutation: pass 17 cells (1 missing) → cell-count assertion raises."""
     cell_metrics = _build_18_cell_dict(passing=True)
     # Remove one cell to trigger count mismatch
     incomplete = dict(list(cell_metrics.items())[:17])
@@ -100,7 +99,7 @@ def test_aggregate_cell_count_mismatch_raises():
 
 
 def test_aggregate_d_a_in_cell_metrics_raises():
-    """V0.13 Assertion 2 composition guard via aggregate: D-A in cell_metrics → raises."""
+    """Composition guard via aggregate: D-A in cell_metrics → raises."""
     # Build 18-cell dict but rename one to D-A (forbidden)
     cell_metrics = _build_18_cell_dict(passing=True)
     metrics_template = _make_passing_cell_metrics()
@@ -112,15 +111,15 @@ def test_aggregate_d_a_in_cell_metrics_raises():
 
 
 def test_aggregate_v1_1b_dsr_explicit_n_trials_enforced():
-    """V1.1b enforcement: DSR is called with explicit n_trials kwarg.
+    """DSR is called with explicit n_trials kwarg.
 
     Mutation reverts (passes None or omits kwarg) → deflated_sharpe_ratio
-    raises ValueError per V1.1b. aggregate function ALWAYS passes explicit
+    raises ValueError. aggregate function ALWAYS passes explicit
     n_trials (default = EXPECTED_N_TRIALS=18); only fails if caller explicitly
     overrides to None."""
     cell_metrics = _build_18_cell_dict(passing=True)
     bootstrap_ci_lowers = {(c, t): 0.005 for c in CANDIDATE_FACTOR_SETS for t in TOP_N_VALUES}
-    # Default call: n_trials = 18 (explicit) → no V1.1b raise
+    # Default call: n_trials = 18 (explicit) → no raise
     result = aggregate_cell_results(cell_metrics, bootstrap_ci_lowers)
     # All cells got DSR computed (none None due to fail; though DSR may legitimately
     # return None for low SR — verify at least one is non-None)
@@ -151,7 +150,7 @@ def test_aggregate_partial_cells_outcome_2():
 
 
 def test_aggregate_sole_survivor_picks_highest_ir():
-    """V0.13 H_d_v6:74 tie-break: highest IR > highest mean α.
+    """Tie-break: highest IR > highest mean α.
 
     Build 18 cells where 2 cells pass all L1-L6 with different IRs;
     sole_survivor MUST be the higher-IR cell."""
@@ -167,17 +166,17 @@ def test_aggregate_sole_survivor_picks_highest_ir():
 
 
 def test_aggregate_l1_threshold_locked_at_0_20():
-    """V0.13 LOCK: L1 IR threshold = 0.20 (cannot drift)."""
+    """LOCK: L1 IR threshold = 0.20 (cannot drift)."""
     assert L1_IR_THRESHOLD == 0.20
 
 
 def test_aggregate_l2_threshold_locked_at_0_005():
-    """V0.13 LOCK: L2 mean alpha threshold = 0.005."""
+    """LOCK: L2 mean alpha threshold = 0.005."""
     assert L2_MEAN_ALPHA_THRESHOLD == 0.005
 
 
 def test_aggregate_l4_threshold_locked_at_0_05():
-    """V0.13 LOCK: L4 max DD diff upper = 0.05."""
+    """LOCK: L4 max DD diff upper = 0.05."""
     assert L4_MAX_DD_DIFF_UPPER == 0.05
 
 
@@ -201,3 +200,18 @@ def test_aggregate_no_bootstrap_ci_omits_l6():
     # All cells pass L1-L5 but fail L6 (None) → 5/6 → Outcome-2
     assert result["outcome_classification"] == "Outcome-2 Partial"
     assert result["sole_survivor"] is None
+
+
+def test_aggregate_missing_sharpe_for_dsr_raises_no_silent_ir_fallback():
+    """If a cell's metrics dict lacks 'sharpe_for_dsr', aggregator must raise
+    rather than silently fall back to metrics['ir'] (which is annualized).
+    The fallback would reintroduce the DSR unit-mismatch bug (per-period
+    n_obs vs annualized SR)."""
+    cell_metrics = _build_18_cell_dict(passing=True)
+    bootstrap_ci_lowers = {(c, t): 0.005 for c in CANDIDATE_FACTOR_SETS for t in TOP_N_VALUES}
+    # Drop sharpe_for_dsr from one cell; keep 'ir' (annualized)
+    first_key = next(iter(cell_metrics.keys()))
+    del cell_metrics[first_key]["sharpe_for_dsr"]
+    assert "ir" in cell_metrics[first_key], "test setup: ir must remain"
+    with pytest.raises(KeyError, match="sharpe_for_dsr"):
+        aggregate_cell_results(cell_metrics, bootstrap_ci_lowers)

@@ -1,4 +1,4 @@
-"""V0.15 cache infra improvement — TokenRotator smart_sleep + record_call tests.
+"""TokenRotator smart_sleep + record_call tests.
 
 Verifies:
 - record_call() records first call timestamp per slot
@@ -13,9 +13,8 @@ Mock datetime.now() to test timing logic deterministically.
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -71,7 +70,7 @@ def test_record_call_per_slot_independent(rotator, monkeypatch):
 
 
 def test_smart_sleep_calculates_wait_to_earliest_reset(rotator, monkeypatch):
-    """V0.15 core: sleep until earliest token quota window resets.
+    """Core: sleep until earliest token quota window resets.
 
     Setup mimics 14:45:56 incident:
       Token1@14:00 → resets 15:00

@@ -1,29 +1,28 @@
-"""V0.13 Assertion 3 落地 — 18-cell aggregate engine + sole_survivor logic.
+"""18-cell aggregate engine + sole_survivor logic.
 
-Phase 2 Session 6 (2026-05-05) — H_d_v6 V0.13 §"Code-level enforcement"
 Assertion 3 落地 in `d_cell_aggregate_v7.py`:
-- DSR n_trials=18 explicit pass per V1.1b ic_analysis.py enforcement
+- DSR n_trials=18 explicit pass per ic_analysis.py enforcement
 - 18-cell aggregate (6 candidates × 3 top_n)
 - L1-L6 gate evaluation per cell
-- sole_survivor tie-break per H_d_v6:74 "highest IR > highest mean α"
+- sole_survivor tie-break "highest IR > highest mean α"
 
 Scope:
-- S6 落地 aggregate logic + DSR enforcement + sole_survivor tie-break
-- S6 stub-real split: real cell metrics 由 d_cell_sweep_v7.py::run_cell_sweep_real()
-  + BacktestEngine 跑出（user 端 6-12 hr 含 cache fresh-rerun）；S6 aggregate
+- aggregate logic + DSR enforcement + sole_survivor tie-break
+- stub-real split: real cell metrics 由 d_cell_sweep_v7.py::run_cell_sweep_real()
+  + BacktestEngine 跑出（user 端 6-12 hr 含 cache fresh-rerun）；aggregate
   接 cell metrics dict 為 input（synthetic fixture 驗 aggregate logic）
 - d_cell_aggregate_v7 不直接跑 backtest — 接 (cell_id → metrics) dict
 
-Caller flow (S6.1 user 端 real run):
+Caller flow (user 端 real run):
     # 1. d_cell_sweep_v7.run_cell_sweep_real() 跑 18 cell BacktestEngine
     # 2. 收集 cell metrics 為 dict[(candidate_id, top_n) → metrics_dict]
     # 3. d_cell_aggregate_v7.aggregate_cell_results(cell_metrics) → cell_summary.json
 
-per H_d_v6 V0.13 spec:
-- DSR n_trials=18 explicit (V1.1b deflated_sharpe_ratio() raises on None)
+spec:
+- DSR n_trials=18 explicit (deflated_sharpe_ratio() raises on None)
 - L1 IR ≥ 0.20 / L2 月α ≥ 0.005 / L3 TE ∈ [0.10, 0.30] / L4 ΔMaxDD ≤ +0.05 /
   L5 A1 三子 / L6 80% bootstrap CI lower bound > 0
-- sole_survivor: highest IR > highest mean α (V1.1c P1 #14 unit alignment caveat:
+- sole_survivor: highest IR > highest mean α (unit alignment caveat:
   IR annualized vs α monthly — 預設 IR annualized > α monthly 為 tie-break)
 """
 from __future__ import annotations
@@ -49,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# V0.13 6 hard gates v7 thresholds (LOCKED per H_d_v6:23-36 + 13 pre-commit #1)
+# 6 hard gates v7 thresholds (LOCKED)
 # ---------------------------------------------------------------------------
 L1_IR_THRESHOLD: float = 0.20  # annualized monthly active IR
 L2_MEAN_ALPHA_THRESHOLD: float = 0.005  # monthly alpha
@@ -72,8 +71,8 @@ def _evaluate_gates(
         cell_metrics: dict with keys 'ir' (annualized) / 'mean_alpha_monthly' /
                       'te' / 'max_dd_diff_vs_0050' / 'active_corr' /
                       'beta_adj_alpha_t'
-        bootstrap_ci_lower: 80% bootstrap CI lower bound (Phase 2 S7 owns;
-                            None → L6 not evaluated)
+        bootstrap_ci_lower: 80% bootstrap CI lower bound
+                            (None → L6 not evaluated)
 
     Returns:
         dict[gate_name → PASS bool]
@@ -132,9 +131,9 @@ def aggregate_cell_results(
 ) -> dict[str, Any]:
     """Aggregate 18-cell metrics + DSR + L1-L6 gates + sole_survivor.
 
-    V0.13 Assertion 3 enforce: n_trials defaults to EXPECTED_N_TRIALS (= 18 from
+    Assertion 3 enforce: n_trials defaults to EXPECTED_N_TRIALS (= 18 from
     d_cell_sweep_v7 module-level lock); explicit pass via deflated_sharpe_ratio
-    (which V1.1b raises on None).
+    (which raises on None).
 
     Args:
         cell_metrics: dict[(candidate_id, top_n) → metrics dict]
@@ -142,19 +141,17 @@ def aggregate_cell_results(
                       max_dd_diff_vs_0050 / active_corr / beta_adj_alpha_t /
                       sharpe_for_dsr (optional)
         bootstrap_ci_lowers: dict[(candidate_id, top_n) → 80% CI lower bound]
-                            (Phase 2 S7 produces; None → L6 skipped + caveat)
+                            (None → L6 skipped + caveat)
         n_obs: number of monthly observations for DSR (default 60 IS = 5 yr × 12 mo)
-        n_trials: DSR multi-trial deflate count (default EXPECTED_N_TRIALS=18 per
-                  V0.13 Assertion 3 + V1.1b enforcement)
+        n_trials: DSR multi-trial deflate count (default EXPECTED_N_TRIALS=18)
 
     Returns:
         dict with keys 'cells' (per-cell list), 'sole_survivor' (winning cell or None),
-        'outcome_classification' (Outcome 1/2/4 per H_d_v6:200-208).
+        'outcome_classification' (Outcome 1/2/4).
 
     Raises:
-        ValueError: if cell_metrics 數量 ≠ n_trials (V0.13 Assertion 3 violation)
+        ValueError: if cell_metrics 數量 ≠ n_trials (Assertion 3 violation)
         ValueError (via deflated_sharpe_ratio): if n_trials kwarg explicit None
-                                                  (V1.1b enforcement)
     """
     if len(cell_metrics) != n_trials:
         raise ValueError(
@@ -167,7 +164,7 @@ def aggregate_cell_results(
     bootstrap_ci_lowers = bootstrap_ci_lowers or {}
 
     for (candidate_id, top_n), metrics in cell_metrics.items():
-        # V0.13 Assertion 2 composition guard: D-A excluded
+        # Assertion 2 composition guard: D-A excluded
         if candidate_id == "D-A":
             raise ValueError(
                 f"V0.13 Assertion 2 FAIL: cell ({candidate_id}, {top_n}) "
@@ -177,12 +174,20 @@ def aggregate_cell_results(
         ci_lower = bootstrap_ci_lowers.get((candidate_id, top_n))
         gate_results = _evaluate_gates(metrics, bootstrap_ci_lower=ci_lower)
 
-        # DSR per cell with explicit n_trials (V1.1b enforce raise on None)
-        sharpe = float(metrics.get("sharpe_for_dsr", metrics.get("ir", 0.0)))
+        # DSR requires per-period active SR. metrics['ir'] is annualized — do
+        # not silently fall back to it (would create a unit mismatch with the
+        # per-period n_obs that deflated_sharpe_ratio expects).
+        if "sharpe_for_dsr" not in metrics:
+            raise KeyError(
+                f"cell metrics for {candidate_id} top_n={top_n} missing "
+                "'sharpe_for_dsr' (per-period active Sharpe). Refusing to "
+                "fall back to 'ir' (annualized)."
+            )
+        sharpe = float(metrics["sharpe_for_dsr"])
         dsr = deflated_sharpe_ratio(
             sharpe,
             n_obs=n_obs,
-            n_trials=n_trials,  # V0.13 Assertion 3 + V1.1b explicit kwarg
+            n_trials=n_trials,  # explicit kwarg (deflated_sharpe_ratio raises on None)
         )
 
         cells_summary.append({
@@ -196,11 +201,11 @@ def aggregate_cell_results(
             "all_l1_l6_passed": _all_l1_l6_passes(gate_results),
         })
 
-    # Sole survivor: highest IR among Outcome-1 cells (per H_d_v6:74 tie-break)
+    # Sole survivor: highest IR among Outcome-1 cells (tie-break)
     outcome_1_cells = [c for c in cells_summary if c["all_l1_l6_passed"]]
     sole_survivor: dict[str, Any] | None = None
     if outcome_1_cells:
-        # Tie-break: highest IR > highest mean α (H_d_v6:74)
+        # Tie-break: highest IR > highest mean α
         sole_survivor = max(
             outcome_1_cells,
             key=lambda c: (
@@ -209,7 +214,7 @@ def aggregate_cell_results(
             ),
         )
 
-    # Outcome classification per H_d_v6:200-208
+    # Outcome classification
     # 6 gates: L1 / L2 / L3 / L4 / L5(A1 三子合) / L6
     def _count_l1_l6_passed(c: dict[str, Any]) -> int:
         return (
@@ -249,7 +254,7 @@ def write_cell_summary(
     output_path: pathlib.Path,
 ) -> None:
     """Write aggregate result to JSON. Used for cell_summary_v6.json output
-    consumed by R25-final 獨立 audit + Phase 2 S8 sole_survivor lock."""
+    consumed by 獨立 audit + sole_survivor lock."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(aggregate_result, f, ensure_ascii=False, indent=2, default=str)
@@ -257,13 +262,13 @@ def write_cell_summary(
 
 
 def main() -> None:
-    """CLI entrypoint stub. Real wire-up in S6.1 (cache fresh-rerun + 18 cell run).
+    """CLI entrypoint stub. Real wire-up handles cache fresh-rerun + 18 cell run.
 
-    For S6 stub-level verification, run:
+    For stub-level verification, run:
         python scripts/d_cell_aggregate_v7.py
-    will print Assertion 2/3 enforcement + V0.13 spec lock summary (no real run).
+    will print Assertion 2/3 enforcement + spec lock summary (no real run).
     """
-    print(f"d_cell_aggregate_v7 V0.13 spec lock summary:")
+    print("d_cell_aggregate_v7 V0.13 spec lock summary:")
     print(f"  CANDIDATE_FACTOR_SETS: {CANDIDATE_FACTOR_SETS}")
     print(f"  TOP_N_VALUES: {TOP_N_VALUES}")
     print(f"  EXPECTED_N_TRIALS (V0.13 Assertion 3): {EXPECTED_N_TRIALS}")
@@ -274,8 +279,8 @@ def main() -> None:
     print(f"  L5 A1 sub-conditions: active_corr <= {L5_ACTIVE_CORR_UPPER} / "
           f"TE >= {L5_TE_LOWER} / beta-adj-t > {L5_BETA_ADJ_T_LOWER}")
     print(f"  L6 bootstrap CI lower threshold: > {L6_BOOTSTRAP_CI_LOWER_THRESHOLD}")
-    print(f"  S6 stub: real cell_metrics input from d_cell_sweep_v7.run_cell_sweep_real()")
-    print(f"            (S6.1 user 端 cache fresh-rerun 6-12 hr + 18 cell BacktestEngine run)")
+    print("  S6 stub: real cell_metrics input from d_cell_sweep_v7.run_cell_sweep_real()")
+    print("            (S6.1 user 端 cache fresh-rerun 6-12 hr + 18 cell BacktestEngine run)")
 
 
 if __name__ == "__main__":

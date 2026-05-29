@@ -28,7 +28,6 @@ from __future__ import annotations
 
 from typing import Mapping
 
-import numpy as np
 import pandas as pd
 
 from src.utils.constants import (
@@ -37,7 +36,6 @@ from src.utils.constants import (
     QUARTERLY_EPS_LAG_DAYS_Q4,
 )
 
-
 DEFAULT_MIN_HISTORY = 12    # quarters
 DEFAULT_BASELINE_QUARTERS = 8
 
@@ -45,7 +43,7 @@ DEFAULT_BASELINE_QUARTERS = 8
 def _earliest_asof_for_row(row_date: pd.Timestamp) -> pd.Timestamp:
     """Earliest as_of timestamp at which a given quarter-end row becomes public.
 
-    P1-1: Q4 annual report has a 90-day legal deadline (March 31 next year),
+    Q4 annual report has a 90-day legal deadline (March 31 next year),
     Q1-Q3 quarterlies have 45 days. A flat 60-day blanket lag admits unfiled
     Q4 EPS into the factor universe for early-year as_ofs.
     """
@@ -63,7 +61,7 @@ def _normalise_eps_frame(
 ) -> pd.DataFrame | None:
     """Clean + PIT-truncate the quarterly EPS frame.
 
-    When ``quarter_aware`` is True (default) P1-1 per-quarter deadlines apply:
+    When ``quarter_aware`` is True (default) per-quarter deadlines apply:
     Q4 rows need 90 days, Q1-Q3 rows need 45 days. Passing ``quarter_aware=False``
     falls back to the blanket ``lag_days`` parameter for backward compat.
     """
@@ -109,9 +107,9 @@ def _compute_surprise_z(
         return None
     mu = float(baseline.mean())
     sd = float(baseline.std(ddof=1))
-    # R6-3: `sd == 0` exact compare misses near-constant baselines that
+    # `sd == 0` exact compare misses near-constant baselines that
     # yield sd ~ 1e-14 via float accumulation, producing pathological
-    # pead_surprise_z (~4e12). Mirror the ic_analysis.py R5-2 tolerance.
+    # pead_surprise_z (~4e12). Mirror the ic_analysis.py tolerance.
     if sd < 1e-12 or pd.isna(sd):
         return None
     return (latest - mu) / sd

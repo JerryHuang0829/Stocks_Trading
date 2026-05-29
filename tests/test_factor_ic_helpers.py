@@ -8,21 +8,14 @@ thin shim re-exports them correctly.
 from __future__ import annotations
 
 import sys
-from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts._factor_ic_helpers import (
     DEFAULT_MAX_GAP_DAYS,
-    DEFAULT_MIN_OBS_PER_SYMBOL,
-    MIN_UNIVERSE_SIZE,
-    PANEL_DIRS_FOR_INTERSECTION,
-    REGIME_SYMBOL,
     _forward_return,
     _normalise_index,
     _resolve_price_asof,
@@ -84,9 +77,8 @@ def test_forward_return_missing_symbol_returns_none():
 
 def test_run_factor_ic_re_exports_helpers():
     """F6 thin shim: scripts.run_factor_ic should re-export the same helpers."""
-    from scripts import run_factor_ic
     # Verify helpers re-exported and identical to source
-    from scripts import _factor_ic_helpers
+    from scripts import _factor_ic_helpers, run_factor_ic
     assert run_factor_ic._normalise_index is _factor_ic_helpers._normalise_index
     assert run_factor_ic._load_universe_ohlcv is _factor_ic_helpers._load_universe_ohlcv
     assert run_factor_ic._compute_regimes is _factor_ic_helpers._compute_regimes

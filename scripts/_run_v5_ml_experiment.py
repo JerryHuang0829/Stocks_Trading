@@ -24,7 +24,6 @@ from datetime import datetime
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 
@@ -37,8 +36,8 @@ from scripts._factor_ic_helpers import (  # noqa: E402
     _load_universe_ohlcv,
     _load_universe_timeseries,
 )
+from src.analysis.cpcv import CPCVConfig  # noqa: E402
 from src.analysis.ml_contextual import (  # noqa: E402
-    LOCKED_INTERACTION_NAMES,
     ContextualConfig,
     add_contextual_features,
 )
@@ -47,7 +46,6 @@ from src.analysis.ml_experiment import (  # noqa: E402
     run_baseline_cells,
     run_ml_cells,
 )
-from src.analysis.cpcv import CPCVConfig  # noqa: E402
 from src.analysis.ml_features import LOCKED_FEATURE_NAMES, compute_feature_panel  # noqa: E402
 from src.analysis.ml_optuna import OptunaConfig  # noqa: E402
 from src.analysis.ml_pooling import PoolingConfig, build_training_matrix  # noqa: E402
@@ -287,8 +285,8 @@ def main() -> None:
     # 5. Run ML cells + baseline cells
     logger.info("running %d ML cells × %d Optuna trials each (mode=%s) ...",
                 len(models) * len(top_n_values), n_trials, args.mode)
-    # Codex v5.0 R6 P0 fix: production MUST use CPCV (k=5 / n_test=2 / embargo=1m)
-    # per pre-reg §9. smoke mode uses smaller k=3 / n_test=1 to stay fast.
+    # production MUST use CPCV (k=5 / n_test=2 / embargo=1m) per pre-reg §9.
+    # smoke mode uses smaller k=3 / n_test=1 to stay fast.
     if args.mode == "production":
         cpcv_config = CPCVConfig(n_splits=5, n_test_splits=2, embargo_months=1)
     else:
@@ -390,7 +388,7 @@ def main() -> None:
                f"- ML cells: {len(ml_cells)}",
                f"- Baseline cells: {len(baseline_cells)}",
                f"- Best ML vs baseline Sharpe diff: {best_diff:+.4f}",
-               f"  (pre-reg §1 requires ≥ +0.05)",
+               "  (pre-reg §1 requires ≥ +0.05)",
                f"- ML cells with OOS Sharpe ≥ 0.20 (rough L1 proxy): {n_pass_l_gates}",
                "",
                "## Detail",

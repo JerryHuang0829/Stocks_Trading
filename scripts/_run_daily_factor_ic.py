@@ -1,4 +1,4 @@
-"""Daily factor IC pipeline (v5.0 prep, 2026-05-23).
+"""Daily factor IC pipeline (v5.0).
 
 For factors whose cross-section value updates daily, compute IC of
 factor[t] vs 1-day-forward return at every Nth trading day in [start, end].
@@ -22,7 +22,6 @@ import json
 import logging
 import pathlib
 import sys
-from datetime import datetime
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -40,9 +39,8 @@ from src.utils.paths import resolve_cache_dir  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-# v5.0 (2026-05-24): added reversal_1m. value_ep stays excluded — quarterly
-# EPS doesn't update daily, so daily IC is mostly noise (same exclusion logic
-# as pead_eps).
+# reversal_1m included. value_ep stays excluded — quarterly EPS doesn't update
+# daily, so daily IC is mostly noise (same exclusion logic as pead_eps).
 DAILY_APPLICABLE = ["high_proximity", "margin_short_ratio",
                     "industry_momentum", "idio_vol_max",
                     "reversal_1m"]

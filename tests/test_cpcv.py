@@ -14,7 +14,6 @@ Mutation tests baked in:
 from __future__ import annotations
 
 import sys
-from itertools import combinations
 from math import comb
 from pathlib import Path
 
@@ -26,9 +25,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from src.analysis.cpcv import (  # noqa: E402
-    DEFAULT_EMBARGO_MONTHS,
-    DEFAULT_N_SPLITS,
-    DEFAULT_N_TEST_SPLITS,
     CPCVConfig,
     _group_dates_into_splits,
     cpcv_splits,
@@ -99,7 +95,7 @@ def test_group_raises_when_too_few_dates():
 # ===========================================================================
 def _make_training_indices(n_periods: int = 60, n_stocks: int = 10):
     """Synthetic (as_of, label_end) Series — n_periods × n_stocks rows."""
-    as_ofs = [pd.Timestamp(f"2020-01-15") + pd.DateOffset(months=i)
+    as_ofs = [pd.Timestamp("2020-01-15") + pd.DateOffset(months=i)
               for i in range(n_periods)]
     rows_as_of = []
     rows_label_end = []

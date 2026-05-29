@@ -2,7 +2,7 @@
 
 Per pre-reg §5 + §13 LOCK:
 - Schema strict (9 cols)
-- 2025 strict OOS guarded on as_of AND label_end (Codex v5.0 R2 P0 fix)
+- 2025 strict OOS guarded on as_of AND label_end
 - Complete-case drop with diagnostics
 - Forward return stale-price guard
 - Top-decile per-period independent
@@ -10,9 +10,9 @@ Per pre-reg §5 + §13 LOCK:
 Test plan covers:
   T1-T3  Helpers (_resolve_price_asof / _compute_forward_return / top_decile)
   T4-T6  Schema validation (strict match)
-  T7-T9  OOS boundary guards (as_of + label_end Codex P0 fix)
+  T7-T9  OOS boundary guards (as_of + label_end)
   T10-T12 Builder happy path + diagnostics
-  T13-T15 Mutation tests (audit-style; ensure tests catch real bugs)
+  T13-T15 Mutation tests (ensure tests catch real bugs)
 """
 from __future__ import annotations
 
@@ -27,9 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from src.analysis.ml_pooling import (  # noqa: E402
-    DEFAULT_TOP_DECILE_THRESHOLD,
     PoolingConfig,
-    PoolingDiagnostics,
     _compute_forward_return,
     _resolve_price_asof,
     _validate_oos_boundary,
@@ -174,7 +172,7 @@ def test_schema_validation_raises_for_non_dataframe():
 
 
 # ===========================================================================
-# T5. _validate_oos_boundary (Codex v5.0 R2 P0 fix)
+# T5. _validate_oos_boundary
 # ===========================================================================
 OOS = pd.Timestamp("2025-01-01")
 
@@ -197,9 +195,9 @@ def test_oos_guard_raises_when_as_of_in_oos():
 
 
 def test_oos_guard_raises_when_label_end_in_oos():
-    """Codex v5.0 R2 P0: as_of in IS but label_end falls in OOS → still raise.
+    """as_of in IS but label_end falls in OOS → still raise.
 
-    This is the silent-bug case the original 4a design missed.
+    Guards the silent-bug case where forward-return labeling leaks OOS data.
     as_of = 2024-12-12 (IS), label_end = 2025-01-12 (OOS) →
     forward return = close[2025-01-12]/close[2024-12-12] → READS OOS DATA.
     """
@@ -324,7 +322,7 @@ def test_builder_rejects_as_of_in_oos():
 
 
 def test_builder_rejects_label_end_in_oos_when_as_of_safe():
-    """Codex v5.0 R2 P0: as_of in IS but label_end leaks → must raise."""
+    """as_of in IS but label_end leaks → must raise."""
     feature_names = ["f1"]
     symbols = ["S1"]
     # as_of=2024-12-15 (IS) → next=2025-01-15 (OOS) → label_end leak
@@ -381,14 +379,13 @@ def test_builder_rejects_single_as_of():
 
 
 # ===========================================================================
-# T8. Mutation tests — audit-style
+# T8. Mutation tests
 # ===========================================================================
 def test_mutation_top_decile_uses_past_return_would_be_caught():
     """If someone mutates the label to use PAST instead of FORWARD return,
     the forward_return column would contradict. This test sets up a clear
     case to catch the mutation."""
     # 2 symbols A/B, 2 as_of dates 1 month apart, A jumps +50% between as_ofs.
-    symbols = ["A", "B"]
     as_of_dates = [pd.Timestamp("2024-06-15"), pd.Timestamp("2024-07-15")]
     idx = pd.date_range("2024-01-01", "2024-12-31", freq="D")
     jump_date = pd.Timestamp("2024-07-01")  # falls between the 2 as_ofs
@@ -418,8 +415,8 @@ def test_mutation_top_decile_uses_past_return_would_be_caught():
 
 def test_mutation_oos_guard_off_by_one_would_be_caught():
     """If someone changes < to <= in the OOS check, label_end == OOS start
-    would slip through. T7 boundary test already covers this — duplicate
-    as audit emphasis."""
+    would slip through. T7 boundary test already covers this — duplicated
+    here as explicit mutation-kill emphasis."""
     with pytest.raises(ValueError):
         _validate_oos_boundary(
             as_of=pd.Timestamp("2024-12-15"),

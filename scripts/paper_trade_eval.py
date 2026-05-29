@@ -16,7 +16,6 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -88,7 +87,7 @@ def main():
     if len(official) < 2:
         total_rerun = sum(1 for h in history if h.get("is_rerun", False))
         print(f"正式紀錄: {len(official)} 筆（另有 {total_rerun} 筆 rerun）")
-        print(f"至少需要 2 個月的正式紀錄才能計算報酬。")
+        print("至少需要 2 個月的正式紀錄才能計算報酬。")
         print("請在下個月再平衡後再次執行。")
         sys.exit(0)
 
@@ -148,7 +147,7 @@ def main():
               f"0050 {bench_return:+.2%}  "
               f"Alpha {alpha:+.2%}")
 
-    print(f"\n  --- 累積績效 ---")
+    print("\n  --- 累積績效 ---")
     print(f"  投組累積報酬:   {cumulative - 1:+.2%}")
     print(f"  0050 累積報酬:  {benchmark_cum - 1:+.2%}")
     if benchmark_cum > 0:

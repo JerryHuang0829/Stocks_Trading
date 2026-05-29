@@ -1,10 +1,10 @@
-"""Phase D single-factor IC wrapper for {quality_v3, industry_momentum, idio_vol_max}.
+"""Single-factor IC wrapper for {quality_v3, industry_momentum, idio_vol_max}.
 
-Built 2026-05-11 to fill the gap: Phase A1 5 factors have single-factor IC reports
-(reports/factor_ic/*_ic.json) but the 3 Phase D candidate factors (quality_v3 /
-industry_momentum / idio_vol_max) only appeared inside the v7 cell sweep aggregate.
-This wrapper reuses CellSweepContext data builders + `factor_ic_report` pipeline
-so the resulting JSONs share schema with the Phase A1 fresh-rerun JSONs.
+The 5 core factors have single-factor IC reports (reports/factor_ic/*_ic.json)
+but these 3 candidate factors (quality_v3 / industry_momentum / idio_vol_max)
+only appeared inside the v7 cell sweep aggregate. This wrapper reuses
+CellSweepContext data builders + `factor_ic_report` pipeline so the resulting
+JSONs share schema with the 5-factor fresh-rerun JSONs.
 
 Design
 ------
@@ -17,10 +17,10 @@ Design
      71 periods 2020-01-13 ~ 2025-11-12 by default).
 - Forward returns: `_forward_return` from `scripts/_factor_ic_helpers.py`
     (max_gap_days stale tolerance, close from ctx.ohlcv_panel).
-- Universe: natural per-factor universe (no intersection with the Phase A1
-    panels) because the Phase D factor inputs are different data sources.
-    Cross-factor comparison across A1+D is universe-asymmetric; this is
-    documented as a known_biases entry on each output JSON.
+- Universe: natural per-factor universe (no intersection with the core
+    5-factor panels) because these factor inputs are different data sources.
+    Cross-factor comparison across the combined set is universe-asymmetric;
+    this is documented as a known_biases entry on each output JSON.
 
 Usage
 -----
@@ -30,7 +30,7 @@ Usage
 
 Output
 ------
-    reports/factor_ic/{factor}_ic.json — full schema parity with Phase A1
+    reports/factor_ic/{factor}_ic.json — full schema parity with the core
     5-factor JSONs: after writing result.to_dict(), the JSON is enriched
     in-place via scripts/_enrich_factor_ic_diagnostics.py with
     decile_returns_per_period / decile_avg_returns_across_periods /
@@ -262,11 +262,11 @@ def main() -> None:
     )
     log.info("Wrote %s", out_path)
 
-    # 2026-05-11 R31 finding 1 fix: enrich the JSON in-place with the
-    # same decile / monotonicity / peak-in-middle / price-score-corr /
-    # pit_violation diagnostics the Phase A1 5-factor JSONs carry, so the
-    # Phase D 3-factor JSONs have full schema parity (was only writing
-    # result.to_dict() which lacks these). Reuses scripts/_enrich_factor_ic_diagnostics.py.
+    # Enrich the JSON in-place with the same decile / monotonicity /
+    # peak-in-middle / price-score-corr / pit_violation diagnostics the core
+    # 5-factor JSONs carry, so these 3-factor JSONs have full schema parity
+    # (result.to_dict() alone lacks these). Reuses
+    # scripts/_enrich_factor_ic_diagnostics.py.
     if not args.no_enrich:
         log.info("Enriching %s with Phase-A1-parity diagnostics...", out_path)
         from scripts._enrich_factor_ic_diagnostics import enrich as _enrich

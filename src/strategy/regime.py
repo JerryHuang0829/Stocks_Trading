@@ -1,6 +1,7 @@
 """市場狀態偵測模組"""
 
 import logging
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
