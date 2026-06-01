@@ -267,24 +267,21 @@ for factor in ALL_FACTORS:
 
 st.dataframe(pd.DataFrame(table_rows), width="stretch", hide_index=True)
 
-with st.expander("📊 為什麼 DSR 全 0、FDR 部分顯示 N/A？（點開看白話說明）", expanded=False):
+with st.expander("📊 怎麼讀 DSR、為什麼 FDR 部分顯示 N/A？（點開看白話說明）", expanded=False):
     st.markdown(
         """
-**① 為什麼 8 個因子 DSR 全部 = 0**
+**① DSR 怎麼讀？（不是「全 0」）**
 
-DSR（Deflated Sharpe Ratio）會先把「我試了好幾個因子、最後挑最好看那個」的運氣扣掉，再問一件事:這個因子夠不夠強。判斷方式是跟一個門檻比。
+DSR（Deflated Sharpe Ratio）把「我試了好幾個因子、最後挑最好看那個」的運氣先扣掉（n_trials），再問:這個因子的 IC IR 在這麼多期裡、扣掉運氣後，信心度 Ψ 還剩多少。Ψ 越接近 1 越強。
 
-- 門檻大約是 **IC IR 1.3 到 1.5**（機構 / hedge fund 等級的標準）。
-- 本專案最強的因子，IC IR 只有 **0.33**。
-- 0.33 遠遠搆不到門檻 → 扣掉運氣後信心度 = 0 → **DSR = 0**。8 個因子全部如此。
+本專案 8 個因子實際 DSR **不是全 0**（各因子已按其 pre-reg 家族做 n_trials 多檢定校正）:
 
-**為什麼最強也才 0.33？**
+- **idio_vol_max 0.95、high_proximity 0.81、margin_short_ratio 0.79、pead_eps 0.77**（4 個 DSR>0.5）+ revenue_momentum_v2 0.49（門檻邊緣）— 都不是雜訊。
+- foreign_investor_v2 / quality_v3 / industry_momentum 3 個 ≈ 0 — 因為它們的 IC 是**負的**（方向反了），不是雜訊也不是強訊號。
 
-因為「台股、月頻、long-only、零售規模」這類學術因子，訊號強度的天花板本來就只在 **IC IR 0.3 到 0.4** 這個等級。這是這類因子的現實，不是程式寫錯。而 DSR 的門檻（1.3 到 1.5）是用機構級標準設定的。**因子天花板（0.3 到 0.4）和 DSR 門檻（1.3 到 1.5）是兩個不重疊的量級**，所以 8 個因子的 DSR 必然全是 0。
+**所以單因子層面，價格 / 盈餘動能這一族是有 edge 的。** 真正的問題不在「因子是不是雜訊」，而在下一頁:把這些因子組成 **long-only top-N 投組、扣成本、對 0050 比、且只有 11 個月嚴格 OOS** 時，組合層的 active edge 證不出統計顯著（見「策略驗證」「結論」頁）。
 
-**結論:DSR = 0 不是 bug，是預期內的結果。** 它說的是「用機構級嚴格標準看，這些台股零售因子的訊號不夠強」。
-
-（DSR = 0 跟「樣本只有 60 個月」無關。樣本長度影響的是「策略驗證」頁第 6 關 bootstrap CI 的寬度，不是這裡的 DSR。）
+**常見誤解澄清:** DSR 不是拿 IC IR 去比一個「1.3~1.5 門檻」。它是把 observed IC IR 在 n_obs（71 期）+ n_trials（5）下 deflate 算信心度;IC IR 0.37、p=0.003 的 idio_vol_max，deflate 後 Ψ 仍有 0.946（逼近但未達 0.95 機構顯著線）。
 
 **② 為什麼階段三 3 個因子的 FDR 顯示「N/A」**
 
@@ -325,10 +322,9 @@ DSR 公式裡的 `n_trials` = **「事前鎖定的測試因子家族大小」**�
 - 階段三 3 因子 → `n_trials=3`（後補的另一批，自己的家族）
 - **不合併成 8**：兩批不同時間 pre-register，事後合併 = 改動 pre-registered 參數 = p-hacking
 
-DSR 對 `n_trials` 在 **[2, 30] 範圍內都給 ≈ 0** — 本專案 8 因子 DSR 全 0 對這個參數**不敏感**：
-IC IR 最強的也才 0.33，遠低於「n_trials 個純噪音因子裡運氣最好那個」的期望 Sharpe（n_trials=5 時 ≈ 1.50）。
-DSR=0 的結構性原因是「台股月頻 long-only 因子訊號天花板 ≈ 0.3 到 0.4 vs hedge-fund 級門檻 1.3 到 1.5」，
-**不是樣本太少造成的**（樣本長度影響的是策略驗證頁第 6 關 bootstrap CI，不是這裡的 DSR）。
+各因子 DSR 統一用 `n_trials=5` deflation。在此校正下，動能 / 盈餘族（idio_vol_max / high_proximity / margin_short_ratio / pead_eps）的 Ψ 達 0.77~0.95 — 單因子訊號扣掉多檢定運氣後依然站得住；revenue_momentum_v2 0.49 在門檻邊緣，IC 為負的 3 個因子 Ψ≈0。
+
+這裡的 DSR 看的是「**單因子 IC 的信心度**」;策略能不能贏 0050 是「**投組層**」的事，受 11 個月 strict OOS 樣本限制（見策略驗證頁第 6 關 bootstrap CI）。**兩者不同層，不要混為一談。**
 
 ---
 
