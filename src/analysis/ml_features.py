@@ -67,6 +67,7 @@ def compute_feature_panel(
     market_returns: pd.Series,
     industry_map: Mapping[str, str],
     universe_filter: set[str] | None = None,
+    adjusted_ohlcv_by_symbol: Mapping[str, pd.DataFrame] | None = None,
 ) -> pd.DataFrame:
     """Compute the 5-feature cross-section panel at one rebalance date.
 
@@ -102,19 +103,29 @@ def compute_feature_panel(
     downstream pooling builder does complete-case drop
     (don't impute here — let the consumer decide).
     """
+    # Ratio / return factors (idio_vol_max, high_proximity, reversal_1m) are
+    # scale-invariant → use the split-adjusted panel when provided so in-window
+    # split discontinuities are removed (the cache is raw / unadjusted). value_ep
+    # keeps the RAW ohlcv_by_symbol: its E/P needs price unit-consistent with
+    # EPS, so split-adjusting price alone would corrupt the ratio.
+    ratio_ohlcv = (
+        adjusted_ohlcv_by_symbol if adjusted_ohlcv_by_symbol is not None
+        else ohlcv_by_symbol
+    )
+
     # 1. idio_vol_max (panel, needs market_returns)
     idio_panel = compute_idio_vol_max_panel(
-        ohlcv_panel=dict(ohlcv_by_symbol),
+        ohlcv_panel=dict(ratio_ohlcv),
         market_returns=market_returns,
         as_of=as_of,
     )
 
     # 2. high_proximity
     high_prox_panel = compute_high_proximity_universe(
-        ohlcv_by_symbol, as_of=as_of,
+        ratio_ohlcv, as_of=as_of,
     )
 
-    # 3. value_ep_sn = sector_neutralize(value_ep_raw)
+    # 3. value_ep_sn = sector_neutralize(value_ep_raw) — RAW price (price-level E/P)
     value_ep_raw = compute_value_ep_universe(
         eps_by_symbol,
         ohlcv_by_symbol=ohlcv_by_symbol,
@@ -130,7 +141,7 @@ def compute_feature_panel(
 
     # 5. reversal_1m
     reversal_panel = compute_reversal_1m_universe(
-        ohlcv_by_symbol, as_of=as_of,
+        ratio_ohlcv, as_of=as_of,
     )
 
     # Assemble panel: index = union of all symbols appearing in any factor;

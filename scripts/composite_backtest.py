@@ -225,18 +225,24 @@ def _month_end_dates(start: datetime, end: datetime) -> list[datetime]:
     return [d.to_pydatetime() for d in rng]
 
 
-def _next_month_return(df: pd.DataFrame, rebal_date: datetime, next_rebal_date: datetime) -> float | None:
-    """Return realized return from rebal_date close to next_rebal_date close."""
+def _next_month_return(prices, rebal_date: datetime, next_rebal_date: datetime) -> float | None:
+    """Realized return from rebal_date close to next_rebal_date close.
+
+    ``prices`` may be an OHLCV DataFrame (uses the 'close' column) or a close
+    Series — the latter lets callers pass a split+dividend-adjusted
+    total-return close (the cache is raw/unadjusted).
+    """
     try:
+        close = prices["close"] if isinstance(prices, pd.DataFrame) else prices
         d0 = pd.Timestamp(rebal_date).normalize()
         d1 = pd.Timestamp(next_rebal_date).normalize()
         # find nearest on-or-before close
-        hist0 = df[df.index <= d0]
-        hist1 = df[df.index <= d1]
+        hist0 = close[close.index <= d0]
+        hist1 = close[close.index <= d1]
         if len(hist0) == 0 or len(hist1) == 0:
             return None
-        c0 = hist0["close"].iloc[-1]
-        c1 = hist1["close"].iloc[-1]
+        c0 = hist0.iloc[-1]
+        c1 = hist1.iloc[-1]
         if c0 > 0:
             return float(c1 / c0 - 1.0)
     except Exception:

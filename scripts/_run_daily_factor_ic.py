@@ -49,7 +49,9 @@ DAILY_APPLICABLE = ["high_proximity", "margin_short_ratio",
 def _dispatch_factor_panel(factor_name: str, ctx, as_of):
     """Dispatch factor compute, extending v7 dispatch with v5.0 new factors."""
     if factor_name == "reversal_1m":
-        return compute_reversal_1m_universe(ctx.ohlcv_panel, as_of=as_of)
+        # reversal_1m is return-based → split-adjusted panel (scale-invariant,
+        # PIT-safe), consistent with _compute_factor_panel's ratio factors.
+        return compute_reversal_1m_universe(ctx.adjusted_ohlcv_panel, as_of=as_of)
     return _compute_factor_panel(factor_name, ctx, as_of)
 
 

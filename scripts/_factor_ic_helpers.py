@@ -42,7 +42,7 @@ from typing import Sequence
 
 import pandas as pd
 
-from src.backtest.metrics import adjust_splits_ohlc
+from src.backtest.metrics import adjust_dividends, adjust_splits, adjust_splits_ohlc
 from src.strategy.indicators import calculate_indicators
 from src.strategy.regime import detect_regime
 from src.utils.thresholds import get_threshold, per_panel_min_obs
@@ -99,6 +99,83 @@ def _load_universe_ohlcv(cache_dir: Path) -> dict[str, pd.DataFrame]:
             continue
         result[symbol] = df
     return result
+
+
+def split_adjust_close_panel(
+    close_by_symbol: dict[str, pd.Series],
+) -> dict[str, pd.Series]:
+    """Forward-adjust each symbol's close for splits / reverse-splits.
+
+    The cached OHLCV is raw (unadjusted) — the free FinMind feed has no paid
+    adjusted-price access. Ratio / return factors (high_proximity, reversal_1m,
+    momentum, idio_vol_max) and the 2-point forward-return label are
+    scale-invariant, so forward-adjusting the *full* series is point-in-time
+    safe: a split AFTER as_of uniformly rescales the whole <=as_of window and
+    cancels in any ratio, while a split WITHIN the window is made continuous.
+
+    Do NOT use this for price-LEVEL factors (value_ep E/P, foreign_investor_v2
+    dollar conversion) — those must keep the raw series so price stays
+    unit-consistent with EPS / share counts.
+    """
+    return {s: adjust_splits(c) for s, c in close_by_symbol.items()}
+
+
+def split_adjust_ohlcv_panel(
+    ohlcv_by_symbol: dict[str, "pd.DataFrame | None"],
+) -> dict[str, pd.DataFrame]:
+    """Forward-adjust OHLC columns of each symbol's panel.
+
+    Same PIT-safety rationale as :func:`split_adjust_close_panel`. Uses the OHLC
+    variant so candle geometry stays intact for TR-based indicators downstream.
+    None panels are dropped (mirrors the loaders' missing-symbol handling).
+    """
+    out: dict[str, pd.DataFrame] = {}
+    for s, df in ohlcv_by_symbol.items():
+        if df is None:
+            continue
+        out[s] = adjust_splits_ohlc(df)
+    return out
+
+
+def load_dividends_list(cache_dir: Path) -> list[dict]:
+    """Load the global cash-dividend list (per-symbol ex_date / cash_dividend /
+    close_before) used to build total-return forward-return labels.
+
+    Returns [] if the cache is missing — callers should then fall back to the
+    split-only (price-return) label and log that dividend adjustment is off.
+    """
+    path = cache_dir / "dividends" / "_global.pkl"
+    if not path.exists():
+        return []
+    try:
+        obj = pd.read_pickle(path)
+    except Exception:
+        return []
+    return obj if isinstance(obj, list) else []
+
+
+def total_return_adjust_close_panel(
+    close_by_symbol: dict[str, pd.Series],
+    dividends: list[dict],
+) -> dict[str, pd.Series]:
+    """Split- then dividend-adjust each symbol's close → total-return series.
+
+    Used for the forward-return LABEL so IC measures the return an investor
+    actually earns (price change + reinvested cash dividends), symmetric with
+    the dividend-adjusted 0050 benchmark. Order matters: split-adjust first
+    (``adjust_dividends`` expects a split-adjusted series and its factor uses
+    the original-unit ``close_before``, so it is scale-invariant either way),
+    then dividend-adjust. PIT-safe for the 2-point forward-return: a dividend
+    inside (start, end] is added back, one before start is ignored, one after
+    end cancels in the ratio.
+
+    Do NOT use for price-LEVEL factors (value_ep E/P, foreign_investor_v2
+    dollar conversion) — those keep the raw close.
+    """
+    out: dict[str, pd.Series] = {}
+    for s, c in close_by_symbol.items():
+        out[s] = adjust_dividends(adjust_splits(c), dividends, s)
+    return out
 
 
 def _load_universe_revenue(cache_dir: Path) -> dict[str, pd.DataFrame]:

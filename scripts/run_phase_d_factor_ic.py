@@ -151,9 +151,11 @@ def main() -> None:
         log.error("Benchmark %s OHLCV missing — cannot compute regime", REGIME_SYMBOL)
         sys.exit(1)
 
-    close_by_symbol: dict[str, pd.Series] = {
-        s: df["close"].copy() for s, df in ctx.ohlcv_panel.items()
-    }
+    # Total-return (split+dividend) close for the forward-return LABEL,
+    # symmetric with the total-return 0050 benchmark (cache is raw/unadjusted).
+    # Ratio/return factor inputs are split-adjusted inside _compute_factor_panel
+    # via ctx.adjusted_ohlcv_panel.
+    label_close_by_symbol: dict[str, pd.Series] = ctx.total_return_close
 
     all_dates = sorted({idx for df in ctx.ohlcv_panel.values() for idx in df.index})
     trading_days = pd.DatetimeIndex(all_dates)
@@ -188,7 +190,7 @@ def main() -> None:
         for sym in factor_scores.index:
             total_attempted += 1
             r = _forward_return(
-                close_by_symbol, sym, as_of, next_ts,
+                label_close_by_symbol, sym, as_of, next_ts,
                 max_gap_days=args.max_gap_days,
             )
             if r is None:

@@ -655,6 +655,18 @@ def _analyze_symbol(
             "filters": ["insufficient_history"],
         }
 
+    # Forward-adjust splits / reverse-splits before indicators, momentum and
+    # the SMA-based eligibility test. The cached OHLCV is raw (unadjusted) —
+    # the free FinMind feed has no paid adjusted-price access — so a name with
+    # a split or capital reduction inside the momentum / SMA window would
+    # otherwise carry a fake -50~-90% (or +100%) jump that corrupts
+    # price_momentum, trend_quality and the close-vs-SMA filters. Mirrors the
+    # adjustment _analyze_market_proxy applies to the benchmark.
+    df = df.copy()
+    for col in ("open", "high", "low", "close"):
+        if col in df.columns:
+            df[col] = adjust_splits(df[col])
+
     df = calculate_indicators(df, strategy)
     regime = detect_regime(df)
     latest = df.iloc[-1]

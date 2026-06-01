@@ -94,6 +94,47 @@ def test_compute_feature_panel_returns_correct_schema():
     assert list(panel.columns) == LOCKED_FEATURE_NAMES
 
 
+def test_adjusted_ohlcv_routes_ratio_factors_not_value_ep():
+    """adjusted_ohlcv_by_symbol must drive ratio/return features (high_proximity)
+    while value_ep keeps the RAW ohlcv (price-level E/P must stay unit-consistent
+    with EPS)."""
+    from scripts._factor_ic_helpers import split_adjust_ohlcv_panel
+
+    symbols = [f"S{i}" for i in range(8)]
+    raw = {s: _make_ohlcv(i) for i, s in enumerate(symbols)}
+    # Inject a raw (unadjusted) 1:2 split ~100 bars before end on every symbol.
+    for df in raw.values():
+        split_day = df.index[-100]
+        df.loc[df.index < split_day, ["open", "high", "low", "close"]] *= 2.0
+    adjusted = split_adjust_ohlcv_panel(raw)
+
+    eps = {s: _make_eps(i) for i, s in enumerate(symbols)}
+    market_idx = raw["S0"].index
+    market_returns = pd.Series(
+        np.random.RandomState(0).normal(0.0003, 0.012, len(market_idx)),
+        index=market_idx,
+    )
+    industry_map = {s: f"IND_{i % 3}" for i, s in enumerate(symbols)}
+    as_of = pd.Timestamp("2024-06-15")
+    kw = dict(eps_by_symbol=eps, market_returns=market_returns,
+              industry_map=industry_map)
+
+    raw_only = compute_feature_panel(as_of=as_of, ohlcv_by_symbol=raw, **kw)
+    with_adj = compute_feature_panel(
+        as_of=as_of, ohlcv_by_symbol=raw, adjusted_ohlcv_by_symbol=adjusted, **kw,
+    )
+
+    # high_proximity differs: raw has the fake split discontinuity in its 52w
+    # rolling-max window; adjusted removes it.
+    hp_raw = raw_only["high_proximity"].dropna()
+    hp_adj = with_adj["high_proximity"].reindex(hp_raw.index)
+    assert (hp_raw - hp_adj).abs().max() > 0.05
+    # value_ep_sn identical: value_ep always uses the RAW ohlcv, ignores adjusted.
+    ve_raw = raw_only["value_ep_sn"].dropna()
+    ve_adj = with_adj["value_ep_sn"].reindex(ve_raw.index)
+    assert len(ve_raw) > 0 and np.allclose(ve_raw.values, ve_adj.values)
+
+
 def test_compute_feature_panel_universe_filter_applied():
     """Universe filter must restrict output to specified symbols."""
     symbols = [f"S{i}" for i in range(8)]

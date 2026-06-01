@@ -32,6 +32,10 @@ from scripts._factor_ic_helpers import (  # noqa: E402
     _load_ohlcv,
     _load_universe_ohlcv,
     _load_universe_timeseries,
+    load_dividends_list,
+    split_adjust_close_panel,
+    split_adjust_ohlcv_panel,
+    total_return_adjust_close_panel,
 )
 from src.analysis.ml_contextual import ContextualConfig, add_contextual_features  # noqa: E402
 from src.analysis.ml_features import LOCKED_FEATURE_NAMES, compute_feature_panel  # noqa: E402
@@ -62,6 +66,14 @@ def main():
     logger.info("loading minimal cache for OOS-only run ...")
     ohlcv_by_symbol = _load_universe_ohlcv(cache_dir)
     close_by_symbol = {s: df["close"].copy() for s, df in ohlcv_by_symbol.items()}
+    # Match the main v5.0 run: split-adjusted features + total-return label, RAW
+    # for value_ep (price-level). Keeps this fair-baseline check consistent.
+    adjusted_ohlcv_by_symbol = split_adjust_ohlcv_panel(ohlcv_by_symbol)
+    _divs = load_dividends_list(cache_dir)
+    label_close_by_symbol = (
+        total_return_adjust_close_panel(close_by_symbol, _divs) if _divs
+        else split_adjust_close_panel(close_by_symbol)
+    )
     eps_by_symbol = _load_universe_timeseries(cache_dir / "quarterly_eps")
     industry_map = _load_industry_labels(cache_dir) or {}
     issued_panel = _load_issued_capital_panel(cache_dir)
@@ -87,6 +99,7 @@ def main():
         try:
             panel = compute_feature_panel(
                 as_of=ts, ohlcv_by_symbol=ohlcv_by_symbol,
+                adjusted_ohlcv_by_symbol=adjusted_ohlcv_by_symbol,
                 eps_by_symbol=eps_by_symbol, market_returns=market_returns,
                 industry_map=industry_map, universe_filter=universe_filter,
             )
@@ -100,7 +113,7 @@ def main():
         forbidden_oos_start=pd.Timestamp("2027-01-01"),   # generous for OOS-mode
     )
     oos_df, _ = build_training_matrix(
-        oos_panels, close_by_symbol, sorted(oos_panels.keys()), config,
+        oos_panels, label_close_by_symbol, sorted(oos_panels.keys()), config,
     )
     logger.info("OOS matrix: %d rows", len(oos_df))
 

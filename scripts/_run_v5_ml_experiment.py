@@ -35,6 +35,10 @@ from scripts._factor_ic_helpers import (  # noqa: E402
     _load_ohlcv,
     _load_universe_ohlcv,
     _load_universe_timeseries,
+    load_dividends_list,
+    split_adjust_close_panel,
+    split_adjust_ohlcv_panel,
+    total_return_adjust_close_panel,
 )
 from src.analysis.cpcv import CPCVConfig  # noqa: E402
 from src.analysis.ml_contextual import (  # noqa: E402
@@ -108,8 +112,12 @@ def _build_rebalance_dates(ohlcv_by_symbol, start, end):
 def _build_matrix(
     as_of_dates: list[pd.Timestamp],
     ohlcv_by_symbol, eps_by_symbol, market_returns, industry_map,
-    universe_filter, close_by_symbol, label_name: str,
+    universe_filter, label_close_by_symbol, label_name: str,
+    *, adjusted_ohlcv_by_symbol=None,
 ):
+    # ohlcv_by_symbol = RAW (value_ep price-level); adjusted_ohlcv_by_symbol =
+    # split-adjusted (ratio/return features); label_close_by_symbol =
+    # total-return (forward-return label, symmetric with adjusted benchmark).
     panels = {}
     for date in as_of_dates:
         ts = pd.Timestamp(date)
@@ -118,6 +126,7 @@ def _build_matrix(
         try:
             panel = compute_feature_panel(
                 as_of=ts, ohlcv_by_symbol=ohlcv_by_symbol,
+                adjusted_ohlcv_by_symbol=adjusted_ohlcv_by_symbol,
                 eps_by_symbol=eps_by_symbol, market_returns=market_returns,
                 industry_map=industry_map, universe_filter=universe_filter,
             )
@@ -133,7 +142,7 @@ def _build_matrix(
     # Need at least 2 as_ofs to build labels
     if len(accepted) < 2:
         raise RuntimeError(f"[{label_name}] only {len(accepted)} valid panels")
-    df, diag = build_training_matrix(panels, close_by_symbol, accepted, config)
+    df, diag = build_training_matrix(panels, label_close_by_symbol, accepted, config)
     return df, diag, panels
 
 
@@ -184,6 +193,27 @@ def main() -> None:
     logger.info("loading OHLCV ...")
     ohlcv_by_symbol = _load_universe_ohlcv(cache_dir)
     close_by_symbol = {s: df["close"].copy() for s, df in ohlcv_by_symbol.items()}
+    # Split-adjusted OHLC for ratio/return features; total-return close for the
+    # forward-return label (symmetric with the split+dividend-adjusted 0050
+    # benchmark). RAW close_by_symbol / ohlcv_by_symbol stay for value_ep (E/P)
+    # and the size factor (market cap = price x shares) — price-level inputs
+    # whose unit consistency with EPS / shares must not be broken.
+    adjusted_ohlcv_by_symbol = split_adjust_ohlcv_panel(ohlcv_by_symbol)
+    dividends_list = load_dividends_list(cache_dir)
+    if dividends_list:
+        label_close_by_symbol = total_return_adjust_close_panel(
+            close_by_symbol, dividends_list
+        )
+        logger.info(
+            "forward-return label: total-return (split+dividend), %d dividend records",
+            len(dividends_list),
+        )
+    else:
+        label_close_by_symbol = split_adjust_close_panel(close_by_symbol)
+        logger.warning(
+            "dividends cache empty — label is split-only (price return), NOT "
+            "total-return"
+        )
     eps_by_symbol = _load_universe_timeseries(cache_dir / "quarterly_eps")
     industry_map = _load_industry_labels(cache_dir) or {}
     issued_panel = _load_issued_capital_panel(cache_dir)
@@ -206,7 +236,8 @@ def main() -> None:
     logger.info("building IS training matrix ...")
     is_df, is_diag, is_panels = _build_matrix(
         is_dates_kept, ohlcv_by_symbol, eps_by_symbol, market_returns,
-        industry_map, universe_filter, close_by_symbol, "IS",
+        industry_map, universe_filter, label_close_by_symbol, "IS",
+        adjusted_ohlcv_by_symbol=adjusted_ohlcv_by_symbol,
     )
     logger.info("  IS matrix: %d rows", len(is_df))
 
@@ -222,6 +253,7 @@ def main() -> None:
         try:
             panel = compute_feature_panel(
                 as_of=ts, ohlcv_by_symbol=ohlcv_by_symbol,
+                adjusted_ohlcv_by_symbol=adjusted_ohlcv_by_symbol,
                 eps_by_symbol=eps_by_symbol, market_returns=market_returns,
                 industry_map=industry_map, universe_filter=universe_filter,
             )
@@ -239,7 +271,7 @@ def main() -> None:
     if len(oos_accepted) < 2:
         raise RuntimeError(f"only {len(oos_accepted)} OOS panels — cannot build pairs")
     oos_df, oos_diag = build_training_matrix(
-        oos_panels, close_by_symbol, oos_accepted, oos_config,
+        oos_panels, label_close_by_symbol, oos_accepted, oos_config,
     )
     logger.info("  OOS matrix: %d rows", len(oos_df))
 

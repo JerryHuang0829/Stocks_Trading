@@ -110,6 +110,10 @@ class CellSweepContext:
         self._market_returns: pd.Series | None = None
         self._benchmark_monthly_returns: pd.Series | None = None
         self._month_ends: list[datetime] | None = None
+        # Price-adjustment caches (cache is raw/unadjusted; see properties).
+        self._adjusted_ohlcv_panel: dict[str, pd.DataFrame] | None = None
+        self._dividends: list[dict] | None = None
+        self._total_return_close: dict[str, pd.Series] | None = None
 
     @property
     def month_ends(self) -> list[datetime]:
@@ -197,6 +201,50 @@ class CellSweepContext:
                 require_dividend_adjust=self._require_dividend_adjust,
             )
         return self._benchmark_monthly_returns
+
+    @property
+    def adjusted_ohlcv_panel(self) -> dict[str, pd.DataFrame]:
+        """Split-adjusted OHLC for ratio/return factors (high_proximity,
+        idio_vol_max, industry_momentum). The cache is raw/unadjusted; these
+        factors are scale-invariant so full-series split-adjust is PIT-safe
+        (see _factor_ic_helpers.split_adjust_ohlcv_panel). Fundamentals
+        (pead_eps / quality_v3 / margin_short) use the raw ohlcv_panel.
+        """
+        if self._adjusted_ohlcv_panel is None:
+            from scripts._factor_ic_helpers import split_adjust_ohlcv_panel
+            self._adjusted_ohlcv_panel = split_adjust_ohlcv_panel(self.ohlcv_panel)
+        return self._adjusted_ohlcv_panel
+
+    @property
+    def dividends(self) -> list[dict]:
+        if self._dividends is None:
+            from scripts._factor_ic_helpers import load_dividends_list
+            self._dividends = load_dividends_list(self.cache_dir)
+        return self._dividends
+
+    @property
+    def total_return_close(self) -> dict[str, pd.Series]:
+        """Split+dividend-adjusted close per symbol for the realized
+        forward-return / monthly return (symmetric with the total-return 0050
+        benchmark). Falls back to split-only if the dividend cache is empty.
+        """
+        if self._total_return_close is None:
+            from scripts._factor_ic_helpers import (
+                split_adjust_close_panel,
+                total_return_adjust_close_panel,
+            )
+            raw_close = {s: df["close"].copy() for s, df in self.ohlcv_panel.items()}
+            if self.dividends:
+                self._total_return_close = total_return_adjust_close_panel(
+                    raw_close, self.dividends
+                )
+            else:
+                self._total_return_close = split_adjust_close_panel(raw_close)
+                logger.warning(
+                    "dividends cache empty — cell-sweep return is split-only "
+                    "(price return), NOT total-return"
+                )
+        return self._total_return_close
 
     def _load_pkl_panel(self, dataset: str) -> dict[str, pd.DataFrame]:
         """Load all .pkl files in a cache subdir; key = stock_id."""
@@ -470,8 +518,10 @@ def _compute_factor_panel(
     Returns cross-section pd.Series indexed by symbol, value = raw factor score.
     Empty Series when no valid symbols (caller handles via intersection guard).
     """
+    # Ratio/return factors use the split-adjusted panel (scale-invariant,
+    # PIT-safe); fundamentals (pead_eps / quality_v3 / margin_short) use raw.
     if factor_name == "high_proximity":
-        return compute_high_proximity_universe(ctx.ohlcv_panel, as_of)
+        return compute_high_proximity_universe(ctx.adjusted_ohlcv_panel, as_of)
     if factor_name == "pead_eps":
         return compute_pead_eps_universe(ctx.eps_by_symbol, as_of=as_of)
     if factor_name == "margin_short_ratio":
@@ -484,10 +534,12 @@ def _compute_factor_panel(
         return compute_quality_v3_panel(ctx.financial_history, as_of=as_of)
     if factor_name == "industry_momentum":
         return compute_industry_momentum_panel(
-            ctx.ohlcv_panel, ctx.industry_label_map, as_of
+            ctx.adjusted_ohlcv_panel, ctx.industry_label_map, as_of
         )
     if factor_name == "idio_vol_max":
-        return compute_idio_vol_max_panel(ctx.ohlcv_panel, ctx.market_returns, as_of)
+        return compute_idio_vol_max_panel(
+            ctx.adjusted_ohlcv_panel, ctx.market_returns, as_of
+        )
     raise ValueError(f"Unknown factor: {factor_name}")
 
 
@@ -705,9 +757,10 @@ def run_cell_sweep_real(
 
         # Step 4: forward return per stock; equal-weight portfolio
         rets = []
+        tr_close = ctx.total_return_close  # split+dividend total-return per symbol
         for sid in top_syms:
-            if sid in ctx.ohlcv_panel:
-                r = _next_month_return(ctx.ohlcv_panel[sid], rebal, next_rebal)
+            if sid in tr_close:
+                r = _next_month_return(tr_close[sid], rebal, next_rebal)
                 if r is not None:
                     rets.append(r)
         if not rets:

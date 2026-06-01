@@ -57,6 +57,10 @@ from scripts._factor_ic_helpers import (  # noqa: F401
     _market_value_asof,  # as-of lookup
     _normalise_index,
     _resolve_price_asof,
+    load_dividends_list,
+    split_adjust_close_panel,
+    split_adjust_ohlcv_panel,
+    total_return_adjust_close_panel,
 )
 from src.analysis.ic_analysis import factor_ic_report
 from src.backtest.engine import BacktestEngine
@@ -245,7 +249,10 @@ def main() -> None:
     # Primary panel per factor
     panel_by_symbol: dict
     if panel_type == "ohlcv":
-        panel_by_symbol = ohlcv_by_symbol
+        # ohlcv factors here (high_proximity / reversal_1m) are ratio/return
+        # based → scale-invariant, so split-adjusting the full panel is
+        # PIT-safe and removes in-window split discontinuities (cache is raw).
+        panel_by_symbol = split_adjust_ohlcv_panel(ohlcv_by_symbol)
     elif panel_type == "revenue":
         log.info("Loading universe revenue from cache...")
         panel_by_symbol = _load_universe_timeseries(cache_dir / "revenue")
@@ -334,6 +341,28 @@ def main() -> None:
     close_by_symbol: dict[str, pd.Series] = {
         s: df["close"].copy() for s, df in ohlcv_by_symbol.items()
     }
+    # Total-return (split + dividend adjusted) close for the forward-return
+    # LABEL, so IC measures the return an investor actually earns and is
+    # symmetric with the dividend-adjusted 0050 benchmark. value_ep /
+    # foreign_investor_v2 deliberately keep the RAW close_by_symbol above
+    # (price-level E/P and dollar-flow conversion need price unit-consistent
+    # with EPS / share counts).
+    dividends_list = load_dividends_list(cache_dir)
+    if dividends_list:
+        label_close_by_symbol = total_return_adjust_close_panel(
+            close_by_symbol, dividends_list
+        )
+        log.info(
+            "Forward-return label: total-return (split+dividend), %d dividend records",
+            len(dividends_list),
+        )
+    else:
+        label_close_by_symbol = split_adjust_close_panel(close_by_symbol)
+        log.warning(
+            "dividends cache empty — forward-return label is split-only "
+            "(price return), NOT total-return; alpha vs total-return benchmark "
+            "will be understated"
+        )
 
     all_dates = sorted({idx for df in ohlcv_by_symbol.values() for idx in df.index})
     trading_days = pd.DatetimeIndex(all_dates)
@@ -383,7 +412,7 @@ def main() -> None:
         for sym in factor_scores.index:
             total_attempted += 1
             r = _forward_return(
-                close_by_symbol, sym, as_of, next_ts,
+                label_close_by_symbol, sym, as_of, next_ts,
                 max_gap_days=args.max_gap_days,
             )
             if r is None:

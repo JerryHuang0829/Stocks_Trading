@@ -42,6 +42,10 @@ from scripts._factor_ic_helpers import (  # noqa: E402
     _load_ohlcv,
     _load_universe_ohlcv,
     _load_universe_timeseries,
+    load_dividends_list,
+    split_adjust_close_panel,
+    split_adjust_ohlcv_panel,
+    total_return_adjust_close_panel,
 )
 from src.analysis.ml_features import LOCKED_FEATURE_NAMES, compute_feature_panel  # noqa: E402
 from src.analysis.ml_pooling import PoolingConfig, build_training_matrix  # noqa: E402
@@ -76,6 +80,13 @@ def main() -> None:
     logger.info("loading universe OHLCV ...")
     ohlcv_by_symbol = _load_universe_ohlcv(cache_dir)
     close_by_symbol = {s: df["close"].copy() for s, df in ohlcv_by_symbol.items()}
+    # Match the main v5.0 run: split-adjusted features + total-return label.
+    adjusted_ohlcv_by_symbol = split_adjust_ohlcv_panel(ohlcv_by_symbol)
+    _divs = load_dividends_list(cache_dir)
+    label_close_by_symbol = (
+        total_return_adjust_close_panel(close_by_symbol, _divs) if _divs
+        else split_adjust_close_panel(close_by_symbol)
+    )
     logger.info("  %d OHLCV symbols", len(ohlcv_by_symbol))
 
     logger.info("loading quarterly_eps ...")
@@ -134,6 +145,7 @@ def main() -> None:
             panel = compute_feature_panel(
                 as_of=ts,
                 ohlcv_by_symbol=ohlcv_by_symbol,
+                adjusted_ohlcv_by_symbol=adjusted_ohlcv_by_symbol,
                 eps_by_symbol=eps_by_symbol,
                 market_returns=market_returns,
                 industry_map=industry_map,
@@ -157,7 +169,7 @@ def main() -> None:
     accepted_ts = [pd.Timestamp(d) for d in accepted]
     df, diagnostics = build_training_matrix(
         feature_panels_by_date=panels_by_date,
-        close_by_symbol=close_by_symbol,
+        close_by_symbol=label_close_by_symbol,
         as_of_dates=accepted_ts,
         config=config,
     )
